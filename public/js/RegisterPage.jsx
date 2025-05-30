@@ -8,7 +8,7 @@ export default function RegisterPage() {
         email: '',
         password: '',
         password_confirmation: '',
-        type_id: '', // 1: mahasiswa_putri, 2: mahasiswa_putra, 3: non_mahasiswa
+        type_id: '', // 1: mahasiswa, 3: non_mahasiswa
         nim: '',
         gender: '',
         phone: '',
@@ -33,7 +33,7 @@ export default function RegisterPage() {
         setError(null);
         setSuccess(null);
         // Validasi NIM wajib jika mahasiswa
-        if ((form.type_id === '1' || form.type_id === '2') && !form.nim) {
+        if ((form.type_id === '1') && !form.nim) {
             setError('NIM wajib diisi untuk mahasiswa.');
             setLoading(false);
             return;
@@ -52,8 +52,7 @@ export default function RegisterPage() {
         }
         // Map type_id ke tenant_type string sesuai proto
         let tenant_type = '';
-        if (form.type_id === '1') tenant_type = 'mahasiswa_putri';
-        else if (form.type_id === '2') tenant_type = 'mahasiswa_putra';
+        if (form.type_id === '1') tenant_type = 'mahasiswa';
         else if (form.type_id === '3') tenant_type = 'non_mahasiswa';
         // Ambil latitude/longitude dari lokasi
         let home_latitude = null, home_longitude = null;
@@ -93,8 +92,7 @@ export default function RegisterPage() {
                     <label className="form-label">Jenis Tenant</label>
                     <select className="form-select" name="type_id" value={form.type_id} onChange={handleChange} required>
                         <option value="">Pilih Jenis Tenant</option>
-                        <option value="1">Mahasiswa Putri</option>
-                        <option value="2">Mahasiswa Putra</option>
+                        <option value="1">Mahasiswa</option>
                         <option value="3">Non Mahasiswa</option>
                     </select>
                 </div>
@@ -106,7 +104,7 @@ export default function RegisterPage() {
                         <option value="P">Perempuan</option>
                     </select>
                 </div>
-                {(form.type_id === '1' || form.type_id === '2') && (
+                {(form.type_id === '1') && (
                     <div className="mb-3">
                         <label className="form-label">NIM</label>
                         <input type="text" className="form-control" name="nim" value={form.nim} onChange={handleChange} required />
@@ -137,11 +135,11 @@ export default function RegisterPage() {
                     <input type="text" className="form-control" name="address" value={form.address} onChange={handleChange} required />
                 </div>
                 <div className="mb-3">
-                    <label className="form-label">Home Location (click on map to set)</label>
-                    <DistancePicker onLocationSelect={handleLocation} />
+                    <label className="form-label">Home Location (click on map to set)</label>                    <DistancePicker onLocationSelect={handleLocation} />
                     {form.location && (
-                        <div className="mt-2 text-success">
-                            Selected: {form.location.lat.toFixed(5)}, {form.location.lng.toFixed(5)}
+                        <div className="mt-2">
+                            <div className="text-success mb-2 text-center">Selected: {form.location.lat.toFixed(5)}, {form.location.lng.toFixed(5)}</div>
+                            <div className="text-primary">Jarak ke Titibah: {form.location.distance ? form.location.distance.toLocaleString() : '-'} meter</div>
                         </div>
                     )}
                 </div>
