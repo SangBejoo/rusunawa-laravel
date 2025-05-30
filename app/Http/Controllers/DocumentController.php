@@ -1,0 +1,223 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\DocumentService;
+use App\Services\TenantAuthService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class DocumentController extends Controller
+{
+    protected $documentService;
+    protected $authService;
+
+    public function __construct(DocumentService $documentService, TenantAuthService $authService)
+    {
+        $this->documentService = $documentService;
+        $this->authService = $authService;
+        $this->middleware('tenant.auth');
+    }
+
+    /**
+     * Display a listing of tenant documents
+     */
+    public function index()
+    {
+        $tenant = $this->authService->getTenantData();
+        
+        if (!$tenant) {
+            return redirect()->route('tenant.login')
+                ->with('error', 'Your session has expired. Please login again.');
+        }
+        
+        $response = $this->documentService->getTenantDocuments($tenant['tenant_id']);
+        
+        $documentTypes = $this->getDocumentTypes();
+        
+        return view('tenant.documents', [
+            'tenant' => $tenant,
+            'documents' => $response['success'] ? $response['body']['documents'] : [],
+            'documentTypes' => $documentTypes
+        ]);
+    }
+
+    /**
+     * Store a newly created document
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'doc_type_id' => 'required|numeric',
+            'file' => 'required|file|max:5120', // 5MB max
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $tenant = $this->authService->getTenantData();
+        
+        if (!$tenant) {
+            return redirect()->route('tenant.login')
+                ->with('error', 'Your session has expired. Please login again.');
+        }
+        
+        $file = $request->file('file');
+        $isImage = str_contains($file->getMimeType(), 'image/');
+        
+        $response = $this->documentService->uploadDocument(
+            $tenant['tenant_id'],
+            $file,
+            $request->doc_type_id,
+            $request->description ?? ''
+        );
+        
+        if (!$response['success']) {
+            return back()->with('error', $response['body']['message'] ?? 'Failed to upload document.');
+        }
+        
+        return redirect()->route('tenant.documents')
+            ->with('status', 'Document uploaded successfully.');
+    }
+
+    /**
+     * Display the specified document
+     */
+    public function show($documentId)
+    {
+        $tenant = $this->authService->getTenantData();
+        
+        if (!$tenant) {
+            return redirect()->route('tenant.login')
+                ->with('error', 'Your session has expired. Please login again.');
+        }
+        
+        $response = $this->documentService->getDocumentDetails($documentId);
+        
+        if (!$response['success']) {
+            return back()->with('error', $response['body']['message'] ?? 'Document not found.');
+        }
+        
+        return view('tenant.document-detail', [
+            'document' => $response['body']['document'],
+            'tenant' => $tenant
+        ]);
+    }
+
+    /**
+     * Update the specified document
+     */
+    public function update(Request $request, $documentId)
+    {
+        $validator = Validator::make($request->all(), [
+            'description' => 'nullable|string|max:255',
+            'file' => 'nullable|file|max:5120', // 5MB max
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $tenant = $this->authService->getTenantData();
+        
+        if (!$tenant) {
+            return redirect()->route('tenant.login')
+                ->with('error', 'Your session has expired. Please login again.');
+        }
+        
+        $data = [
+            'description' => $request->description
+        ];
+        
+        $response = $this->documentService->updateDocument(
+            $documentId, 
+            $data, 
+            $request->hasFile('file') ? $request->file('file') : null
+        );
+        
+        if (!$response['success']) {
+            return back()->with('error', $response['body']['message'] ?? 'Failed to update document.');
+        }
+        
+        return redirect()->route('tenant.documents')
+            ->with('status', 'Document updated successfully.');
+    }
+
+    /**
+     * Remove the specified document
+     */
+    public function destroy($documentId)
+    {
+        $tenant = $this->authService->getTenantData();
+        
+        if (!$tenant) {
+            return redirect()->route('tenant.login')
+                ->with('error', 'Your session has expired. Please login again.');
+        }
+        
+        $response = $this->documentService->deleteDocument($documentId, $tenant['tenant_id']);
+        
+        if (!$response['success']) {
+            return back()->with('error', $response['body']['message'] ?? 'Failed to delete document.');
+        }
+        
+        return redirect()->route('tenant.documents')
+            ->with('status', 'Document deleted successfully.');
+    }
+
+    /**
+     * Sign policy agreement
+     */
+    public function signPolicy(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'policy_id' => 'required|string',
+            'policy_version' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ]);
+        }
+
+        $tenant = $this->authService->getTenantData();
+        
+        if (!$tenant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication required'
+            ]);
+        }
+        
+        $response = $this->documentService->signPolicyAgreement(
+            $tenant['tenant_id'],
+            $request->policy_id,
+            $request->policy_version
+        );
+        
+        return response()->json([
+            'success' => $response['success'],
+            'message' => $response['success'] 
+                ? 'Policy agreement signed successfully.' 
+                : ($response['body']['message'] ?? 'Failed to sign policy agreement.')
+        ]);
+    }
+    
+    /**
+     * Get document types available for upload
+     */
+    private function getDocumentTypes()
+    {
+        return [
+            ['id' => 1, 'name' => 'ID Card'],
+            ['id' => 2, 'name' => 'Student ID'],
+            ['id' => 3, 'name' => 'Payment Receipt'],
+            ['id' => 4, 'name' => 'Medical Certificate'],
+            ['id' => 5, 'name' => 'Guardian Letter'],
+        ];
+    }
+}

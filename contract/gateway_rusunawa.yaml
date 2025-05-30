@@ -1,0 +1,333 @@
+type: google.api.Service
+config_version: 3
+
+http:
+  rules:
+    # Existing base endpoints
+    - selector: base.Base.HealthCheck
+      get: /v1/health
+      
+    # Auth service endpoints - authentication only
+    - selector: base.Auth.Login
+      post: /v1/auth/login
+      body: "*"
+    
+    - selector: base.Auth.Register
+      post: /v1/auth/register
+      body: "*"
+    
+    - selector: base.Auth.ForgotPassword
+      post: /v1/auth/forgot-password
+      body: "*"
+    
+    - selector: base.Auth.ResetPassword
+      post: /v1/auth/reset-password
+      body: "*"
+      
+    - selector: base.Auth.VerifyToken
+      post: /v1/auth/verify-token
+      body: "*"
+      
+    # UserService endpoints - CRUD operations
+    - selector: base.UserService.GetUser
+      get: /v1/users/{user_id}
+    
+    - selector: base.UserService.GetUsers
+      get: /v1/users
+    
+    - selector: base.UserService.UpdateUser
+      put: /v1/users/{user_id}
+      body: "*"
+    
+    - selector: base.UserService.DeleteUser
+      delete: /v1/users/{user_id}
+
+    # TenantAuth service endpoints - authentication for tenants
+    - selector: base.TenantAuth.TenantLogin
+      post: /v1/tenant/auth/login
+      body: "*"
+    
+    - selector: base.TenantAuth.TenantRegister
+      post: /v1/tenant/auth/register
+      body: "*"
+    
+    - selector: base.TenantAuth.TenantForgotPassword
+      post: /v1/tenant/auth/forgot-password
+      body: "*"
+    
+    - selector: base.TenantAuth.TenantResetPassword
+      post: /v1/tenant/auth/reset-password
+      body: "*"
+      
+    - selector: base.TenantAuth.TenantVerifyToken
+      post: /v1/tenant/auth/verify-token
+      body: "*"
+      
+    # TenantService endpoints - CRUD operations for tenants
+    - selector: base.TenantService.GetTenant
+      get: /v1/tenants/{tenant_id}
+    
+    - selector: base.TenantService.GetTenants
+      get: /v1/tenants
+    
+    - selector: base.TenantService.UpdateTenant
+      put: /v1/tenants/{tenant_id}
+      body: "*"
+    
+    - selector: base.TenantService.DeleteTenant
+      delete: /v1/tenants/{tenant_id}
+    
+    # New tenant endpoints
+    - selector: base.TenantService.UpdateTenantLocation
+      put: /v1/tenants/{tenant_id}/location
+      body: "*"
+      
+    - selector: base.TenantService.AddToWaitingList
+      post: /v1/tenants/{tenant_id}/waiting-list
+      body: "*"
+      
+    - selector: base.TenantService.GetWaitingListStatus
+      get: /v1/tenants/{tenant_id}/waiting-list
+      
+    - selector: base.TenantService.RemoveFromWaitingList
+      delete: /v1/waiting-list/{waiting_id}
+      
+    - selector: base.TenantService.GetWaitingList
+      get: /v1/waiting-list
+    
+    # TenantDocumentService endpoints - Document operations for tenants
+    - selector: base.TenantDocumentService.UploadApprovalDocument
+      post: /v1/tenants/{tenant_id}/documents
+      body: "*"
+    
+    - selector: base.TenantDocumentService.GetTenantDocuments
+      get: /v1/tenants/{tenant_id}/documents
+    
+    - selector: base.TenantDocumentService.GetDocument
+      get: /v1/documents/{document_id}
+    
+    - selector: base.TenantDocumentService.UpdateDocument
+      put: /v1/documents/{document_id}
+      body: "*"
+    
+    - selector: base.TenantDocumentService.DeleteDocument
+      delete: /v1/documents/{document_id}
+    
+    - selector: base.TenantDocumentService.ReviewDocument
+      post: /v1/documents/{document_id}/review
+      body: "*"
+    
+    - selector: base.TenantDocumentService.SignPolicyAgreement
+      post: /v1/tenants/{tenant_id}/policies/sign
+      body: "*"
+    
+    - selector: base.TenantDocumentService.VerifyDocumentStatus
+      get: /v1/documents/{document_id}/verify
+      
+    # Notification endpoints
+    - selector: base.NotificationService.CreateNotification
+      post: /v1/notifications
+      body: "*"
+    
+    - selector: base.NotificationService.GetNotifications
+      get: /v1/notifications
+    
+    - selector: base.NotificationService.GetUserNotifications
+      get: /v1/users/{user_id}/notifications
+    
+    - selector: base.NotificationService.MarkNotificationAsRead
+      put: /v1/notifications/{notification_id}/read
+      body: "*"
+    
+    - selector: base.NotificationService.MarkAllNotificationsAsRead
+      put: /v1/users/{user_id}/notifications/read-all
+      body: "*"
+    
+    - selector: base.NotificationService.DeleteNotification
+      delete: /v1/notifications/{notification_id}
+
+    # Room management endpoints
+    - selector: base.RoomService.GetRoom
+      get: /v1/rooms/{room_id}
+    
+    - selector: base.RoomService.GetRooms
+      get: /v1/rooms
+    
+    - selector: base.RoomService.CreateRoom
+      post: /v1/rooms
+      body: "*"
+    
+    - selector: base.RoomService.UpdateRoom
+      put: /v1/rooms/{room_id}
+      body: "*"
+    
+    - selector: base.RoomService.DeleteRoom
+      delete: /v1/rooms/{room_id}
+    
+    - selector: base.RoomService.GetRoomAvailability
+      get: /v1/rooms/{room_id}/availability
+    
+    - selector: base.RoomService.UpdateRoomAvailability
+      put: /v1/rooms/{room_id}/availability
+      body: "*"
+
+    # Room amenity endpoints
+    - selector: base.RoomService.GetRoomAmenities
+      get: /v1/rooms/{room_id}/amenities
+    
+    - selector: base.RoomService.AddRoomAmenities
+      post: /v1/rooms/{room_id}/amenities
+      body: "*"
+    
+    - selector: base.RoomService.UpdateRoomAmenity
+      put: /v1/rooms/{room_id}/amenities/{feature_id}
+      body: "*"
+    
+    - selector: base.RoomService.RemoveRoomAmenity
+      delete: /v1/rooms/{room_id}/amenities/{feature_id}
+    
+    - selector: base.RoomService.GetAvailableFeatures
+      get: /v1/room-features
+
+    # Booking management endpoints
+    - selector: base.BookingService.CreateBooking
+      post: /v1/bookings
+      body: "*"
+    
+    - selector: base.BookingService.GetBooking
+      get: /v1/bookings/{booking_id}
+    
+    - selector: base.BookingService.GetBookings
+      get: /v1/bookings
+    
+    - selector: base.BookingService.GetTenantBookings
+      get: /v1/tenants/{tenant_id}/bookings
+    
+    - selector: base.BookingService.UpdateBookingStatus
+      put: /v1/bookings/{booking_id}/status
+      body: "*"
+    
+    - selector: base.BookingService.ApproveBooking
+      post: /v1/bookings/{booking_id}/approve
+      body: "*"
+
+    # Payment and invoice endpoints
+    - selector: base.PaymentService.CreateInvoice
+      post: /v1/invoices
+      body: "*"
+    
+    - selector: base.PaymentService.GetInvoice
+      get: /v1/invoices/{invoice_id}
+    
+    - selector: base.PaymentService.GetInvoices
+      get: /v1/invoices
+    
+    - selector: base.PaymentService.GetTenantInvoices
+      get: /v1/tenants/{tenant_id}/invoices
+    
+    - selector: base.PaymentService.UpdateInvoiceStatus
+      put: /v1/invoices/{invoice_id}/status
+      body: "*"
+    
+    - selector: base.PaymentService.UploadPaymentReceipt
+      post: /v1/invoices/{invoice_id}/receipt
+      body: "*"
+
+    # Payment endpoints
+    - selector: base.PaymentService.CreatePayment
+      post: /v1/payments
+      body: "*"
+    
+    - selector: base.PaymentService.GetPayment
+      get: /v1/payments/{payment_id}
+    
+    - selector: base.PaymentService.GetPaymentByInvoice
+      get: /v1/invoices/{invoice_id}/payment
+    
+    - selector: base.PaymentService.UpdatePaymentStatus
+      put: /v1/payments/{payment_id}/status
+      body: "*"
+    
+    - selector: base.PaymentService.HandlePaymentCallback
+      post: /v1/payments/callback
+      body: "*"
+    
+    - selector: base.PaymentService.GetTenantPayments
+      get: /v1/tenants/{tenant_id}/payments
+    
+    - selector: base.PaymentService.UploadManualPaymentReceipt
+      post: /v1/payments/{payment_id}/receipt
+      body: "*"
+    
+    - selector: base.PaymentService.ApproveManualPayment
+      post: /v1/payments/{payment_id}/approve
+      body: "*"
+    
+    - selector: base.PaymentService.CheckMidtransPaymentStatus
+      get: /v1/payments/{payment_id}/check-status
+    
+    # Issue reporting endpoints
+    - selector: base.IssueService.ReportIssue
+      post: /v1/issues
+      body: "*"
+    
+    - selector: base.IssueService.GetIssue
+      get: /v1/issues/{issue_id}
+    
+    - selector: base.IssueService.GetIssues
+      get: /v1/issues
+    
+    - selector: base.IssueService.UpdateIssueStatus
+      put: /v1/issues/{issue_id}/status
+      body: "*"
+
+    # NIM update endpoint
+    - selector: base.TenantService.UpdateTenantNIM
+      put: /v1/tenants/{tenant_id}/nim
+      body: "*"
+
+    # New tenant endpoints
+    - selector: base.TenantService.RecalculateDistanceToCampus
+      post: /v1/tenants/{tenant_id}/recalculate-distance
+      body: "*"
+      
+    - selector: base.TenantService.GetTenantsByType
+      get: /v1/tenants/by-type/{tenant_type}
+      
+    - selector: base.TenantService.ValidateStudentInfo
+      post: /v1/tenants/{tenant_id}/validate-student
+      body: "*"
+    
+    # Add new room endpoint
+    - selector: base.RoomService.GetRoomsByStudentType
+      get: /v1/rooms/by-student-type/{tenant_type}
+    
+    # Add route for getting room rates
+    - selector: base.RoomService.GetRoomRates
+      get: /v1/room-rates
+      
+    # Add route for getting rooms by gender  
+    - selector: base.RoomService.GetRoomsByGender
+      get: /v1/rooms/by-gender/{gender}
+
+    # Analytics Dashboard endpoints
+    - selector: base.AnalyticsService.GetRevenueAnalytics
+      get: /v1/analytics/revenue
+      
+    - selector: base.AnalyticsService.GetOccupancyAnalytics
+      get: /v1/analytics/occupancy
+      
+    - selector: base.AnalyticsService.GetBookingTrendsAnalytics
+      get: /v1/analytics/booking-trends
+      
+    - selector: base.AnalyticsService.GetRevenueForecasting
+      get: /v1/analytics/revenue-forecast
+      
+    - selector: base.AnalyticsService.GetPopularRoomsAnalytics
+      get: /v1/analytics/popular-rooms
+      
+    - selector: base.AnalyticsService.GetTenantDemographics
+      get: /v1/analytics/tenant-demographics
+      
+    - selector: base.AnalyticsService.GetDashboardSummary
+      get: /v1/analytics/dashboard-summary

@@ -1,0 +1,1401 @@
+syntax = "proto3";
+
+option go_package = "github.com/SangBejoo/Rusunawa/gen/proto/base";
+package base;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+service Base {
+    rpc HealthCheck(google.protobuf.Empty) returns (MessageStatusResponse){};
+}
+
+// Authentication Service - focused only on auth operations
+service Auth {
+    rpc Login(LoginRequest) returns (LoginResponse){};
+    rpc Register(RegisterRequest) returns (RegisterResponse){};
+    rpc ForgotPassword(ForgotPasswordRequest) returns (MessageStatusResponse){};
+    rpc ResetPassword(ResetPasswordRequest) returns (MessageStatusResponse){};
+    rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse){};
+}
+
+// User management service - focused only on CRUD operations
+service UserService {
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse){};
+    rpc GetUser(GetUserRequest) returns (GetUserResponse){};
+    rpc GetUsers(GetUsersRequest) returns (GetUsersResponse){};
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse){};
+    rpc DeleteUser(DeleteUserRequest) returns (MessageStatusResponse){};
+}
+
+// Tenant Authentication Service
+service TenantAuth {
+    rpc TenantLogin(TenantLoginRequest) returns (TenantLoginResponse){};
+    rpc TenantRegister(TenantRegisterRequest) returns (TenantRegisterResponse){};
+    rpc TenantForgotPassword(TenantForgotPasswordRequest) returns (MessageStatusResponse){};
+    rpc TenantResetPassword(TenantResetPasswordRequest) returns (MessageStatusResponse){};
+    rpc TenantVerifyToken(TenantVerifyTokenRequest) returns (TenantVerifyTokenResponse){};
+}
+
+// Tenant management service
+service TenantService {
+    rpc GetTenant(GetTenantRequest) returns (GetTenantResponse){};
+    rpc GetTenants(GetTenantsRequest) returns (GetTenantsResponse){};
+    rpc UpdateTenant(UpdateTenantRequest) returns (UpdateTenantResponse){};
+    rpc DeleteTenant(DeleteTenantRequest) returns (MessageStatusResponse){};
+    rpc UpdateTenantNIM(UpdateTenantNIMRequest) returns (UpdateTenantResponse){};
+    rpc UpdateTenantLocation(UpdateTenantLocationRequest) returns (UpdateTenantResponse){};
+    rpc AddToWaitingList(AddToWaitingListRequest) returns (WaitingListResponse){};
+    rpc GetWaitingListStatus(GetWaitingListStatusRequest) returns (WaitingListResponse){};
+    rpc RemoveFromWaitingList(RemoveFromWaitingListRequest) returns (MessageStatusResponse){};
+    rpc GetWaitingList(GetWaitingListRequest) returns (GetWaitingListResponse){};
+    
+    // Add endpoint to recalculate distance to campus
+    rpc RecalculateDistanceToCampus(RecalculateDistanceRequest) returns (UpdateTenantResponse){};
+    
+    // Add endpoint to filter tenants by type
+    rpc GetTenantsByType(GetTenantsByTypeRequest) returns (GetTenantsResponse){};
+    
+    // Validate student tenant information
+    rpc ValidateStudentInfo(ValidateStudentInfoRequest) returns (ValidateStudentInfoResponse){};
+}
+
+// Document management service for tenants
+service TenantDocumentService {
+    // Upload approval document
+    rpc UploadApprovalDocument(UploadDocumentRequest) returns (UploadDocumentResponse){};
+    
+    // Get tenant's uploaded documents
+    rpc GetTenantDocuments(GetTenantDocumentsRequest) returns (GetTenantDocumentsResponse){};
+    
+    // Get specific document details
+    rpc GetDocument(GetDocumentRequest) returns (GetDocumentResponse){};
+    
+    // Update existing document
+    rpc UpdateDocument(UpdateDocumentRequest) returns (UpdateDocumentResponse){};
+    
+    // Delete tenant document
+    rpc DeleteDocument(DeleteDocumentRequest) returns (MessageStatusResponse){};
+    
+    // Admin approve/reject document
+    rpc ReviewDocument(ReviewDocumentRequest) returns (ReviewDocumentResponse){};
+    
+    // Sign policy agreement
+    rpc SignPolicyAgreement(SignPolicyRequest) returns (SignPolicyResponse){};
+    
+    // Verify document status
+    rpc VerifyDocumentStatus(VerifyDocumentRequest) returns (VerifyDocumentResponse){};
+}
+
+// Room management service
+service RoomService {
+    rpc GetRoom(GetRoomRequest) returns (GetRoomResponse){};
+    rpc GetRooms(GetRoomsRequest) returns (GetRoomsResponse){};
+    rpc GetRoomsByGender(GetRoomsByGenderRequest) returns (GetRoomsResponse){}; 
+    rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse){};
+    rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomResponse){};
+    rpc DeleteRoom(DeleteRoomRequest) returns (MessageStatusResponse){};
+    rpc GetRoomAvailability(GetRoomAvailabilityRequest) returns (GetRoomAvailabilityResponse){};
+    rpc UpdateRoomAvailability(UpdateRoomAvailabilityRequest) returns (UpdateRoomAvailabilityResponse){};
+    rpc GetRoomsByStudentType(GetRoomsByStudentTypeRequest) returns (GetRoomsResponse){};
+    rpc GetRoomRates(GetRoomRatesRequest) returns (GetRoomRatesResponse){};
+    
+    // New amenity-related endpoints
+    rpc GetRoomAmenities(GetRoomAmenitiesRequest) returns (GetRoomAmenitiesResponse){};
+    rpc AddRoomAmenities(AddRoomAmenitiesRequest) returns (AddRoomAmenitiesResponse){};
+    rpc UpdateRoomAmenity(UpdateRoomAmenityRequest) returns (UpdateRoomAmenityResponse){};
+    rpc RemoveRoomAmenity(RemoveRoomAmenityRequest) returns (MessageStatusResponse){};
+    rpc GetAvailableFeatures(GetAvailableFeaturesRequest) returns (GetAvailableFeaturesResponse){};
+}
+
+// Booking management service
+service BookingService {
+    rpc CreateBooking(CreateBookingRequest) returns (CreateBookingResponse){};
+    rpc GetBooking(GetBookingRequest) returns (GetBookingResponse){};
+    rpc GetBookings(GetBookingsRequest) returns (GetBookingsResponse){};
+    rpc GetTenantBookings(GetTenantBookingsRequest) returns (GetBookingsResponse){};
+    rpc UpdateBookingStatus(UpdateBookingStatusRequest) returns (UpdateBookingStatusResponse){};
+    rpc ApproveBooking(ApproveBookingRequest) returns (ApproveBookingResponse){};
+}
+
+// Invoice and payment service
+service PaymentService {
+    rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse){};
+    rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse){};
+    rpc GetPaymentByInvoice(GetPaymentByInvoiceRequest) returns (GetPaymentResponse){};
+    rpc UpdatePaymentStatus(UpdatePaymentStatusRequest) returns (UpdatePaymentStatusResponse){};
+    rpc HandlePaymentCallback(PaymentCallbackRequest) returns (PaymentCallbackResponse){};
+    rpc GetTenantPayments(GetTenantPaymentsRequest) returns (GetPaymentsResponse){};
+    rpc UploadManualPaymentReceipt(UploadManualPaymentReceiptRequest) returns (UploadManualPaymentReceiptResponse){};
+    rpc ApproveManualPayment(ApproveManualPaymentRequest) returns (ApproveManualPaymentResponse){};
+    rpc CheckMidtransPaymentStatus(CheckMidtransPaymentStatusRequest) returns (CheckMidtransPaymentStatusResponse){};
+    
+    // Existing invoice methods
+    rpc CreateInvoice(CreateInvoiceRequest) returns (CreateInvoiceResponse){};
+    rpc GetInvoice(GetInvoiceRequest) returns (GetInvoiceResponse){};
+    rpc GetInvoices(GetInvoicesRequest) returns (GetInvoicesResponse){};
+    rpc GetTenantInvoices(GetTenantInvoicesRequest) returns (GetInvoicesResponse){};
+    rpc UpdateInvoiceStatus(UpdateInvoiceStatusRequest) returns (UpdateInvoiceStatusResponse){};
+    rpc UploadPaymentReceipt(UploadPaymentReceiptRequest) returns (UploadPaymentReceiptResponse){};
+}
+
+// Issue reporting service
+service IssueService {
+    rpc ReportIssue(ReportIssueRequest) returns (ReportIssueResponse){};
+    rpc GetIssue(GetIssueRequest) returns (GetIssueResponse){};
+    rpc GetIssues(GetIssuesRequest) returns (GetIssuesResponse){};
+    rpc UpdateIssueStatus(UpdateIssueStatusRequest) returns (UpdateIssueStatusResponse){};
+}
+
+// Notification service
+service NotificationService {
+    rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse){};
+    rpc GetNotifications(GetNotificationsRequest) returns (GetNotificationsResponse){};
+    rpc GetUserNotifications(GetUserNotificationsRequest) returns (GetNotificationsResponse){};
+    rpc MarkNotificationAsRead(MarkNotificationAsReadRequest) returns (MarkNotificationAsReadResponse){};
+    rpc MarkAllNotificationsAsRead(MarkAllNotificationsAsReadRequest) returns (MessageStatusResponse){};
+    rpc DeleteNotification(DeleteNotificationRequest) returns (MessageStatusResponse){};
+}
+
+// Analytics service for business intelligence and forecasting
+service AnalyticsService {
+    // Revenue analytics
+    rpc GetRevenueAnalytics(RevenueAnalyticsRequest) returns (RevenueAnalyticsResponse){};
+    
+    // Occupancy rate analytics
+    rpc GetOccupancyAnalytics(OccupancyAnalyticsRequest) returns (OccupancyAnalyticsResponse){};
+    
+    // Booking trends analytics
+    rpc GetBookingTrendsAnalytics(BookingTrendsRequest) returns (BookingTrendsResponse){};
+    
+    // Revenue forecasting
+    rpc GetRevenueForecasting(RevenueForecastingRequest) returns (RevenueForecastingResponse){};
+    
+    // Popular room analytics
+    rpc GetPopularRoomsAnalytics(PopularRoomsRequest) returns (PopularRoomsResponse){};
+    
+    // Tenant demographics analytics
+    rpc GetTenantDemographics(TenantDemographicsRequest) returns (TenantDemographicsResponse){};
+    
+    // Dashboard summary
+    rpc GetDashboardSummary(DashboardSummaryRequest) returns (DashboardSummaryResponse){};
+}
+
+message MessageStatusResponse {
+    string message = 1;
+    string status = 2;
+}
+
+message CreateUserRequest {
+  string email = 1;
+  string password = 2;
+  string name = 3;
+  string role = 4;
+}
+
+message CreateUserResponse {
+  User user = 1;
+  MessageStatusResponse status = 2;
+}
+
+// Core database entity messages
+message Role {
+    int32 role_id = 1;
+    string name = 2;
+}
+
+message User {
+    int32 user_id = 1;                  // Match SERIAL type in DB
+    int32 role_id = 2;                  // Match INTEGER type in DB
+    string full_name = 3;               // Match TEXT type in DB
+    string email = 4;                   // Match TEXT type in DB
+    string password_hash = 5;           // Match TEXT type in DB
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
+    Role role = 8;                      // Added for convenience (not in DB schema)
+}
+
+message TenantType {
+    int32 type_id = 1;
+    string name = 2;                    // mahasiswa_putri, mahasiswa_putra, non_mahasiswa
+}
+
+message Tenant {
+    int32 tenant_id = 1;                // Match SERIAL type in DB
+    int32 user_id = 2;                  // Match INTEGER type in DB
+    int32 type_id = 3;                  // Match INTEGER type in DB
+    string gender = 4;                  // Match CHAR(1) type in DB
+    string phone = 5;                   // Match TEXT type in DB
+    string address = 6;                 // Match TEXT type in DB
+    string nim = 7;                     // Match TEXT type in DB
+    double home_latitude = 8;           // Match NUMERIC(10,7) type in DB
+    double home_longitude = 9;          // Match NUMERIC(10,7) type in DB
+    double distance_to_campus = 10;     // Match NUMERIC(10,2) type in DB
+    google.protobuf.Timestamp created_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
+    User user = 13;                     // Added for convenience (not in DB schema)
+    TenantType tenant_type = 14;        // Added for convenience (not in DB schema)
+}
+
+message DocumentType {
+    int32 doc_type_id = 1;
+    string name = 2;
+}
+
+// Consolidated Document message - fixed duplicate definition
+message Document {
+    int32 doc_id = 1;                   // Match SERIAL type in DB
+    int32 tenant_id = 2;                // Match INTEGER type in DB
+    int32 doc_type_id = 3;              // Match INTEGER type in DB
+    string file_url = 4;                // Match TEXT type in DB - URL to access the stored image/document
+    string file_name = 5;               // Match TEXT type in DB - Original filename
+    string file_type = 6;               // Match TEXT type in DB - MIME type (e.g., "image/jpeg", "image/png")
+    string status = 7;                  // Match TEXT type in DB - pending, approved, rejected
+    string notes = 8;                   // Match TEXT type in DB - Admin feedback or comments
+    google.protobuf.Timestamp uploaded_at = 9;
+    DocumentType document_type = 10;    // Added for convenience
+    bytes content = 11;                 // Binary data for the image (used in requests, not stored in DB)
+    string document_url = 12;           // URL alias for file_url
+    google.protobuf.Timestamp created_at = 13; // Alias for uploaded_at
+    google.protobuf.Timestamp updated_at = 14;
+    string approved_by = 15;            // ID of approver
+    google.protobuf.Timestamp approved_at = 16;
+    User approver = 17;                 // Approver details
+    bool is_image = 18;                 // Flag to indicate if document is an image
+    int32 image_width = 19;             // Width of the image in pixels (if applicable)
+    int32 image_height = 20;            // Height of the image in pixels (if applicable)
+    string thumbnail_url = 21;          // URL to a smaller version of the image (if applicable)
+}
+
+// Updated UploadDocumentRequest to better handle image uploads
+message UploadDocumentRequest {
+    int32 tenant_id = 1;                // Changed from string to int32 to match DB schema
+    int32 doc_type_id = 2;              // Changed to use the ID directly
+    string document_type = 3;           // For backwards compatibility
+    string file_name = 4;
+    string file_type = 5;               // MIME type (e.g., "image/jpeg", "image/png")
+    bytes content = 6;                  // Binary data for the image
+    string description = 7;             // Optional description or notes
+    bool is_image = 8;                  // Flag to indicate upload is an image
+}
+
+// Room classification message
+message RoomClassification {
+    int32 classification_id = 1;
+    string name = 2;                    // perempuan, laki_laki, VIP, ruang_rapat
+}
+
+message RentalType {
+    int32 rental_type_id = 1;
+    string name = 2;                    // harian, bulanan
+}
+
+message RoomRate {
+    int32 rate_id = 1;
+    int32 classification_id = 2;
+    int32 rental_type_id = 3;
+    double rate = 4;                    // Match NUMERIC(12,2) type in DB
+    RoomClassification classification = 5; // Added for convenience (not in DB schema)
+    RentalType rental_type = 6;         // Added for convenience (not in DB schema)
+}
+
+message Room {
+    int32 room_id = 1;
+    string name = 2;
+    int32 classification_id = 3;
+    int32 rental_type_id = 4;
+    int32 rate_id = 5;                  // Can be null in DB
+    double rate = 6;                    // Match NUMERIC(12,2) type in DB
+    int32 capacity = 7;
+    string description = 8;
+    google.protobuf.Timestamp created_at = 9;
+    google.protobuf.Timestamp updated_at = 10;
+    RoomClassification classification = 11; // Added for convenience (not in DB schema)
+    RentalType rental_type = 12;        // Added for convenience (not in DB schema)
+    repeated RoomAmenity amenities = 13; // Added for convenience (not in DB schema)
+}
+
+message RoomFeature {
+    int32 feature_id = 1;
+    string name = 2;
+    string description = 3;
+}
+
+message RoomAmenity {
+    int32 room_id = 1;
+    int32 feature_id = 2;
+    int32 quantity = 3;
+    RoomFeature feature = 4;            // Added for convenience (not in DB schema)
+}
+
+message RoomAvailability {
+    int32 availability_id = 1;
+    int32 room_id = 2;
+    google.protobuf.Timestamp date = 3; // Match DATE type in DB
+    bool is_available = 4;
+}
+
+// Authentication messages
+message LoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    string token = 1;
+    User user = 2;
+    MessageStatusResponse status = 3;
+}
+
+message RegisterRequest {
+    string email = 1;
+    string password = 2;
+    string name = 3;
+    string role = 4; // Added role field
+}
+
+message RegisterResponse {
+    User user = 1;
+    MessageStatusResponse status = 2;
+}
+
+message ForgotPasswordRequest {
+    string email = 1;
+}
+
+message ResetPasswordRequest {
+    string token = 1;
+    string new_password = 2;
+}
+
+message VerifyTokenRequest {
+    string token = 1;
+}
+
+message VerifyTokenResponse {
+    bool valid = 1;
+    User user = 2; // Only returned if token is valid
+    MessageStatusResponse status = 3;
+}
+
+message TenantVerifyTokenRequest {
+    string token = 1;
+}
+
+message TenantVerifyTokenResponse {
+    bool valid = 1;
+    Tenant tenant = 2; // Only returned if token is valid
+    MessageStatusResponse status = 3;
+}
+
+// CRUD operation messages - keep existing
+message GetUserRequest {
+    string user_id = 1;
+}
+
+message GetUserResponse {
+    User user = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetUsersRequest {
+    int32 page = 1;
+    int32 limit = 2;
+}
+
+message GetUsersResponse {
+    repeated User users = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+message UpdateUserRequest {
+    string user_id = 1;
+    string name = 2;
+    string email = 3;
+    string password = 4; // Optional, only if changing password
+    string role = 5; // Added role field
+}
+
+message UpdateUserResponse {
+    User user = 1;
+    MessageStatusResponse status = 2;
+}
+
+message DeleteUserRequest {
+    string user_id = 1;
+}
+
+message GetTenantRequest {
+    int32 tenant_id = 1;              // Changed from string to int32
+}
+
+message GetTenantResponse {
+    Tenant tenant = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetTenantsRequest {
+    int32 page = 1;
+    int32 limit = 2;
+}
+
+message GetTenantsResponse {
+    repeated Tenant tenants = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+message UpdateTenantRequest {
+    int32 tenant_id = 1;              // Changed from string to int32
+    string full_name = 2;             // Match the exact column name in users table
+    string email = 3;
+    string password = 4;              // Optional, only if changing password
+    string phone = 5;
+    string address = 6;
+    int32 type_id = 7;                // Match INTEGER type in DB
+    string gender = 8;
+}
+
+message UpdateTenantResponse {
+    Tenant tenant = 1;
+    MessageStatusResponse status = 2;
+}
+
+message DeleteTenantRequest {
+    int32 tenant_id = 1;              // Changed from string to int32
+}
+
+message UpdateTenantNIMRequest {
+    int32 tenant_id = 1;              // Changed from string to int32
+    string nim = 2;
+}
+
+// Define PolicyAgreement before it's used
+message PolicyAgreement {
+    string id = 1;
+    string tenant_id = 2;
+    string policy_id = 3;
+    string policy_name = 4;
+    string policy_version = 5;
+    bool signed = 6;
+    google.protobuf.Timestamp signed_at = 7;
+    google.protobuf.Timestamp expires_at = 8; // Optional expiration date
+}
+
+// Document related messages - keep existing
+message UploadDocumentResponse {
+    Document document = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetTenantDocumentsRequest {
+    string tenant_id = 1;
+    string document_type = 2; // Optional filter by document type
+    int32 page = 3;
+    int32 limit = 4;
+}
+
+message GetTenantDocumentsResponse {
+    repeated Document documents = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+message SignPolicyRequest {
+    string tenant_id = 1;
+    string policy_id = 2;
+    string policy_version = 3;
+    bool agreed = 4;
+    google.protobuf.Timestamp signed_at = 5;
+}
+
+message SignPolicyResponse {
+    PolicyAgreement agreement = 1;
+    MessageStatusResponse status = 2;
+}
+
+// Add missing VerifyDocumentRequest and VerifyDocumentResponse
+message VerifyDocumentRequest {
+    string document_id = 1; 
+}
+
+message VerifyDocumentResponse {
+    Document document = 1;
+    MessageStatusResponse status = 2;
+}
+
+// Room service messages - updated to remove rusun_id
+message GetRoomRequest {
+    int32 room_id = 1;
+}
+
+message GetRoomResponse {
+    Room room = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetRoomsRequest {
+    string classification = 1; // Optional filter by classification
+    string rental_type = 2; // Optional filter by rental type
+    int32 page = 3;
+    int32 limit = 4;
+}
+
+message GetRoomsResponse {
+    repeated Room rooms = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+message CreateRoomRequest {
+    string name = 1;
+    int32 classification_id = 2;      // Changed to int32 to match database
+    int32 rental_type_id = 3;         // Changed to int32 to match database
+    int32 capacity = 4;
+    string description = 5;
+    // rate_id and rate are set automatically based on classification and rental type
+    repeated RoomAmenityInput amenities = 6;  // Add amenities here
+}
+
+message CreateRoomResponse {
+    Room room = 1;
+    MessageStatusResponse status = 2;
+}
+
+message UpdateRoomRequest {
+    int32 room_id = 1;
+    string name = 2;
+    int32 classification_id = 3;      // Changed to int32
+    int32 rental_type_id = 4;         // Changed to int32
+    int32 capacity = 5;
+    string description = 6;
+    // rate_id and rate are updated automatically based on classification and rental type
+    repeated RoomAmenityInput amenities = 7;  // Add amenities here
+}
+
+message UpdateRoomResponse {
+    Room room = 1;
+    MessageStatusResponse status = 2;
+}
+
+message DeleteRoomRequest {
+    int32 room_id = 1;
+}
+
+message GetRoomAvailabilityRequest {
+    int32 room_id = 1;
+    google.protobuf.Timestamp start_date = 2;
+    google.protobuf.Timestamp end_date = 3;
+}
+
+message GetRoomAvailabilityResponse {
+    repeated RoomAvailability availability = 1;
+    MessageStatusResponse status = 2;
+}
+
+message UpdateRoomAvailabilityRequest {
+    int32 room_id = 1;
+    google.protobuf.Timestamp date = 2;
+    bool is_available = 3;
+}
+
+message UpdateRoomAvailabilityResponse {
+    RoomAvailability availability = 1;
+    MessageStatusResponse status = 2;
+}
+
+// Booking related messages
+message Booking {
+    int32 booking_id = 1;
+    string tenant_id = 2;
+    int32 room_id = 3;
+    google.protobuf.Timestamp start_date = 4;
+    google.protobuf.Timestamp end_date = 5;
+    string status = 6; // pending, approved, rejected, cancelled, completed
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+    Room room = 9;                      // Added for convenience (not in DB schema)
+    repeated BookingApproval approvals = 10; // Include approval details
+    Tenant tenant = 11;                 // Add tenant details field
+}
+
+// Booking service messages
+message CreateBookingRequest {
+    int32 tenant_id = 1;  // Changed from string to int32 for consistency
+    int32 room_id = 2;
+    google.protobuf.Timestamp start_date = 3;
+    google.protobuf.Timestamp end_date = 4;
+}
+
+message CreateBookingResponse {
+    Booking booking = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetBookingRequest {
+    int32 booking_id = 1;
+}
+
+message GetBookingResponse {
+    Booking booking = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetBookingsRequest {
+    string status = 1; // Optional filter by status
+    google.protobuf.Timestamp start_date = 2; // Optional filter by date range
+    google.protobuf.Timestamp end_date = 3;
+    int32 page = 4;
+    int32 limit = 5;
+}
+
+message GetBookingsResponse {
+    repeated Booking bookings = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+message GetTenantBookingsRequest {
+    int32 tenant_id = 1;  // Changed from string to int32 for consistency
+    string status = 2; // Optional filter by status
+    int32 page = 3;
+    int32 limit = 4;
+}
+
+message UpdateBookingStatusRequest {
+    int32 booking_id = 1;
+    string status = 2; // pending, approved, rejected, cancelled, completed
+}
+
+message UpdateBookingStatusResponse {
+    Booking booking = 1;
+    MessageStatusResponse status = 2;
+}
+
+message ApproveBookingRequest {
+    int32 booking_id = 1;
+    int32 approver_id = 2; // Changed from string to int32
+    bool approved = 3;
+    string comments = 4;
+}
+
+message ApproveBookingResponse {
+    BookingApproval approval = 1;
+    MessageStatusResponse status = 2;
+}
+
+// Payment service messages
+message CreateInvoiceRequest {
+    int32 booking_id = 1;
+    string payment_method = 2;
+    string invoice_no = 3;
+    google.protobuf.Timestamp due_date = 4;
+    double amount = 5;
+}
+
+message CreateInvoiceResponse {
+    Invoice invoice = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetInvoiceRequest {
+    int32 invoice_id = 1;
+}
+
+message GetInvoiceResponse {
+    Invoice invoice = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetInvoicesRequest {
+    string status = 1; // Optional filter by status
+    int32 page = 2;
+    int32 limit = 3;
+}
+
+message GetInvoicesResponse {
+    repeated Invoice invoices = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+message GetTenantInvoicesRequest {
+    int32 tenant_id = 1;  // Changed from string to int32 for consistency
+    string status = 2; // Optional filter by status
+    int32 page = 3;
+    int32 limit = 4;
+}
+
+message UpdateInvoiceStatusRequest {
+    int32 invoice_id = 1;
+    string status = 2;
+    string midtrans_payment_id = 3; // Optional for online payments
+    google.protobuf.Timestamp paid_at = 4; // Optional paid timestamp
+}
+
+message UpdateInvoiceStatusResponse {
+    Invoice invoice = 1;
+    MessageStatusResponse status = 2;
+}
+
+message UploadPaymentReceiptRequest {
+    int32 invoice_id = 1;
+    bytes receipt_image = 2;
+    string file_type = 3;
+}
+
+message UploadPaymentReceiptResponse {
+    string receipt_url = 1;
+    MessageStatusResponse status = 2;
+}
+
+message UploadManualPaymentReceiptRequest {
+    int32 payment_id = 1;
+    bytes receipt_image = 2;
+    string file_type = 3;
+}
+
+message UploadManualPaymentReceiptResponse {
+    Payment payment = 1;
+    MessageStatusResponse status = 2;
+}
+
+message ApproveManualPaymentRequest {
+    int32 payment_id = 1;
+    string admin_id = 2;
+    bool approved = 3;
+    string notes = 4; // Optional notes about the approval
+}
+
+message ApproveManualPaymentResponse {
+    Payment payment = 1;
+    MessageStatusResponse status = 2;
+}
+
+message CheckMidtransPaymentStatusRequest {
+    int32 payment_id = 1;
+}
+
+message CheckMidtransPaymentStatusResponse {
+    Payment payment = 1;
+    MessageStatusResponse status = 2;
+}
+
+// Issue service messages
+message ReportIssueRequest {
+    int32 booking_id = 1;
+    string reported_by = 2;
+    string description = 3;
+}
+
+message ReportIssueResponse {
+    Issue issue = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetIssueRequest {
+    int32 issue_id = 1;
+}
+
+message GetIssueResponse {
+    Issue issue = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetIssuesRequest {
+    string status = 1; // Optional filter by status
+    int32 page = 2;
+    int32 limit = 3;
+}
+
+message GetIssuesResponse {
+    repeated Issue issues = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+message UpdateIssueStatusRequest {
+    int32 issue_id = 1;
+    string status = 2;
+    google.protobuf.Timestamp resolved_at = 3; // Optional for resolved status
+}
+
+message UpdateIssueStatusResponse {
+    Issue issue = 1;
+    MessageStatusResponse status = 2;
+}
+
+// New and updated document messages
+message GetDocumentRequest {
+    string document_id = 1;
+}
+
+message GetDocumentResponse {
+    Document document = 1;
+    MessageStatusResponse status = 2;
+}
+
+message UpdateDocumentRequest {
+    string document_id = 1;
+    string tenant_id = 2;
+    string document_type = 3; // Optional, to change document type
+    string file_name = 4;     // Optional, to rename
+    bytes content = 5;        // Optional, new content
+    string description = 6;   // Optional description
+}
+
+message UpdateDocumentResponse {
+    Document document = 1;
+    MessageStatusResponse status = 2;
+}
+
+message DeleteDocumentRequest {
+    string document_id = 1;
+    string tenant_id = 2;     // For verification
+}
+
+message ReviewDocumentRequest {
+    string document_id = 1;
+    string reviewer_id = 2;   // Admin ID
+    bool approved = 3;
+    string notes = 4;         // Review comments/feedback
+    google.protobuf.Timestamp reviewed_at = 5;
+}
+
+message ReviewDocumentResponse {
+    Document document = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetRoomsByGenderRequest {
+    string gender = 1;           // 'L' or 'P'
+    string classification = 2;   // Optional filter by classification
+    string rental_type = 3;      // Optional filter by rental type
+    int32 page = 4;
+    int32 limit = 5;
+}
+
+// Payment entity
+message Payment {
+    int32 payment_id = 1;
+    int32 invoice_id = 2;
+    double amount = 3;
+    string payment_method = 4;
+    string payment_channel = 5; // e.g., BCA, Mandiri, DANA, etc.
+    string transaction_id = 6;  // ID from payment gateway
+    string status = 7;
+    string payment_url = 8;     // URL for payment gateway redirect
+    string virtual_account = 9; // For bank transfers
+    string qr_code_url = 10;    // For QR-based payments
+    google.protobuf.Timestamp expiry_time = 11;
+    google.protobuf.Timestamp paid_at = 12;
+    google.protobuf.Timestamp created_at = 13;
+    google.protobuf.Timestamp updated_at = 14;
+}
+
+// New payment request/response messages
+message CreatePaymentRequest {
+    int32 invoice_id = 1;
+    string payment_method = 2; // bank_transfer, e_wallet, credit_card
+}
+
+message CreatePaymentResponse {
+    Payment payment = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetPaymentRequest {
+    int32 payment_id = 1;
+}
+
+message GetPaymentByInvoiceRequest {
+    int32 invoice_id = 1;
+}
+
+message GetPaymentResponse {
+    Payment payment = 1;
+    MessageStatusResponse status = 2;
+}
+
+message UpdatePaymentStatusRequest {
+    int32 payment_id = 1;
+    string status = 2;
+}
+
+message UpdatePaymentStatusResponse {
+    Payment payment = 1;
+    MessageStatusResponse status = 2;
+}
+
+message PaymentCallbackRequest {
+    string transaction_id = 1;
+    string status = 2;
+    double amount = 3;
+}
+
+message PaymentCallbackResponse {
+    Payment payment = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetTenantPaymentsRequest {
+    int32 tenant_id = 1;  // Changed from string to int32 for consistency
+    string status = 2; // Optional filter by status
+    int32 page = 3;
+    int32 limit = 4;
+}
+
+message GetPaymentsResponse {
+    repeated Payment payments = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+// Notification related messages
+message NotificationType {
+    int32 type_id = 1;
+    string name = 2;
+    string template = 3;
+    string channel = 4;
+}
+
+message Notification {
+    int32 notification_id = 1;
+    int32 user_id = 2;
+    int32 type_id = 3;
+    string content = 4;
+    bool is_read = 5;
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp read_at = 7;
+    NotificationType notification_type = 8; // Include the type details
+    User user = 9; // Include user details
+}
+
+message CreateNotificationRequest {
+    int32 user_id = 1;
+    int32 type_id = 2;
+    string content = 3;
+}
+
+message CreateNotificationResponse {
+    Notification notification = 1;
+    MessageStatusResponse status = 2;
+}
+
+message GetNotificationsRequest {
+    int32 page = 1;
+    int32 limit = 2;
+}
+
+message GetNotificationsResponse {
+    repeated Notification notifications = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+message GetUserNotificationsRequest {
+    int32 user_id = 1;
+    bool include_read = 2;
+    int32 page = 3;
+    int32 limit = 4;
+}
+
+message MarkNotificationAsReadRequest {
+    int32 notification_id = 1;
+}
+
+message MarkNotificationAsReadResponse {
+    Notification notification = 1;
+    MessageStatusResponse status = 2;
+}
+
+message MarkAllNotificationsAsReadRequest {
+    int32 user_id = 1;
+}
+
+message DeleteNotificationRequest {
+    int32 notification_id = 1;
+}
+
+// Waiting list related messages
+message WaitingListEntry {
+    int32 waiting_id = 1;
+    int32 tenant_id = 2;
+    int32 rank = 3;
+    string status = 4; // waiting, allocated, expired, cancelled
+    string notes = 5;
+    google.protobuf.Timestamp requested_at = 6;
+    google.protobuf.Timestamp resolved_at = 7;
+    Tenant tenant = 8; // Include tenant details
+}
+
+message AddToWaitingListRequest {
+    int32 tenant_id = 1;
+    string notes = 2;
+}
+
+message GetWaitingListStatusRequest {
+    int32 tenant_id = 1;
+}
+
+message WaitingListResponse {
+    WaitingListEntry waiting_entry = 1;
+    MessageStatusResponse status = 2;
+}
+
+message RemoveFromWaitingListRequest {
+    int32 waiting_id = 1;
+    string reason = 2;
+}
+
+message GetWaitingListRequest {
+    int32 page = 1;
+    int32 limit = 2;
+    string status = 3; // Optional filter by status
+}
+
+message GetWaitingListResponse {
+    repeated WaitingListEntry waiting_list = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+// Request to recalculate distance to campus
+message RecalculateDistanceRequest {
+    int32 tenant_id = 1;  // Changed from string to int32 for consistency
+}
+
+// Add missing UpdateTenantLocationRequest definition
+message UpdateTenantLocationRequest {
+    int32 tenant_id = 1;  // Changed from string to int32 for consistency
+    double home_latitude = 2;
+    double home_longitude = 3;
+}
+
+// Add missing GetTenantsByTypeRequest definition
+message GetTenantsByTypeRequest {
+    string tenant_type = 1; // mahasiswa_putri, mahasiswa_putra, non_mahasiswa
+    int32 page = 2;
+    int32 limit = 3;
+}
+
+// Request to validate student information
+message ValidateStudentInfoRequest {
+    int32 tenant_id = 1;  // Changed from string to int32 for consistency
+    string nim = 2; // Student ID number (required for students)
+    string school_name = 3; // Optional additional validation
+}
+
+message ValidateStudentInfoResponse {
+    bool is_valid = 1;
+    string error_message = 2; // Contains validation errors if any
+    MessageStatusResponse status = 3;
+}
+
+// Update TenantRegisterRequest to include validation comments
+message TenantRegisterRequest {
+    string email = 1;
+    string password = 2;
+    string name = 3;
+    string tenant_type = 4; // mahasiswa_putri, mahasiswa_putra, non_mahasiswa
+    string gender = 5; // 'L' or 'P'
+    string phone = 7;
+    string address = 8;
+    double home_latitude = 9;
+    double home_longitude = 10;
+    string nim = 11;  // Required if tenant_type is mahasiswa_putri or mahasiswa_putra
+    int32 type_id = 12;               // Optional: can be set server-side based on tenant_type
+}
+
+// Add tenant filtering by classification
+message GetRoomsByStudentTypeRequest {
+    string tenant_type = 1; // mahasiswa_putri, mahasiswa_putra, non_mahasiswa
+    string rental_type = 2; // Optional filter by rental type
+    int32 page = 3;
+    int32 limit = 4;
+}
+
+// Add missing BookingApproval message definition
+message BookingApproval {
+    int32 approval_id = 1;
+    int32 booking_id = 2;
+    int32 approver_id = 3;
+    bool approved = 4;
+    string comments = 5;
+    google.protobuf.Timestamp acted_at = 6;
+    User approver = 7;  // Include approver details
+}
+
+// Add missing Invoice message definition
+message Invoice {
+    int32 invoice_id = 1;
+    int32 booking_id = 2;
+    string payment_method = 3;
+    string invoice_no = 4;
+    google.protobuf.Timestamp issued_at = 5;
+    google.protobuf.Timestamp due_date = 6;
+    double amount = 7;
+    string status = 8;  // pending, paid, failed, refunded
+    string midtrans_payment_id = 9;
+    string receipt_url = 10;
+    google.protobuf.Timestamp paid_at = 11;
+    google.protobuf.Timestamp updated_at = 12;
+}
+
+// Add missing Issue message definition
+message Issue {
+    int32 issue_id = 1;
+    int32 booking_id = 2;
+    int32 reported_by = 3;  // Changed from string to int32
+    string description = 4;
+    string status = 5;  // open, in_progress, resolved, closed
+    google.protobuf.Timestamp reported_at = 6;
+    google.protobuf.Timestamp resolved_at = 7;
+    User reporter = 8;  // Include reporter details
+}
+
+// Analytics message definitions
+message RevenueAnalyticsRequest {
+    google.protobuf.Timestamp start_date = 1;
+    google.protobuf.Timestamp end_date = 2;
+    string group_by = 3; // monthly, weekly, daily, classification, tenant_type
+    bool include_unpaid = 4; // include pending payments
+}
+
+message RevenueData {
+    string period = 1; // Date or category label
+    double total_revenue = 2;
+    double paid_revenue = 3;
+    double pending_revenue = 4;
+    int32 transaction_count = 5;
+    string category = 6; // Additional grouping (room type, tenant type)
+}
+
+message RevenueAnalyticsResponse {
+    repeated RevenueData revenue_data = 1;
+    double total_revenue = 2;
+    double average_revenue = 3;
+    double growth_rate = 4; // compared to previous period
+    MessageStatusResponse status = 5;
+}
+
+message OccupancyAnalyticsRequest {
+    google.protobuf.Timestamp start_date = 1;
+    google.protobuf.Timestamp end_date = 2;
+    string group_by = 3; // monthly, weekly, daily, classification
+}
+
+message OccupancyData {
+    string period = 1; // Date or category label
+    double occupancy_rate = 2; // percentage
+    int32 total_rooms = 3;
+    int32 occupied_rooms = 4;
+    string category = 5; // Additional grouping (room type)
+}
+
+message OccupancyAnalyticsResponse {
+    repeated OccupancyData occupancy_data = 1;
+    double average_occupancy_rate = 2;
+    MessageStatusResponse status = 3;
+}
+
+message BookingTrendsRequest {
+    google.protobuf.Timestamp start_date = 1;
+    google.protobuf.Timestamp end_date = 2;
+    string group_by = 3; // monthly, weekly, daily, tenant_type
+}
+
+message BookingTrendData {
+    string period = 1; // Date or category label
+    int32 new_bookings = 2;
+    int32 completed_bookings = 3;
+    int32 cancelled_bookings = 4;
+    double average_stay_duration = 5; // in days
+    string category = 6; // Additional grouping
+}
+
+message BookingTrendsResponse {
+    repeated BookingTrendData booking_data = 1;
+    int32 total_bookings = 2;
+    double average_stay_duration = 3;
+    MessageStatusResponse status = 4;
+}
+
+message RevenueForecastingRequest {
+    int32 forecast_months = 1; // How many months ahead to forecast
+    google.protobuf.Timestamp start_from = 2; // Start forecasting from this date
+}
+
+message ForecastData {
+    string period = 1; // Month/year
+    double forecasted_revenue = 2;
+    double confidence_low = 3; // Lower bound of confidence interval
+    double confidence_high = 4; // Upper bound of confidence interval
+}
+
+message RevenueForecastingResponse {
+    repeated ForecastData forecast = 1;
+    string model_type = 2; // What forecasting model was used
+    double accuracy_score = 3; // Model accuracy metric
+    MessageStatusResponse status = 4;
+}
+
+message PopularRoomsRequest {
+    google.protobuf.Timestamp start_date = 1;
+    google.protobuf.Timestamp end_date = 2;
+    int32 limit = 3; // Number of top rooms to return
+}
+
+message RoomPopularityData {
+    int32 room_id = 1;
+    string room_name = 2;
+    string classification = 3;
+    int32 booking_count = 4;
+    double occupancy_rate = 5;
+    double revenue = 6;
+}
+
+message PopularRoomsResponse {
+    repeated RoomPopularityData popular_rooms = 1;
+    MessageStatusResponse status = 2;
+}
+
+message TenantDemographicsRequest {
+    google.protobuf.Timestamp start_date = 1;
+    google.protobuf.Timestamp end_date = 2;
+}
+
+message DemographicData {
+    string category = 1; // Gender, tenant_type
+    string label = 2; // Category value (male, female, student, etc)
+    int32 count = 3;
+    double percentage = 4;
+}
+
+message TenantDemographicsResponse {
+    repeated DemographicData demographics = 1;
+    int32 total_tenants = 2;
+    MessageStatusResponse status = 3;
+}
+
+message DashboardSummaryRequest {
+    string time_range = 1; // today, this_week, this_month, this_year
+}
+
+message DashboardSummaryResponse {
+    double total_revenue = 1;
+    int32 total_bookings = 2;
+    int32 active_tenants = 3;
+    double occupancy_rate = 4;
+    int32 pending_approvals = 5;
+    double revenue_change = 6; // Percent change from previous period
+    double occupancy_change = 7; // Percent change from previous period
+    int32 bookings_change = 8; // Percent change from previous period
+    MessageStatusResponse status = 9;
+}
+
+// Tenant Authentication messages
+message TenantLoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message TenantLoginResponse {
+    string token = 1;
+    Tenant tenant = 2;
+    MessageStatusResponse status = 3;
+}
+
+// TenantRegisterRequest is already defined, ensure TenantRegisterResponse is present
+message TenantRegisterResponse {
+    Tenant tenant = 1;
+    MessageStatusResponse status = 2;
+}
+
+message TenantForgotPasswordRequest {
+    string email = 1;
+}
+
+message TenantResetPasswordRequest {
+    string token = 1;
+    string new_password = 2;
+}
+
+// REMOVE THE DUPLICATE RoomAvailability that was here (around line 1362 based on error):
+// message RoomAvailability {
+//     int32 availability_id = 1;
+//     int32 room_id = 2;
+//     google.protobuf.Timestamp date = 3;
+//     bool is_available = 4;
+// }
+
+// REMOVE THE DUPLICATE GetRoomsByStudentTypeRequest that was here (around line 1370 based on error):
+// message GetRoomsByStudentTypeRequest {
+//     string tenant_type = 1; // mahasiswa_putri, mahasiswa_putra, non_mahasiswa
+//     string rental_type = 2; // Optional filter by rental type
+//     int32 page = 3;
+//     int32 limit = 4;
+// }
+
+message GetRoomRatesRequest {
+    int32 page = 1;
+    int32 limit = 2;
+    // Optional filters can be added here, e.g., by classification_id or rental_type_id
+    // int32 classification_id = 3;
+    // int32 rental_type_id = 4;
+}
+
+message GetRoomRatesResponse {
+    repeated RoomRate room_rates = 1;
+    int32 total_count = 2;
+    MessageStatusResponse status = 3;
+}
+
+// New message definitions for Room Amenities
+message GetRoomAmenitiesRequest {
+    int32 room_id = 1;
+}
+
+message GetRoomAmenitiesResponse {
+    repeated RoomAmenity amenities = 1;
+    MessageStatusResponse status = 2;
+}
+
+message AddRoomAmenitiesRequest {
+    int32 room_id = 1;
+    repeated RoomAmenityInput amenities = 2;
+}
+
+message RoomAmenityInput {
+    int32 feature_id = 1;
+    int32 quantity = 2;
+}
+
+message AddRoomAmenitiesResponse {
+    repeated RoomAmenity amenities = 1;
+    MessageStatusResponse status = 2;
+}
+
+message UpdateRoomAmenityRequest {
+    int32 room_id = 1;
+    int32 feature_id = 2;
+    int32 quantity = 3;
+}
+
+message UpdateRoomAmenityResponse {
+    RoomAmenity amenity = 1;
+    MessageStatusResponse status = 2;
+}
+
+message RemoveRoomAmenityRequest {
+    int32 room_id = 1;
+    int32 feature_id = 2;
+}
+
+message GetAvailableFeaturesRequest {}
+
+message GetAvailableFeaturesResponse {
+    repeated RoomFeature features = 1;
+    MessageStatusResponse status = 2;
+}
