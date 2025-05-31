@@ -32,51 +32,103 @@ export default function RegisterPage() {
         setLoading(true);
         setError(null);
         setSuccess(null);
-        // Validasi NIM wajib jika mahasiswa
+        
+        // Validations remain the same
         if ((form.type_id === '1') && !form.nim) {
             setError('NIM wajib diisi untuk mahasiswa.');
             setLoading(false);
             return;
         }
-        // Validasi type_id wajib
         if (!form.type_id) {
             setError('Jenis Tenant wajib dipilih.');
             setLoading(false);
             return;
         }
-        // Validasi gender wajib
         if (!form.gender) {
             setError('Gender wajib dipilih.');
             setLoading(false);
             return;
         }
+        
         // Map type_id ke tenant_type string sesuai proto
-        let tenant_type = '';
-        if (form.type_id === '1') tenant_type = 'mahasiswa';
-        else if (form.type_id === '3') tenant_type = 'non_mahasiswa';
-        // Ambil latitude/longitude dari lokasi
-        let home_latitude = null, home_longitude = null;
-        if (form.location) {
-            home_latitude = form.location.lat;
-            home_longitude = form.location.lng;
+        let tenantType = '';
+        if (form.type_id === '1') {
+            // For students, append gender to determine exact tenant type
+            tenantType = form.gender === 'L' ? 'mahasiswa_putra' : 'mahasiswa_putri';
+        } else if (form.type_id === '3') {
+            tenantType = 'non_mahasiswa';
         }
+        
+        // Use null if location not set
+        const homeLatitude = form.location ? form.location.lat : null;
+        const homeLongitude = form.location ? form.location.lng : null;
+        
         try {
-            const res = await axios.post('http://localhost:8001/v1/tenant/auth/register', {
-                name: form.name,
+            // Construct request body to exactly match API expectations
+            const requestBody = {
                 email: form.email,
                 password: form.password,
-                password_confirmation: form.password_confirmation,
-                tenant_type,
-                nim: form.nim,
+                password_confirm: form.password_confirmation, // Add this back - might be required
+                name: form.name,
+                tenantType: tenantType,
                 gender: form.gender,
                 phone: form.phone,
                 address: form.address,
-                home_latitude,
-                home_longitude
+                homeLatitude: form.location ? Number(form.location.lat) : null,
+                homeLongitude: form.location ? Number(form.location.lng) : null,
+                typeId: parseInt(form.type_id, 10)
+            };
+            
+            // Only include NIM if it exists
+            if (form.nim) {
+                requestBody.nim = form.nim;
+            }
+            
+            // Set appropriate headers
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            };
+            
+            console.log('Sending registration request:', requestBody);
+            
+            // Use fetch instead of axios to get better error details
+            const response = await fetch('http://localhost:8001/v1/tenant/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
             });
-            setSuccess('Registration successful!');
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || `Error ${response.status}: ${response.statusText}`);
+            }
+            
+            console.log('Registration successful:', data);
+            
+            setSuccess('Registration successful! You can now login.');
+            // Reset form on success
+            setForm({
+                name: '',
+                email: '',
+                password: '',
+                password_confirmation: '',
+                type_id: '',
+                nim: '',
+                gender: '',
+                phone: '',
+                address: '',
+                location: null,
+            });
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration failed');
+            console.error('Registration error details:', err);
+            setError(typeof err === 'object' && err.message ? err.message : 'Registration failed. Please try again.');
         } finally {
             setLoading(false);
         }
