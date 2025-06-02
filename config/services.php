@@ -36,11 +36,6 @@ return [
         'timeout' => env('API_TIMEOUT', 30),
     ],
     
-    'api' => [
-        'url' => env('SERVICES_API_URL', 'http://localhost:8001'),
-        'timeout' => env('SERVICES_API_TIMEOUT', 30),
-    ],
-    
     'google' => [
         'maps_api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],

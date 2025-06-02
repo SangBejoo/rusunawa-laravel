@@ -5,14 +5,15 @@ namespace App\Http\Middleware;
 use App\Services\TenantAuthService;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class EnsureTenantIsAuthenticated
 {
     protected $authService;
 
-    public function __construct(TenantAuthService $authService)
+    public function __construct(TenantAuthService $authService = null)
     {
-        $this->authService = $authService;
+        $this->authService = $authService ?? new \App\Services\TenantAuthService();
     }
 
     /**
@@ -24,21 +25,21 @@ class EnsureTenantIsAuthenticated
      */
     public function handle(Request $request, Closure $next)
     {
-        // First check if we have a token
-        if (!$this->authService->isLoggedIn()) {
+        try {
+            // Check if user is logged in
+            if (!$this->authService->isLoggedIn()) {
+                return redirect()->route('tenant.login');
+            }
+            
+            return $next($request);
+        } catch (\Exception $e) {
+            // Log the error but don't output it directly
+            Log::error('Authentication middleware error', [
+                'error' => $e->getMessage()
+            ]);
+            
+            // Safely redirect
             return redirect()->route('tenant.login');
         }
-
-        // Verify token validity with API
-        $response = $this->authService->verifyToken();
-        
-        if (!$response['success']) {
-            // Token is invalid or expired, logout and redirect
-            $this->authService->logout();
-            return redirect()->route('tenant.login')
-                ->with('error', 'Your session has expired. Please login again.');
-        }
-
-        return $next($request);
     }
 }

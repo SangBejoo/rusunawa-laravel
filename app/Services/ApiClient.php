@@ -14,11 +14,15 @@ class ApiClient
 
     public function __construct()
     {
-        $this->baseUrl = config('services.api.url', 'http://localhost:8080');
+        $this->baseUrl = 'http://localhost:8001'; // Hardcode for now to debug
         $this->client = new Client([
             'base_uri' => $this->baseUrl,
             'timeout' => 30,
             'http_errors' => false,
+            'headers' => [
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json'
+            ]
         ]);
     }
 
@@ -37,23 +41,50 @@ class ApiClient
         }
 
         try {
+            // Log the request for debugging
+            Log::debug('API Request', [
+                'endpoint' => $this->baseUrl . $endpoint,
+                'method' => $method,
+                'options' => $options
+            ]);
+
             $response = $this->client->request($method, $endpoint, $options);
             $statusCode = $response->getStatusCode();
             $body = json_decode($response->getBody(), true);
 
-            // Log errors for debugging
-            if ($statusCode >= 400) {
-                Log::error('API Error', [
-                    'endpoint' => $endpoint,
+            // Log response for debugging
+            Log::debug('API Response', [
+                'endpoint' => $endpoint,
+                'status' => $statusCode,
+                'body' => $body
+            ]);
+
+            // For successful responses, return the response body directly
+            if ($statusCode >= 200 && $statusCode < 300) {
+                return [
                     'status' => $statusCode,
-                    'response' => $body
-                ]);
+                    'body' => $body,
+                    'success' => true,
+                ];
             }
+
+            // For errors, log them and return formatted error response
+            Log::error('API Error', [
+                'endpoint' => $endpoint,
+                'status' => $statusCode,
+                'response' => $body
+            ]);
 
             return [
                 'status' => $statusCode,
-                'body' => $body,
-                'success' => $statusCode >= 200 && $statusCode < 300,
+                'body' => [
+                    'message' => $body['message'] ?? 'An error occurred while connecting to the server',
+                    'status' => [
+                        'message' => $body['status']['message'] ?? 'Server error',
+                        'status' => 'error'
+                    ]
+                ],
+                'success' => false,
             ];
         } catch (GuzzleException $e) {
             Log::error('API Connection Error', [

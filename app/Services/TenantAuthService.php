@@ -11,18 +11,52 @@ class TenantAuthService extends ApiClient
      */
     public function login(string $email, string $password)
     {
-        $response = $this->post('/v1/tenant/auth/login', [
+        // Log the login attempt for debugging
+        \Illuminate\Support\Facades\Log::debug('Tenant login attempt', [
             'email' => $email,
-            'password' => $password
+            'endpoint' => '/v1/tenant/auth/login'
         ]);
+        
+        try {
+            $response = $this->post('/v1/tenant/auth/login', [
+                'email' => $email,
+                'password' => $password
+            ]);
 
-        if ($response['success']) {
-            // Store token and user details in session
-            Session::put('tenant_token', $response['body']['token']);
-            Session::put('tenant_data', $response['body']['tenant']);
+            if ($response['success']) {
+                // Store token and user details in session
+                Session::put('tenant_token', $response['body']['token']);
+                Session::put('tenant_data', $response['body']['tenant']);
+                
+                // Log successful login
+                \Illuminate\Support\Facades\Log::info('Tenant login successful', [
+                    'email' => $email,
+                    'tenant_id' => $response['body']['tenant']['tenant_id'] ?? null
+                ]);
+            } else {
+                // Log failed login
+                \Illuminate\Support\Facades\Log::warning('Tenant login failed', [
+                    'email' => $email,
+                    'status' => $response['status'],
+                    'message' => $response['body']['message'] ?? 'Unknown error'
+                ]);
+            }
+
+            return $response;
+        } catch (\Exception $e) {
+            // Log any exceptions
+            \Illuminate\Support\Facades\Log::error('Tenant login exception', [
+                'email' => $email,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return [
+                'success' => false,
+                'status' => 500,
+                'body' => ['message' => 'Login failed: ' . $e->getMessage()]
+            ];
         }
-
-        return $response;
     }
 
     /**
@@ -69,7 +103,20 @@ class TenantAuthService extends ApiClient
             ];
         }
         
-        return $this->post('/v1/tenant/auth/verify-token', ['token' => $token]);
+        try {
+            $response = $this->post('/v1/tenant/auth/verify-token', ['token' => $token]);
+            return $response;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Token verification failed', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'status' => 500,
+                'body' => ['message' => 'Error verifying token: ' . $e->getMessage()]
+            ];
+        }
     }
 
     /**

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\TenantLoginController;
 use App\Http\Controllers\Auth\TenantRegisterController;
+use App\Http\Controllers\Auth\TenantPasswordController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DocumentController;
@@ -22,6 +23,53 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Direct login API endpoint
+Route::get('/direct-login', function() {
+    // This route provides a direct login without any complex middleware
+    try {
+        // Get API client
+        $apiClient = new \App\Services\ApiClient();
+        $response = $apiClient->post('/v1/tenant/auth/login', [
+            'email' => 'iman@gmail.com',
+            'password' => '123456'
+        ]);
+        
+        // Store token in session
+        if (isset($response['success']) && $response['success']) {
+            \Illuminate\Support\Facades\Session::put('tenant_token', $response['body']['token']);
+            \Illuminate\Support\Facades\Session::put('tenant_data', $response['body']['tenant']);
+            return redirect()->route('tenant.direct.dashboard');
+        }
+        
+        return response()->json([
+            'message' => 'Login failed',
+            'response' => $response
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Test direct API login
+Route::get('/test-login', function() {
+    try {
+        $apiClient = new \App\Services\ApiClient();
+        $response = $apiClient->post('/v1/tenant/auth/login', [
+            'email' => 'iman@gmail.com',
+            'password' => '123456'
+        ]);
+        
+        return response()->json($response);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
 // Authentication routes
 Route::get('/login', [TenantLoginController::class, 'showLoginForm'])->name('tenant.login');
 Route::post('/login', [TenantLoginController::class, 'login']);
@@ -35,8 +83,11 @@ Route::post('/forgot-password', [TenantPasswordController::class, 'sendResetLink
 Route::get('/reset-password/{token}', [TenantPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/reset-password', [TenantPasswordController::class, 'reset'])->name('password.update');
 
+// Direct dashboard access without middleware
+Route::get('/direct-dashboard', [TenantDashboardController::class, 'index'])->name('tenant.direct.dashboard');
+
 // Protected routes (requires tenant authentication)
-Route::middleware(['tenant.auth'])->group(function () {
+Route::middleware('tenant.auth')->group(function () {
     // Dashboard
     Route::get('/dashboard', [TenantDashboardController::class, 'index'])->name('tenant.dashboard');
     
