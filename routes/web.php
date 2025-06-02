@@ -139,3 +139,24 @@ Route::middleware('tenant.auth')->group(function () {
     Route::get('/waiting-list/status', [BookingController::class, 'waitingListStatus'])->name('tenant.waitinglist.status');
     Route::delete('/waiting-list', [BookingController::class, 'leaveWaitingList'])->name('tenant.waitinglist.leave');
 });
+
+// Landing page routes
+Route::get('/', function () {
+    return view('landing');
+});
+
+Route::get('/rooms', function () {
+    return view('landing');
+});
+
+Route::get('/facilities', function () {
+    return view('landing');
+});
+
+Route::get('/about', function () {
+    return view('landing');
+});
+
+Route::get('/contact', function () {
+    return view('landing');
+});

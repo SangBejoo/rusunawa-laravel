@@ -12,13 +12,15 @@
         "vite": "^4.3.9"
     },
     "dependencies": {
-        "@chakra-ui/react": "^2.7.0",
-        "@emotion/react": "^11.11.0",
+        "@chakra-ui/icons": "^2.2.4",
+        "@chakra-ui/react": "^2.8.1",
+        "@emotion/react": "^11.11.1",
         "@emotion/styled": "^11.11.0",
-        "framer-motion": "^10.12.16",
+        "framer-motion": "^10.16.4",
         "leaflet": "^1.9.4",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
-        "react-leaflet": "^4.2.1"
+        "react-leaflet": "^4.2.1",
+        "react-router-dom": "^6.16.0"
     }
 }
