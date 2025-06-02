@@ -30,6 +30,11 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+
+    'api' => [
+        'url' => env('API_BASE_URL', 'http://localhost:8001'),
+        'timeout' => env('API_TIMEOUT', 30),
+    ],
     
     'api' => [
         'url' => env('SERVICES_API_URL', 'http://localhost:8001'),

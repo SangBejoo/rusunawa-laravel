@@ -53,8 +53,7 @@ export default function RegisterPage() {
         // Map type_id ke tenant_type string sesuai proto
         let tenantType = '';
         if (form.type_id === '1') {
-            // For students, append gender to determine exact tenant type
-            tenantType = form.gender === 'L' ? 'mahasiswa_putra' : 'mahasiswa_putri';
+            tenantType = 'mahasiswa';
         } else if (form.type_id === '3') {
             tenantType = 'non_mahasiswa';
         }
@@ -70,13 +69,13 @@ export default function RegisterPage() {
                 password: form.password,
                 password_confirm: form.password_confirmation, // Add this back - might be required
                 name: form.name,
-                tenantType: tenantType,
+                tenant_type: tenantType,
                 gender: form.gender,
                 phone: form.phone,
                 address: form.address,
-                homeLatitude: form.location ? Number(form.location.lat) : null,
-                homeLongitude: form.location ? Number(form.location.lng) : null,
-                typeId: parseInt(form.type_id, 10)
+                home_latitude: form.location ? Number(form.location.lat) : null,
+                home_longitude: form.location ? Number(form.location.lng) : null,
+                type_id: parseInt(form.type_id, 10)
             };
             
             // Only include NIM if it exists
@@ -94,23 +93,14 @@ export default function RegisterPage() {
             
             console.log('Sending registration request:', requestBody);
             
-            // Use fetch instead of axios to get better error details
-            const response = await fetch('http://localhost:8001/v1/tenant/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            });
+            // Use axios to post data to Laravel backend
+            const response = await axios.post('/register', requestBody);
             
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || `Error ${response.status}: ${response.statusText}`);
+            if (response.status !== 200) {
+                throw new Error(response.data.message || `Error ${response.status}: ${response.statusText}`);
             }
             
-            console.log('Registration successful:', data);
+            console.log('Registration successful:', response.data);
             
             setSuccess('Registration successful! You can now login.');
             // Reset form on success

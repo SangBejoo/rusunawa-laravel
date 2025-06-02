@@ -58,11 +58,12 @@ class TenantRegisterController extends Controller
             'password' => $request->password,
             'name' => $request->name,
             'tenant_type' => $request->tenant_type,
+            'type_id' => $this->getTenantTypeId($request->tenant_type),
             'gender' => $request->gender,
             'phone' => $request->phone,
             'address' => $request->address,
-            'home_latitude' => $request->home_latitude,
-            'home_longitude' => $request->home_longitude,
+            'home_latitude' => floatval($request->home_latitude),
+            'home_longitude' => floatval($request->home_longitude),
             'nim' => $request->nim,
         ]);
 
@@ -107,5 +108,18 @@ class TenantRegisterController extends Controller
 
         return redirect()->route('tenant.login')
             ->with('status', 'Registration successful! Please login with your credentials.');
+    }
+    
+    /**
+     * Helper method to get the tenant type ID based on the tenant type name
+     */
+    private function getTenantTypeId(string $tenantType)
+    {
+        $typeMap = [
+            'mahasiswa' => 1,
+            'non_mahasiswa' => 2
+        ];
+        
+        return $typeMap[$tenantType] ?? 1; // Default to 1 (mahasiswa) if not found
     }
 }

@@ -82,7 +82,22 @@ class ApiClient
      */
     public function post(string $endpoint, array $data = [])
     {
-        return $this->request('POST', $endpoint, ['json' => $data]);
+        // Log request data for debugging
+        Log::debug('API Request', [
+            'endpoint' => $endpoint,
+            'data' => $data
+        ]);
+        
+        $result = $this->request('POST', $endpoint, ['json' => $data]);
+        
+        // Log response for debugging
+        Log::debug('API Response', [
+            'endpoint' => $endpoint,
+            'status' => $result['status'],
+            'body' => $result['body'] ?? null
+        ]);
+        
+        return $result;
     }
 
     /**
