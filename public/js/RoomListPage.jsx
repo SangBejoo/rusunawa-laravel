@@ -28,8 +28,10 @@ import {
   AlertDescription,
 } from '@chakra-ui/react';
 import { SearchIcon, StarIcon } from '@chakra-ui/icons';
+import { Link } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
+import { roomApi } from './api.js';
 
 export default function RoomListPage() {
   const [rooms, setRooms] = useState([]);
@@ -43,38 +45,45 @@ export default function RoomListPage() {
   });
 
   useEffect(() => {
-    // Simulate API call to fetch rooms
-    // In a real application, you would call your actual API endpoint
     const fetchRooms = async () => {
       try {
         setLoading(true);
-        // Mock API response (replace with actual API call)
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+        const response = await roomApi.getRooms();
         
-        const data = mockRooms; // Mock data
-        setRooms(data);
+        if (response.data && response.data.rooms) {
+          // Transform API data to match our component's expected format
+          const formattedRooms = response.data.rooms.map(room => ({
+            id: room.roomId,
+            title: room.name,
+            type: getTypeFromClassification(room.classification),
+            description: room.description || 'Comfortable accommodation for your stay.',
+            price: room.rate,
+            rating: 4, // Default rating since API doesn't provide one
+            reviews: Math.floor(Math.random() * 50) + 5, // Random review count since API doesn't provide one
+            available: true, // Assuming all returned rooms are available
+            features: room.amenities?.map(a => a.name) || getDefaultFeatures(room.classification),
+            image: getRoomImage(room.classification),
+            capacity: room.capacity,
+            classification: room.classification
+          }));
+          
+          setRooms(formattedRooms);
+        } else {
+          // Fallback to mock data if API response structure is unexpected
+          setRooms(mockRooms);
+        }
+        
         setLoading(false);
       } catch (err) {
-        setError('Failed to fetch rooms. Please try again later.');
-        setLoading(false);
         console.error('Error fetching rooms:', err);
+        setError('Failed to fetch rooms. Please try again later.');
+        setRooms(mockRooms); // Use mock data on error
+        setLoading(false);
       }
     };
 
     fetchRooms();
   }, []);
-
-  const handleSortChange = (e) => {
-    setSortBy(e.target.value);
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
 
   const filteredAndSortedRooms = React.useMemo(() => {
     // Step 1: Apply filters
@@ -116,6 +125,18 @@ export default function RoomListPage() {
         return filteredRooms;
     }
   }, [rooms, sortBy, filters]);
+
+  const handleSortChange = (e) => {
+    setSortBy(e.target.value);
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
@@ -259,12 +280,15 @@ export default function RoomListPage() {
                           {room.description}
                         </Text>
                         
-                        <HStack spacing={4}>
-                          {room.features.map((feature, index) => (
+                        <HStack spacing={4} wrap="wrap">
+                          {room.features.slice(0, 3).map((feature, index) => (
                             <Badge key={index} colorScheme="green" variant="subtle">
                               {feature}
                             </Badge>
                           ))}
+                          {room.features.length > 3 && (
+                            <Badge colorScheme="gray" variant="subtle">+{room.features.length - 3}</Badge>
+                          )}
                         </HStack>
                         
                         <Divider my={2} />
@@ -272,13 +296,14 @@ export default function RoomListPage() {
                         <Flex justifyContent="space-between" alignItems="center">
                           <Text fontWeight="bold" fontSize="xl" color="brand.500">
                             Rp {room.price.toLocaleString('id-ID')}
-                            <Text as="span" fontSize="sm" color="gray.500"> /month</Text>
+                            <Text as="span" fontSize="sm" color="gray.500"> /night</Text>
                           </Text>
                           <Button 
+                            as={Link}
+                            to={`/rooms/${room.id}`}
                             size="sm" 
                             colorScheme="blue"
                             isDisabled={!room.available}
-                            onClick={() => window.location.href = `/rooms/${room.id}`}
                           >
                             View Details
                           </Button>
@@ -297,17 +322,49 @@ export default function RoomListPage() {
   );
 }
 
-// Helper function to get badge color based on room type
-function getBadgeColor(type) {
-  switch(type) {
-    case 'standard':
-      return 'blue';
-    case 'premium':
-      return 'purple';
-    case 'shared':
-      return 'green';
+// Helper function to determine room type from classification
+function getTypeFromClassification(classification) {
+  if (!classification) return 'standard';
+  
+  switch(classification.classificationId) {
+    case 1:
+      return 'premium'; // Female
+    case 2:
+      return 'standard'; // Male
     default:
-      return 'gray';
+      return 'shared';
+  }
+}
+
+// Helper function to get default features based on room type
+function getDefaultFeatures(classification) {
+  const baseFeatures = ['WiFi', 'Desk', 'Wardrobe'];
+  
+  if (!classification) return baseFeatures;
+  
+  if (classification.classificationId === 1) {
+    return [...baseFeatures, 'Private Bathroom', 'Premium Furniture'];
+  } else if (classification.classificationId === 2) {
+    return baseFeatures;
+  } else {
+    return [...baseFeatures, 'Shared Bathroom'];
+  }
+}
+
+// Helper function to get room image based on classification
+function getRoomImage(classification) {
+  if (!classification) {
+    return 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80';
+  }
+  
+  // Different images based on room type
+  switch(classification.classificationId) {
+    case 1: // Female
+      return 'https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1469&q=80';
+    case 2: // Male
+      return 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80';
+    default:
+      return 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80';
   }
 }
 

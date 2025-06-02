@@ -28,7 +28,7 @@ class EnsureTenantIsAuthenticated
         try {
             // Check if user is logged in
             if (!$this->authService->isLoggedIn()) {
-                return redirect()->route('tenant.login');
+                return redirect()->route('login');
             }
             
             return $next($request);
@@ -39,7 +39,7 @@ class EnsureTenantIsAuthenticated
             ]);
             
             // Safely redirect
-            return redirect()->route('tenant.login');
+            return redirect()->route('login');
         }
     }
 }

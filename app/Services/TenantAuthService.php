@@ -64,7 +64,38 @@ class TenantAuthService extends ApiClient
      */
     public function register(array $data)
     {
-        return $this->post('/v1/tenant/auth/register', $data);
+        try {
+            // Log the registration attempt for debugging
+            \Illuminate\Support\Facades\Log::debug('Tenant registration attempt', [
+                'email' => $data['email'],
+                'endpoint' => '/v1/tenant/auth/register',
+                'api_url' => $this->baseUrl
+            ]);
+            
+            $response = $this->post('/v1/tenant/auth/register', $data);
+            
+            // Log the response for debugging
+            \Illuminate\Support\Facades\Log::debug('Registration API response', [
+                'status' => $response['status'],
+                'success' => $response['success'],
+                'message' => $response['body']['message'] ?? 'No message'
+            ]);
+            
+            return $response;
+        } catch (\Exception $e) {
+            // Log any exceptions
+            \Illuminate\Support\Facades\Log::error('Tenant registration exception', [
+                'email' => $data['email'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return [
+                'success' => false,
+                'status' => 500,
+                'body' => ['message' => 'Registration failed: ' . $e->getMessage()]
+            ];
+        }
     }
 
     /**

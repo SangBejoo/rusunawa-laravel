@@ -27,7 +27,7 @@ class PaymentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('tenant.login')
+            return redirect()->route('login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -62,7 +62,7 @@ class PaymentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('tenant.login')
+            return redirect()->route('login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -93,7 +93,7 @@ class PaymentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('tenant.login')
+            return redirect()->route('login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -128,7 +128,7 @@ class PaymentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('tenant.login')
+            return redirect()->route('login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -161,7 +161,7 @@ class PaymentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('tenant.login')
+            return redirect()->route('login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -201,7 +201,7 @@ class PaymentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('tenant.login')
+            return redirect()->route('login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -228,7 +228,7 @@ class PaymentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('tenant.login')
+            return redirect()->route('login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         

@@ -5,21 +5,16 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\TenantAuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use App\Models\User;
-use App\Models\Tenant;
-use App\Models\TenantType;
-use App\Models\Role;
-use Illuminate\Support\Facades\DB;
 
 class TenantRegisterController extends Controller
 {
-    protected $authService;
+    protected $tenantAuthService;
 
-    public function __construct(TenantAuthService $authService)
+    public function __construct(TenantAuthService $tenantAuthService)
     {
-        $this->authService = $authService;
-        $this->middleware('guest');
+        $this->tenantAuthService = $tenantAuthService;
     }
 
     /**
@@ -27,99 +22,99 @@ class TenantRegisterController extends Controller
      */
     public function showRegistrationForm()
     {
-        return view('auth.tenant-register');
+        return view('tenant.register');
     }
 
     /**
-     * Handle the registration request
+     * Handle a registration request for the application.
      */
     public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
+    {        $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
-            'password' => 'required|min:8|confirmed',
-            'tenant_type' => 'required|string',
-            'gender' => 'required|in:L,P',
-            'phone' => 'required|string',
+            'password' => 'required|string|min:8',
+            'phone' => 'required|string|max:20',
             'address' => 'required|string',
+            'gender' => 'required|string|in:L,P',
+            'tenant_type' => 'required|string|in:mahasiswa,non-mahasiswa',
+            'nim' => 'required_if:tenant_type,mahasiswa|string|max:255',
             'home_latitude' => 'required|numeric',
             'home_longitude' => 'required|numeric',
-            'nim' => 'nullable|string|max:20',
+            'type_id' => 'required|integer|in:1,2',
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            return back()
+                ->withErrors($validator)
+                ->withInput($request->except('password', 'password_confirmation'));
         }
 
-        // 1. Kirim ke backend GoLang
-        $response = $this->authService->register([
-            'email' => $request->email,
-            'password' => $request->password,
-            'name' => $request->name,
-            'tenant_type' => $request->tenant_type,
-            'type_id' => $this->getTenantTypeId($request->tenant_type),
-            'gender' => $request->gender,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'home_latitude' => floatval($request->home_latitude),
-            'home_longitude' => floatval($request->home_longitude),
-            'nim' => $request->nim,
-        ]);
-
-        if (!$response['success']) {
-            $message = $response['body']['message'] ?? 'Registration failed';
-            return back()->withErrors(['email' => $message])->withInput();
-        }
-
-        // 2. Simpan ke database lokal
-        DB::beginTransaction();
-        try {
-            // Cari role penyewa
-            $role = Role::where('name', 'penyewa')->first();
-            // Cari tenant_type_id
-            $tenantType = TenantType::where('name', $request->tenant_type)->first();
-            // Hitung jarak otomatis ke kampus
-            $distance = Tenant::calculateDistanceToCampus($request->home_latitude, $request->home_longitude);
-            // Simpan user
-            $user = User::create([
-                'role_id' => $role ? $role->role_id : 5, // fallback ke 5
-                'full_name' => $request->name,
-                'email' => $request->email,
-                'password_hash' => bcrypt($request->password),
+        try {            $response = $this->tenantAuthService->register([
+                'name' => $request->input('name'),
+                'email' => $request->input('email'),
+                'password' => $request->input('password'),
+                'phone' => $request->input('phone'),
+                'address' => $request->input('address'),
+                'gender' => $request->input('gender'),
+                'tenant_type' => $request->input('tenant_type'),
+                'nim' => $request->input('nim'),
+                'home_latitude' => $request->input('home_latitude'),
+                'home_longitude' => $request->input('home_longitude'),
+                'type_id' => $request->input('type_id'),
             ]);
-            // Simpan tenant
-            Tenant::create([
-                'user_id' => $user->user_id,
-                'type_id' => $tenantType ? $tenantType->type_id : 3,
-                'gender' => $request->gender,
-                'phone' => $request->phone,
-                'address' => $request->address,
-                'nim' => $request->nim,
-                'home_latitude' => $request->home_latitude,
-                'home_longitude' => $request->home_longitude,
-                'distance_to_campus' => $distance,
-            ]);
-            DB::commit();
+
+            if ($response['success']) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Registration successful! Please login.',
+                        'redirect' => route('login')
+                    ]);
+                }
+                
+                return redirect()->route('login')
+                    ->with('status', 'Registration successful! Please login.');
+            } else {
+                Log::warning('Registration failed', [
+                    'email' => $request->input('email'),
+                    'status' => $response['status'],
+                    'message' => $response['body']['message'] ?? 'Unknown error'
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $response['body']['message'] ?? 'Registration failed'
+                    ], $response['status']);
+                }
+                
+                return back()
+                    ->withInput($request->except('password', 'password_confirmation'))
+                    ->withErrors(['email' => $response['body']['message'] ?? 'Registration failed']);
+            }
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withErrors(['email' => 'Registrasi gagal disimpan di database lokal: ' . $e->getMessage()])->withInput();
+            Log::error('Exception during registration', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred during registration'
+                ], 500);
+            }
+            
+            return back()
+                ->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => 'An error occurred during registration']);
         }
-
-        return redirect()->route('tenant.login')
-            ->with('status', 'Registration successful! Please login with your credentials.');
-    }
-    
-    /**
-     * Helper method to get the tenant type ID based on the tenant type name
-     */
-    private function getTenantTypeId(string $tenantType)
-    {
-        $typeMap = [
-            'mahasiswa' => 1,
-            'non_mahasiswa' => 2
-        ];
-        
-        return $typeMap[$tenantType] ?? 1; // Default to 1 (mahasiswa) if not found
     }
 }

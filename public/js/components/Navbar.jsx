@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Flex,
@@ -15,12 +15,66 @@ import {
   useColorModeValue,
   useBreakpointValue,
   useDisclosure,
-  Container
+  Container,
+  Avatar,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  MenuDivider
 } from '@chakra-ui/react';
 import { HamburgerIcon, CloseIcon, ChevronDownIcon, ChevronRightIcon } from '@chakra-ui/icons';
 
 export default function Navbar() {
   const { isOpen, onToggle } = useDisclosure();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState(null);
+
+  // Check login status when component mounts
+  useEffect(() => {
+    const loginStatus = localStorage.getItem('isLoggedIn');
+    if (loginStatus === 'true') {
+      setIsLoggedIn(true);
+      
+      // Try to get user data if available
+      const storedUserData = localStorage.getItem('userData');
+      if (storedUserData) {
+        try {
+          setUserData(JSON.parse(storedUserData));
+        } catch (e) {
+          console.error('Error parsing user data', e);
+        }
+      }
+    }
+  }, []);
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userData');
+    localStorage.removeItem('tenant_token');
+    sessionStorage.removeItem('tenant_token');
+    
+    // Post to logout endpoint using authApi
+    try {
+      fetch('http://localhost:8001/v1/tenant/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('tenant_token') || ''}`
+        }
+      }).then(() => {
+        window.location.href = '/';
+      }).catch(err => {
+        console.error('Logout error', err);
+        window.location.href = '/';
+      });
+    } catch (error) {
+      console.error('Logout error', error);
+      window.location.href = '/';
+    }
+  };
 
   return (
     <Box>
@@ -60,28 +114,61 @@ export default function Navbar() {
             flex={{ base: 1, md: 0 }}
             justify={'flex-end'}
             direction={'row'}
-            spacing={6}>
-            <Button
-              as={'a'}
-              fontSize={'sm'}
-              fontWeight={400}
-              variant={'link'}
-              href={'/tenant/login'}>
-              Sign In
-            </Button>
-            <Button
-              as={'a'}
-              display={{ base: 'none', md: 'inline-flex' }}
-              fontSize={'sm'}
-              fontWeight={600}
-              color={'white'}
-              bg={'brand.500'}
-              href={'/register'}
-              _hover={{
-                bg: 'brand.400',
-              }}>
-              Sign Up
-            </Button>
+            spacing={6}
+            align="center">
+            {isLoggedIn ? (
+              <Menu>
+                <MenuButton
+                  as={Button}
+                  rounded={'full'}
+                  variant={'link'}
+                  cursor={'pointer'}
+                  minW={0}>
+                  <Flex align="center">
+                    <Text mr={2} display={{ base: 'none', md: 'block' }}>
+                      {userData?.name || 'Welcome back!'}
+                    </Text>
+                    <Avatar
+                      size={'sm'}
+                      bg="brand.500"
+                      color="white"
+                      name={userData?.name || 'User'}
+                    />
+                  </Flex>
+                </MenuButton>
+                <MenuList>
+                  <MenuItem as="a" href="dashboard">Dashboard</MenuItem>
+                  <MenuItem as="a" href="profile">My Profile</MenuItem>
+                  <MenuItem as="a" href="bookings">My Bookings</MenuItem>
+                  <MenuDivider />
+                  <MenuItem onClick={handleLogout}>Sign Out</MenuItem>
+                </MenuList>
+              </Menu>
+            ) : (
+              <>
+                <Button
+                  as={'a'}
+                  fontSize={'sm'}
+                  fontWeight={400}
+                  variant={'link'}
+                  href={'/login'}>
+                  Sign In
+                </Button>
+                <Button
+                  as={'a'}
+                  display={{ base: 'none', md: 'inline-flex' }}
+                  fontSize={'sm'}
+                  fontWeight={600}
+                  color={'white'}
+                  bg={'brand.500'}
+                  href={'/register'}
+                  _hover={{
+                    bg: 'brand.400',
+                  }}>
+                  Sign Up
+                </Button>
+              </>
+            )}
             <IconButton
               display={{ base: 'flex', md: 'none' }}
               onClick={onToggle}
@@ -96,7 +183,7 @@ export default function Navbar() {
       </Flex>
 
       <Collapse in={isOpen} animateOpacity>
-        <MobileNav />
+        <MobileNav isLoggedIn={isLoggedIn} handleLogout={handleLogout} />
       </Collapse>
     </Box>
   );
@@ -183,7 +270,7 @@ const DesktopSubNav = ({ label, href, subLabel }) => {
   );
 };
 
-const MobileNav = () => {
+const MobileNav = ({ isLoggedIn, handleLogout }) => {
   return (
     <Stack
       bg={useColorModeValue('white', 'gray.800')}
@@ -192,9 +279,57 @@ const MobileNav = () => {
       {NAV_ITEMS.map((navItem) => (
         <MobileNavItem key={navItem.label} {...navItem} />
       ))}
+      
+      {/* Show these menu items only when logged in on mobile */}
+      {isLoggedIn && (
+        <>
+          <Box as="hr" my={2} />
+          <MobileNavItem label="Dashboard" href="dashboard" />
+          <MobileNavItem label="My Profile" href="profile" />
+          <MobileNavItem label="My Bookings" href="bookings" />
+          <Box
+            py={2}
+            as="a"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              handleLogout();
+            }}
+            display="flex"
+            alignItems="center"
+            color="red.500"
+            fontWeight="500"
+          >
+            Sign Out
+          </Box>
+        </>
+      )}
     </Stack>
   );
 };
+
+const NAV_ITEMS = [
+  {
+    label: 'Home',
+    href: '/',
+  },
+  {
+    label: 'Rooms',
+    href: '/rooms',
+  },
+  {
+    label: 'Facilities',
+    href: '/facilities',
+  },
+  {
+    label: 'About Us',
+    href: '/about',
+  },
+  {
+    label: 'Contact',
+    href: '/contact',
+  },
+];
 
 const MobileNavItem = ({ label, children, href }) => {
   const { isOpen, onToggle } = useDisclosure();
@@ -245,26 +380,3 @@ const MobileNavItem = ({ label, children, href }) => {
     </Stack>
   );
 };
-
-const NAV_ITEMS = [
-  {
-    label: 'Home',
-    href: '/',
-  },
-  {
-    label: 'Rooms',
-    href: '/rooms',
-  },
-  {
-    label: 'Facilities',
-    href: '/facilities',
-  },
-  {
-    label: 'About Us',
-    href: '/about',
-  },
-  {
-    label: 'Contact',
-    href: '/contact',
-  },
-];

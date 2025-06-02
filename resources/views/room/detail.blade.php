@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Welcome to Rusunawa - Student Housing Portal')
+@section('title', 'Room Details - Rusunawa')
 
 @section('content')
 <div id="landing-root"></div>

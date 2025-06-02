@@ -5,28 +5,28 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\TenantAuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class TenantPasswordController extends Controller
 {
-    protected $authService;
+    protected $tenantAuthService;
 
-    public function __construct(TenantAuthService $authService)
+    public function __construct(TenantAuthService $tenantAuthService)
     {
-        $this->authService = $authService;
-        $this->middleware('guest');
+        $this->tenantAuthService = $tenantAuthService;
     }
 
     /**
-     * Show the form to request a password reset link
+     * Show form to request a password reset link.
      */
     public function showLinkRequestForm()
     {
-        return view('auth.tenant-password-email');
+        return view('tenant.passwords.email');
     }
 
     /**
-     * Send a password reset link
+     * Send a reset link to the given user.
      */
     public function sendResetLinkEmail(Request $request)
     {
@@ -35,49 +35,144 @@ class TenantPasswordController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            return back()
+                ->withErrors($validator)
+                ->withInput($request->only('email'));
         }
 
-        $response = $this->authService->forgotPassword($request->email);
+        try {
+            $response = $this->tenantAuthService->forgotPassword($request->input('email'));
 
-        if (!$response['success']) {
-            $message = $response['body']['message'] ?? 'Unable to send password reset link';
-            return back()->withErrors(['email' => $message])->withInput();
+            if ($response['success']) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Password reset link has been sent to your email'
+                    ]);
+                }
+                
+                return back()
+                    ->with('status', 'Password reset link has been sent to your email');
+            } else {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $response['body']['message'] ?? 'Unable to send reset link'
+                    ], $response['status']);
+                }
+                
+                return back()
+                    ->withInput($request->only('email'))
+                    ->withErrors(['email' => $response['body']['message'] ?? 'Unable to send reset link']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception during password reset request', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while processing your request'
+                ], 500);
+            }
+            
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'An error occurred while processing your request']);
         }
-
-        return back()->with('status', 'Password reset link has been sent to your email address.');
     }
 
     /**
-     * Show the password reset form
+     * Display the password reset view for the given token.
      */
-    public function showResetForm(Request $request, $token)
+    public function showResetForm(Request $request, $token = null)
     {
-        return view('auth.tenant-password-reset', ['token' => $token, 'email' => $request->email]);
+        if (is_null($token)) {
+            return redirect()->route('tenant.password.request');
+        }
+
+        return view('tenant.passwords.reset')->with(
+            ['token' => $token, 'email' => $request->email]
+        );
     }
 
     /**
-     * Reset the password
+     * Reset the given user's password.
      */
     public function reset(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|min:8|confirmed',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+            
+            return back()
+                ->withErrors($validator)
+                ->withInput($request->except('password', 'password_confirmation'));
         }
 
-        $response = $this->authService->resetPassword($request->token, $request->password);
+        try {
+            $response = $this->tenantAuthService->resetPassword(
+                $request->input('token'),
+                $request->input('password')
+            );
 
-        if (!$response['success']) {
-            $message = $response['body']['message'] ?? 'Unable to reset password';
-            return back()->withErrors(['email' => $message])->withInput();
+            if ($response['success']) {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Password has been reset successfully',
+                        'redirect' => route('login')
+                    ]);
+                }
+                
+                return redirect()->route('login')
+                    ->with('status', 'Password has been reset successfully');
+            } else {
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $response['body']['message'] ?? 'Unable to reset password'
+                    ], $response['status']);
+                }
+                
+                return back()
+                    ->withInput($request->except('password', 'password_confirmation'))
+                    ->withErrors(['email' => $response['body']['message'] ?? 'Unable to reset password']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception during password reset', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while resetting your password'
+                ], 500);
+            }
+            
+            return back()
+                ->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => 'An error occurred while resetting your password']);
         }
-
-        return redirect()->route('tenant.login')->with('status', 'Your password has been reset. You can now login with your new password.');
     }
 }

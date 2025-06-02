@@ -1,6 +1,5 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import DistancePicker from './DistancePicker.jsx';
 import RegisterPage from './RegisterPage.jsx';
 
 /**
@@ -191,6 +190,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (document.getElementById('register-root')) {
-        createRoot(document.getElementById('register-root')).render(<RegisterPage />);
+        createRoot(document.getElementById('register-root')).render(
+            React.createElement(RegisterPage, null)
+        );
     }
 });

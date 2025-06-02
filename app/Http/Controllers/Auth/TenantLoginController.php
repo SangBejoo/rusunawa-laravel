@@ -5,90 +5,119 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\TenantAuthService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
 class TenantLoginController extends Controller
 {
-    protected $authService;
+    protected $tenantAuthService;
 
-    public function __construct(TenantAuthService $authService)
+    public function __construct(TenantAuthService $tenantAuthService)
     {
-        $this->authService = $authService;
-        $this->middleware('guest')->except('logout');
-    }    /**
+        $this->tenantAuthService = $tenantAuthService;
+    }
+
+    /**
      * Show the login form
      */
     public function showLoginForm()
     {
-        return view('auth.tenant-login');
+        // If already logged in, redirect to dashboard
+        if (Session::has('tenant_token')) {
+            return redirect()->route('tenant.dashboard');
+        }
+        
+        return view('tenant.login');
     }
-    
+
     /**
-     * Handle login request
+     * Handle a login request to the application.
      */
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
-            'password' => 'required|min:6',
+            'password' => 'required|string',
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
         try {
-            // Create a direct API client connection
-            $apiClient = new \App\Services\ApiClient();            \Illuminate\Support\Facades\Log::info('Attempting login', [
-                'email' => $request->input('email'),
-                'api_url' => config('services.api.url')
-            ]);
+            $response = $this->tenantAuthService->login(
+                $request->input('email'),
+                $request->input('password')
+            );
 
-            $response = $apiClient->post('/v1/tenant/auth/login', [
-                'email' => $request->input('email'),
-                'password' => $request->input('password')
-            ]);
-
-            \Illuminate\Support\Facades\Log::info('Login response', [
-                'response' => $response
+            if ($response['success']) {
+                // If request is an AJAX request
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Login successful',
+                        'redirect' => route('tenant.dashboard')
+                    ]);
+                }
+                
+                // Regular form submission
+                return redirect()->route('tenant.dashboard');
+            } else {
+                Log::warning('Login failed', [
+                    'email' => $request->input('email'),
+                    'status' => $response['status'],
+                    'message' => $response['body']['message'] ?? 'Unknown error'
+                ]);
+                
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $response['body']['message'] ?? 'Invalid credentials'
+                    ], $response['status']);
+                }
+                
+                return back()
+                    ->withInput($request->only('email'))
+                    ->withErrors(['email' => $response['body']['message'] ?? 'Invalid credentials']);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception during login', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
-            if (isset($response['body']['token'])) {
-                // API call was successful, store the token and user data
-                \Illuminate\Support\Facades\Session::put('tenant_token', $response['body']['token']);
-                \Illuminate\Support\Facades\Session::put('tenant_data', $response['body']['tenant']);
-                
-                return redirect()->route('tenant.dashboard');
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred during login'
+                ], 500);
             }
             
-            // If we got here, something went wrong
-            $message = isset($response['body']['status']['message']) 
-                ? $response['body']['status']['message'] 
-                : (isset($response['body']['message']) 
-                    ? $response['body']['message'] 
-                    : 'Login failed. Please try again.');
-                    
-            return back()->withErrors(['email' => $message])->withInput();
-            
-            return redirect()->route('tenant.direct.dashboard');
-        } catch (\Exception $e) {
-            // Log the error for debugging
-            \Illuminate\Support\Facades\Log::error('Login exception', [
-                'email' => $request->input('email'),
-                'error' => $e->getMessage()
-            ]);
-              return back()->withErrors(['email' => 'Login failed: ' . $e->getMessage()])->withInput();        }
+            return back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'An error occurred during login']);
+        }
     }
-    
+
     /**
-     * Handle logout request
+     * Log the user out of the application.
      */
-    public function logout()
+    public function logout(Request $request)
     {
-        // Just clear the session
-        \Illuminate\Support\Facades\Session::forget('tenant_token');
-        \Illuminate\Support\Facades\Session::forget('tenant_data');
+        Session::forget('tenant_token');
+        Session::forget('tenant_data');
         
-        return redirect()->route('tenant.login');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Successfully logged out'
+            ]);
+        }
+        
+        return redirect()->route('login');
     }
 }
