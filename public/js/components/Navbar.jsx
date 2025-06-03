@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Flex,
-  Text,
-  Button,
-  Stack,
-  Collapse,
-  IconButton,
+import { 
+  Box, 
+  Flex, 
+  Text, 
+  IconButton, 
+  Button, 
+  Stack, 
+  Collapse, 
+  Icon, 
   Link,
   Popover,
-  PopoverTrigger,
+  PopoverTrigger, 
   PopoverContent,
   useColorModeValue,
-  useBreakpointValue,
   useDisclosure,
   Avatar,
   Menu,
@@ -20,202 +20,78 @@ import {
   MenuList,
   MenuItem,
   MenuDivider,
-  Icon
+  Image
 } from '@chakra-ui/react';
-import { 
-  HamburgerIcon, 
-  CloseIcon, 
-  ChevronDownIcon, 
-  ChevronRightIcon 
+import {
+  HamburgerIcon,
+  CloseIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
 } from '@chakra-ui/icons';
+import { FaUser, FaBed, FaFileInvoiceDollar, FaSignOutAlt, FaHome } from 'react-icons/fa';
 
-const Navbar = ({ forceDisplay = false }) => {
-  // Always render navbar regardless of whether another navbar exists
+export default function Navbar() {
   const { isOpen, onToggle } = useDisclosure();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tenant, setTenant] = useState(null);
-
-  // Check authentication status on component mount and when localStorage changes
+  
   useEffect(() => {
-    const checkAuth = () => {
-      // Try to get token from multiple sources
-      const token = localStorage.getItem('tenant_token') || 
-                   sessionStorage.getItem('tenant_token') || 
-                   (window.appConfig && window.appConfig.authToken);
-      
-      // Try to get tenant data from multiple sources
-      let tenantData = localStorage.getItem('tenant_data') || 
-                      sessionStorage.getItem('tenant_data') ||
-                      (window.appConfig && window.appConfig.tenant);
-      
-      console.log('Navbar: Checking auth status...', { 
-        hasToken: !!token, 
-        hasTenantData: !!tenantData
-      });
-      
-      if (token && tenantData) {
-        try {
-          // If tenantData is a string, parse it
-          const parsedTenant = typeof tenantData === 'string' ? JSON.parse(tenantData) : tenantData;
-          console.log('Tenant data found:', parsedTenant);
-          
-          // Normalize tenant data to ensure tenantType is properly structured
-          if (parsedTenant.tenant && parsedTenant.tenant.tenantType && 
-              typeof parsedTenant.tenant.tenantType === 'object' && 
-              parsedTenant.tenant.tenantType !== null) {
-            console.log('Normalizing nested tenant type:', parsedTenant.tenant.tenantType);
-            parsedTenant.tenant.tenantType = parsedTenant.tenant.tenantType.name || '';
-          }
-          
-          if (parsedTenant.tenantType && 
-              typeof parsedTenant.tenantType === 'object' && 
-              parsedTenant.tenantType !== null) {
-            console.log('Normalizing direct tenant type:', parsedTenant.tenantType);
-            parsedTenant.tenantType = parsedTenant.tenantType.name || '';
-          }
-          
-          setIsAuthenticated(true);
-          setTenant(parsedTenant);
-        } catch (e) {
-          console.error('Error parsing tenant data:', e);
-          setIsAuthenticated(false);
-          setTenant(null);
-        }
-      } else {
-        console.log('Not authenticated: missing token or tenant data');
+    // Check if user is logged in on component mount
+    const tenantToken = localStorage.getItem('tenant_token');
+    const tenantDataStr = localStorage.getItem('tenant_data');
+    
+    if (tenantToken && tenantDataStr) {
+      try {
+        const tenantData = JSON.parse(tenantDataStr);
+        setIsAuthenticated(true);
+        setTenant(tenantData);
+      } catch (error) {
+        console.error('Error parsing tenant data:', error);
         setIsAuthenticated(false);
-        setTenant(null);
       }
-    };
+    }
     
-    // Check auth on load
-    checkAuth();
-    
-    // Listen for storage changes (for cross-tab synchronization)
-    const handleStorageChange = (e) => {
-      if (e.key === 'tenant_token' || e.key === 'tenant_data') {
-        console.log('Storage change detected:', e.key);
-        checkAuth();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Custom event for within-page changes
-    const handleAuthEvent = () => {
-      console.log('Auth event detected, updating navbar');
-      checkAuth();
-    };
-    window.addEventListener('tenantAuthChanged', handleAuthEvent);
+    // Listen for auth events 
+    window.addEventListener('auth-event', handleAuthEvent);
     
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('tenantAuthChanged', handleAuthEvent);
+      window.removeEventListener('auth-event', handleAuthEvent);
     };
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      // Send logout request to server
-      const response = await fetch('/tenant/logout', {
-        method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // Clear local storage regardless of response
-      localStorage.removeItem('tenant_token');
-      localStorage.removeItem('tenant_data');
-      sessionStorage.removeItem('tenant_token');
-      sessionStorage.removeItem('tenant_data');
-      
-      // Update state
+  
+  const handleAuthEvent = (event) => {
+    const { action, data } = event.detail;
+    
+    if (action === 'login') {
+      setIsAuthenticated(true);
+      setTenant(data.tenant);
+    } else if (action === 'logout') {
       setIsAuthenticated(false);
       setTenant(null);
-      
-      // Dispatch event for other components
-      window.dispatchEvent(new Event('tenantAuthChanged'));
-      
-      // Redirect to home
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Logout error:', error);
-      
-      // Still clear storage and update state on error
-      localStorage.removeItem('tenant_token');
-      localStorage.removeItem('tenant_data');
-      setIsAuthenticated(false);
-      setTenant(null);
-      
-      window.location.href = '/';
     }
   };
-
-  // Get tenant name for display
-  const getTenantName = () => {
-    if (!tenant) return 'User';
+  
+  const handleLogout = () => {
+    // Clear local storage
+    localStorage.removeItem('tenant_token');
+    localStorage.removeItem('tenant_data');
     
-    console.log('Getting tenant name from:', tenant);
+    // Update state
+    setIsAuthenticated(false);
+    setTenant(null);
     
-    // Handle different possible structures
-    if (typeof tenant === 'object') {
-      if (tenant.user && tenant.user.fullName) {
-        return String(tenant.user.fullName);
-      }
-      
-      if (tenant.tenant && tenant.tenant.user && tenant.tenant.user.fullName) {
-        return String(tenant.tenant.user.fullName);
-      }
-      
-      // Try to use name or fullName properties if they exist
-      if (tenant.name) return String(tenant.name);
-      if (tenant.fullName) return String(tenant.fullName);
-      
-      return 'User';
-    }
+    // Dispatch auth event
+    const event = new CustomEvent('auth-event', {
+      detail: { action: 'logout' }
+    });
+    window.dispatchEvent(event);
     
-    return 'User';
-  };
-
-  // Get tenant type name safely as string
-  const getTenantTypeName = () => {
-    if (!tenant) return '';
-    
-    console.log('Getting tenant type from:', tenant);
-    
-    // At this point, tenant.tenant.tenantType and tenant.tenantType should be strings
-    // due to our normalization in checkAuth, but let's be safe anyway
-    
-    // Handle nested tenant type
-    if (tenant.tenant && tenant.tenant.tenantType) {
-      const tenantType = tenant.tenant.tenantType;
-      console.log('Nested tenant type:', tenantType);
-      
-      if (typeof tenantType === 'object' && tenantType !== null) {
-        return tenantType.name || '';
-      }
-      return typeof tenantType === 'string' ? tenantType : '';
-    }
-    
-    // Direct tenant type
-    if (tenant.tenantType) {
-      const tenantType = tenant.tenantType;
-      console.log('Direct tenant type:', tenantType);
-      
-      if (typeof tenantType === 'object' && tenantType !== null) {
-        return tenantType.name || '';
-      }
-      return typeof tenantType === 'string' ? tenantType : '';
-    }
-    
-    return '';
+    // Redirect to landing page
+    window.location.href = '/';
   };
 
   return (
-    <Box position="sticky" top="0" width="100%" zIndex="1000">
+    <Box position="sticky" top={0} zIndex={1000}>
       <Flex
         bg={useColorModeValue('white', 'gray.800')}
         color={useColorModeValue('gray.600', 'white')}
@@ -226,7 +102,6 @@ const Navbar = ({ forceDisplay = false }) => {
         borderStyle={'solid'}
         borderColor={useColorModeValue('gray.200', 'gray.900')}
         align={'center'}
-        position="relative"
         boxShadow="sm"
       >
         <Flex
@@ -236,37 +111,36 @@ const Navbar = ({ forceDisplay = false }) => {
         >
           <IconButton
             onClick={onToggle}
-            icon={isOpen ? <CloseIcon w={3} h={3} /> : <HamburgerIcon w={5} h={5} />}
+            icon={
+              isOpen ? <CloseIcon w={3} h={3} /> : <HamburgerIcon w={5} h={5} />
+            }
             variant={'ghost'}
             aria-label={'Toggle Navigation'}
           />
         </Flex>
-        
         <Flex flex={{ base: 1 }} justify={{ base: 'center', md: 'start' }}>
-          <Text
-            as={'a'}
-            href="/"
-            textAlign={useBreakpointValue({ base: 'center', md: 'left' })}
-            fontFamily={'heading'}
-            fontWeight="bold"
-            fontSize="xl"
-            color={useColorModeValue('brand.600', 'white')}
-          >
-            Rusunawa
-          </Text>
+          <Link href="/">
+            <Image
+              src="/images/logo.png"
+              alt="Rusunawa Logo"
+              fallbackSrc="https://via.placeholder.com/150x50?text=RUSUNAWA"
+              h="40px"
+              objectFit="contain"
+            />
+          </Link>
 
           <Flex display={{ base: 'none', md: 'flex' }} ml={10}>
             <DesktopNav />
           </Flex>
         </Flex>
 
-        <Stack
-          flex={{ base: 1, md: 0 }}
-          justify={'flex-end'}
-          direction={'row'}
-          spacing={6}
-        >
-          {isAuthenticated ? (
+        {isAuthenticated ? (
+          <Stack
+            flex={{ base: 1, md: 0 }}
+            justify={'flex-end'}
+            direction={'row'}
+            spacing={6}
+          >
             <Menu>
               <MenuButton
                 as={Button}
@@ -275,72 +149,79 @@ const Navbar = ({ forceDisplay = false }) => {
                 cursor={'pointer'}
                 minW={0}
               >
-                <Avatar
-                  size="sm"
-                  name={getTenantName()}
-                  // Add key to force re-render when tenant changes
-                  key={isAuthenticated ? 'logged-in' : 'logged-out'}
-                />
+                <Flex align="center">
+                  <Avatar 
+                    size={'sm'} 
+                    src={tenant?.profile_image || 'https://bit.ly/broken-link'}
+                    mr={2}
+                  />
+                  <Text fontSize="sm" display={{ base: 'none', md: 'block' }}>
+                    {tenant?.name || 'User'}
+                  </Text>
+                  <ChevronDownIcon ml={1}/>
+                </Flex>
               </MenuButton>
               <MenuList>
-                <MenuItem as="a" href="/tenant/profile">My Profile</MenuItem>
-                <MenuItem as="a" href="/tenant/bookings">My Bookings</MenuItem>
-                <MenuItem as="a" href="/tenant/invoices">My Invoices</MenuItem>
-                <MenuItem as="a" href="/tenant/payments">Payment History</MenuItem>
+                <MenuItem icon={<FaUser />} as="a" href="/tenant/profile">
+                  Profile
+                </MenuItem>
+                <MenuItem icon={<FaBed />} as="a" href="/tenant/bookings">
+                  My Bookings
+                </MenuItem>
+                <MenuItem icon={<FaFileInvoiceDollar />} as="a" href="/tenant/invoices">
+                  My Invoices
+                </MenuItem>
                 <MenuDivider />
-                <MenuItem onClick={handleLogout}>Sign Out</MenuItem>
+                <MenuItem icon={<FaSignOutAlt />} onClick={handleLogout}>
+                  Logout
+                </MenuItem>
               </MenuList>
             </Menu>
-          ) : (
-            <>
-              <Button
-                as={'a'}
-                fontSize={'sm'}
-                fontWeight={400}
-                variant={'link'}
-                onClick={(e) => {
-                  e.preventDefault(); // Prevent React Router from intercepting
-                  console.log("Sign In clicked, navigating to /tenant/login");
-                  // Navigate directly to login page without timestamp
-                  window.location.href = `/tenant/login`;
-                }}
-              >
-                Sign In
-              </Button>
-              <Button
-                as={'a'}
-                display={{ base: 'none', md: 'inline-flex' }}
-                fontSize={'sm'}
-                fontWeight={600}
-                color={'white'}
-                bg={'brand.500'}
-                _hover={{
-                  bg: 'brand.600',
-                }}
-                onClick={(e) => {
-                  e.preventDefault(); // Prevent React Router from intercepting
-                  console.log("Sign Up clicked, navigating to /tenant/register");
-                  // Use direct window.location navigation to bypass React Router
-                  window.location.href = "/tenant/register";
-                }}
-              >
-                Sign Up
-              </Button>
-            </>
-          )}
-        </Stack>
+          </Stack>
+        ) : (
+          <Stack
+            flex={{ base: 1, md: 0 }}
+            justify={'flex-end'}
+            direction={'row'}
+            spacing={6}
+          >
+            <Button
+              as={'a'}
+              fontSize={'sm'}
+              fontWeight={400}
+              variant={'link'}
+              href={'/tenant/login'}
+            >
+              Sign In
+            </Button>
+            <Button
+              as={'a'}
+              display={{ base: 'none', md: 'inline-flex' }}
+              fontSize={'sm'}
+              fontWeight={600}
+              color={'white'}
+              bg={'brand.500'}
+              href={'/tenant/register'}
+              _hover={{
+                bg: 'brand.400',
+              }}
+            >
+              Sign Up
+            </Button>
+          </Stack>
+        )}
       </Flex>
 
       <Collapse in={isOpen} animateOpacity>
-        <MobileNav isAuthenticated={isAuthenticated} handleLogout={handleLogout} />
+        <MobileNav />
       </Collapse>
     </Box>
   );
-};
+}
 
 const DesktopNav = () => {
   const linkColor = useColorModeValue('gray.600', 'gray.200');
-  const linkHoverColor = useColorModeValue('gray.800', 'white');
+  const linkHoverColor = useColorModeValue('brand.500', 'white');
   const popoverContentBgColor = useColorModeValue('white', 'gray.800');
 
   return (
@@ -350,7 +231,6 @@ const DesktopNav = () => {
           <Popover trigger={'hover'} placement={'bottom-start'}>
             <PopoverTrigger>
               <Link
-                as={'a'}
                 p={2}
                 href={navItem.href ?? '#'}
                 fontSize={'sm'}
@@ -362,6 +242,14 @@ const DesktopNav = () => {
                 }}
               >
                 {navItem.label}
+                {navItem.children && (
+                  <Icon
+                    as={ChevronDownIcon}
+                    transition={'all .25s ease-in-out'}
+                    w={4}
+                    h={4}
+                  />
+                )}
               </Link>
             </PopoverTrigger>
 
@@ -391,7 +279,6 @@ const DesktopNav = () => {
 const DesktopSubNav = ({ label, href, subLabel }) => {
   return (
     <Link
-      as={'a'}
       href={href}
       role={'group'}
       display={'block'}
@@ -426,7 +313,7 @@ const DesktopSubNav = ({ label, href, subLabel }) => {
   );
 };
 
-const MobileNav = ({ isAuthenticated, handleLogout }) => {
+const MobileNav = () => {
   return (
     <Stack
       bg={useColorModeValue('white', 'gray.800')}
@@ -436,65 +323,6 @@ const MobileNav = ({ isAuthenticated, handleLogout }) => {
       {NAV_ITEMS.map((navItem) => (
         <MobileNavItem key={navItem.label} {...navItem} />
       ))}
-      
-      {isAuthenticated && (
-        <>
-          <Text fontWeight={600} color="gray.600" mt={4} mb={2}>
-            My Account
-          </Text>
-          <MobileNavItem label="My Profile" href="/tenant/profile" />
-          <MobileNavItem label="My Bookings" href="/tenant/bookings" />
-          <MobileNavItem label="My Invoices" href="/tenant/invoices" />
-          <MobileNavItem label="Payment History" href="/tenant/payments" />
-          <Box 
-            as="button" 
-            py={2}
-            onClick={handleLogout}
-            textAlign="left"
-          >
-            <Text
-              fontWeight={600}
-              color="red.500">
-              Sign Out
-            </Text>
-          </Box>
-        </>
-      )}
-      
-      {!isAuthenticated && (
-        <Stack spacing={4} mt={4}>
-          <Button
-            as="a"
-            w="full"
-            fontSize={'sm'}
-            bg={'brand.50'}
-            color={'brand.600'}              onClick={(e) => {
-                  e.preventDefault();
-                  window.location.href = '/tenant/login';
-                }}
-          >
-            Sign In
-          </Button>
-          <Button
-            as="a"
-            w="full"
-            fontSize={'sm'}
-            fontWeight={600}
-            color={'white'}
-            bg={'brand.500'}
-            _hover={{
-              bg: 'brand.600',
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              const timestamp = new Date().getTime();
-              window.location.href = `/tenant/register?t=${timestamp}`;
-            }}
-          >
-            Sign Up
-          </Button>
-        </Stack>
-      )}
     </Stack>
   );
 };
@@ -506,7 +334,7 @@ const MobileNavItem = ({ label, children, href }) => {
     <Stack spacing={4} onClick={children && onToggle}>
       <Flex
         py={2}
-        as={href ? 'a' : 'div'}
+        as={Link}
         href={href ?? '#'}
         justify={'space-between'}
         align={'center'}
@@ -516,7 +344,8 @@ const MobileNavItem = ({ label, children, href }) => {
       >
         <Text
           fontWeight={600}
-          color={useColorModeValue('gray.600', 'gray.200')}>
+          color={useColorModeValue('gray.600', 'gray.200')}
+        >
           {label}
         </Text>
         {children && (
@@ -537,15 +366,11 @@ const MobileNavItem = ({ label, children, href }) => {
           borderLeft={1}
           borderStyle={'solid'}
           borderColor={useColorModeValue('gray.200', 'gray.700')}
-          align={'start'}>
+          align={'start'}
+        >
           {children &&
             children.map((child) => (
-              <Link
-                key={child.label}
-                as={'a'}
-                href={child.href}
-                py={2}
-              >
+              <Link key={child.label} py={2} href={child.href}>
                 {child.label}
               </Link>
             ))}
@@ -557,50 +382,19 @@ const MobileNavItem = ({ label, children, href }) => {
 
 const NAV_ITEMS = [
   {
-    label: 'Browse Rooms',
+    label: 'Home',
+    href: '/',
+  },
+  {
+    label: 'Rooms',
     href: '/rooms',
   },
   {
-    label: 'Room Types',
-    children: [
-      {
-        label: 'Student Rooms',
-        subLabel: 'Affordable options for students',
-        href: '/rooms?type=student',
-      },
-      {
-        label: 'VIP Rooms',
-        subLabel: 'Premium accommodations',
-        href: '/rooms?type=VIP',
-      },
-      {
-        label: 'Meeting Rooms',
-        subLabel: 'For events and gatherings',
-        href: '/rooms?type=meeting',
-      },
-    ],
+    label: 'Facilities',
+    href: '/facilities',
   },
   {
-    label: 'My Bookings',
-    href: '/tenant/bookings',
-  },
-  {
-    label: 'Financial',
-    children: [
-      {
-        label: 'My Invoices',
-        subLabel: 'View and pay your invoices',
-        href: '/tenant/invoices',
-      },
-      {
-        label: 'Payment History',
-        subLabel: 'Track your payment records',
-        href: '/tenant/payments',
-      },
-    ],
-  },
-  {
-    label: 'About Us',
+    label: 'About',
     href: '/about',
   },
   {
@@ -608,5 +402,3 @@ const NAV_ITEMS = [
     href: '/contact',
   },
 ];
-
-export default Navbar;

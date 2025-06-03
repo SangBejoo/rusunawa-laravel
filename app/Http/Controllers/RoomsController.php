@@ -5,123 +5,123 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class RoomsController extends Controller
 {
     protected $apiBaseUrl;
-    protected $backupApiBaseUrl;
-    
+    protected $cacheEnabled;
+    protected $cacheTTL;
+
     public function __construct()
     {
         $this->apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
-        
+        $this->cacheEnabled = env('ENABLE_API_CACHE', true);
+        $this->cacheTTL = env('API_CACHE_TTL', 60); // Cache for 60 minutes by default
     }
-    
+
     /**
      * Display a listing of the rooms.
      */
     public function index(Request $request)
     {
         try {
-            // Build query parameters from request
-            $params = [];
-            $filters = ['type', 'price', 'capacity'];
+            // Forward any query parameters to the API
+            $queryParams = $request->query();
             
-            foreach ($filters as $filter) {
-                if ($request->has($filter) && $request->input($filter)) {
-                    $params[$filter] = $request->input($filter);
-                }
-            }
+            // Create a cache key based on the query parameters
+            $cacheKey = 'rooms_list_' . md5(json_encode($queryParams));
             
-            // Log the request parameters
-            Log::info('Room search request', ['params' => $params]);
-            
-            // Try primary API endpoint first
-            try {
-                $response = Http::timeout(5)->get("{$this->apiBaseUrl}/rooms", $params);
-                $data = $response->json();
+            // Try to get from cache first if caching is enabled
+            if ($this->cacheEnabled && Cache::has($cacheKey)) {
+                Log::info('Serving rooms list from cache', ['cache_key' => $cacheKey]);
+                $responseData = Cache::get($cacheKey);
                 
-                // Log the successful API response
-                if ($response->successful() && isset($data['rooms'])) {
-                    Log::info('Room API response successful', [
-                        'endpoint' => $this->apiBaseUrl,
-                        'status_code' => $response->status(),
-                        'room_count' => count($data['rooms'])
-                    ]);
-                }
-            } catch (\Exception $primaryException) {
-                Log::warning('Primary API endpoint failed', [
-                    'endpoint' => $this->apiBaseUrl,
-                    'error' => $primaryException->getMessage()
+                return view('rooms.index', [
+                    'initialData' => [
+                        'rooms' => $responseData['rooms'] ?? [],
+                        'totalCount' => $responseData['totalCount'] ?? count($responseData['rooms'] ?? []),
+                        'filters' => $queryParams,
+                        'fromCache' => true
+                    ]
                 ]);
-                
-                // If primary endpoint fails, try backup endpoint
-                try {
-                    $response = Http::timeout(5)->get("{$this->backupApiBaseUrl}/rooms", $params);
-                    $data = $response->json();
-                    
-                    // Log the backup API response
-                    if ($response->successful() && isset($data['rooms'])) {
-                        Log::info('Backup API response successful', [
-                            'endpoint' => $this->backupApiBaseUrl,
-                            'status_code' => $response->status(),
-                            'room_count' => count($data['rooms'])
-                        ]);
-                    }
-                } catch (\Exception $backupException) {
-                    Log::error('Both API endpoints failed', [
-                        'primary_error' => $primaryException->getMessage(),
-                        'backup_error' => $backupException->getMessage()
-                    ]);
-                    
-                    throw $backupException;
-                }
             }
             
-            // Check if the response has the expected structure
-            if (isset($response) && $response->successful() && isset($data['rooms'])) {
-                // Return the view with room data
-                return view('rooms', [
-                    'rooms' => $data['rooms'],
-                    'totalCount' => $data['totalCount'] ?? count($data['rooms']),
-                    'apiBaseUrl' => $this->apiBaseUrl
+            // Make the API request with timeout
+            Log::info('Fetching rooms from API', [
+                'endpoint' => "{$this->apiBaseUrl}/rooms",
+                'params' => $queryParams
+            ]);
+            
+            $response = Http::timeout(5)->get("{$this->apiBaseUrl}/rooms", $queryParams);
+            
+            // Check if the request was successful
+            if ($response->successful()) {
+                $responseData = $response->json();
+                $rooms = $responseData['rooms'] ?? [];
+                
+                // Cache the response
+                if ($this->cacheEnabled) {
+                    Cache::put($cacheKey, $responseData, $this->cacheTTL);
+                }
+                
+                return view('rooms.index', [
+                    'initialData' => [
+                        'rooms' => $rooms,
+                        'totalCount' => $responseData['totalCount'] ?? count($rooms),
+                        'filters' => $queryParams
+                    ]
                 ]);
             } else {
-                // Log error details
-                Log::error('Invalid room API response structure', [
-                    'response' => $data ?? null,
-                    'status_code' => $response->status() ?? 'unknown'
+                // Log the error
+                Log::error('API error fetching rooms', [
+                    'status' => $response->status(),
+                    'response' => $response->body()
                 ]);
                 
-                // Try to load mocked data as a last resort
-                $mockedRooms = $this->getMockedRoomData();
+                // Use mock data in development
+                if (app()->environment('local', 'development')) {
+                    Log::info('Using mock room data in development environment');
+                    $mockData = $this->getMockRoomListData();
+                    
+                    return view('rooms.index', [
+                        'initialData' => [
+                            'rooms' => $mockData['rooms'],
+                            'totalCount' => count($mockData['rooms']),
+                            'filters' => $queryParams,
+                            'isMockData' => true
+                        ]
+                    ]);
+                }
                 
-                // Return view with error and mocked data
-                return view('rooms', [
-                    'error' => isset($data['status']['message']) 
-                            ? $data['status']['message'] 
-                            : 'Failed to load rooms. Showing sample data instead.',
-                    'rooms' => $mockedRooms,
-                    'totalCount' => count($mockedRooms),
-                    'isMocked' => true
+                return view('rooms.index', [
+                    'error' => 'Unable to fetch rooms. Please try again later.'
                 ]);
             }
         } catch (\Exception $e) {
-            // Log any exceptions
-            Log::error('Exception fetching rooms', [
-                'error' => $e->getMessage(),
+            Log::error('Exception in RoomsController@index', [
+                'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // Try to load mocked data as a last resort
-            $mockedRooms = $this->getMockedRoomData();
+            // Use mock data in development
+            if (app()->environment('local', 'development')) {
+                Log::info('Using mock room data in development environment after exception');
+                $mockData = $this->getMockRoomListData();
+                
+                return view('rooms.index', [
+                    'initialData' => [
+                        'rooms' => $mockData['rooms'],
+                        'totalCount' => count($mockData['rooms']),
+                        'filters' => $queryParams,
+                        'isMockData' => true
+                    ],
+                    'warning' => 'Using sample data. API connection failed: ' . $e->getMessage()
+                ]);
+            }
             
-            // Return view with error message and mocked data
-            return view('rooms', [
-                'error' => 'Failed to connect to room service. Showing sample data instead.',
-                'rooms' => $mockedRooms,
-                'totalCount' => count($mockedRooms),
-                'isMocked' => true
+            return view('rooms.index', [
+                'error' => 'An error occurred. Please try again later.'
             ]);
         }
     }
@@ -132,128 +132,268 @@ class RoomsController extends Controller
     public function show($id)
     {
         try {
-            // Try primary API endpoint first
-            try {
-                $response = Http::timeout(5)->get("{$this->apiBaseUrl}/rooms/{$id}");
-                $data = $response->json();
+            // Create cache key for this specific room
+            $cacheKey = "room_details_{$id}";
+            
+            // Try to get from cache first if caching is enabled
+            if ($this->cacheEnabled && Cache::has($cacheKey)) {
+                Log::info('Serving room details from cache', ['room_id' => $id, 'cache_key' => $cacheKey]);
+                $roomData = Cache::get($cacheKey);
                 
-                // Log the successful API response
-                if ($response->successful() && isset($data['room'])) {
-                    Log::info('Room detail API response successful', [
-                        'endpoint' => $this->apiBaseUrl,
-                        'room_id' => $id,
-                        'status_code' => $response->status()
-                    ]);
-                }
-            } catch (\Exception $primaryException) {
-                Log::warning('Primary API endpoint failed for room detail', [
-                    'endpoint' => $this->apiBaseUrl,
-                    'room_id' => $id,
-                    'error' => $primaryException->getMessage()
+                return view('rooms.show', [
+                    'initialData' => [
+                        'room' => $roomData,
+                        'fromCache' => true
+                    ]
                 ]);
+            }
+            
+            // Make API request with timeout to get room details
+            Log::info('Fetching room details from API', ['room_id' => $id]);
+            $response = Http::timeout(5)->get("{$this->apiBaseUrl}/rooms/{$id}");
+            
+            if ($response->successful()) {
+                $responseData = $response->json();
+                $roomData = $responseData['room'] ?? null;
                 
-                // If primary endpoint fails, try backup endpoint
-                try {
-                    $response = Http::timeout(5)->get("{$this->backupApiBaseUrl}/rooms/{$id}");
-                    $data = $response->json();
-                    
-                    // Log the backup API response
-                    if ($response->successful() && isset($data['room'])) {
-                        Log::info('Backup API response successful for room detail', [
-                            'endpoint' => $this->backupApiBaseUrl,
-                            'room_id' => $id,
-                            'status_code' => $response->status()
-                        ]);
+                if ($roomData) {
+                    // Cache the response
+                    if ($this->cacheEnabled) {
+                        Cache::put($cacheKey, $roomData, $this->cacheTTL);
                     }
-                } catch (\Exception $backupException) {
-                    Log::error('Both API endpoints failed for room detail', [
-                        'room_id' => $id,
-                        'primary_error' => $primaryException->getMessage(),
-                        'backup_error' => $backupException->getMessage()
-                    ]);
                     
-                    throw $backupException;
+                    return view('rooms.show', [
+                        'initialData' => [
+                            'room' => $roomData
+                        ]
+                    ]);
                 }
             }
             
-            // Check if response is successful and has room data
-            if (isset($response) && $response->successful() && isset($data['room'])) {
-                // Extract the room data from the nested structure
-                $room = $data['room'];
+            // Log the error
+            Log::error('API error fetching room details', [
+                'room_id' => $id,
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+            
+            // Use mock data in development
+            if (app()->environment('local', 'development')) {
+                Log::info('Using mock room detail in development environment', ['room_id' => $id]);
+                $mockRoom = $this->getMockRoomDetail($id);
                 
-                // Pass the room object and API URL to the view
-                return view('room-detail', [
-                    'room' => $room,
-                    'apiBaseUrl' => $this->apiBaseUrl
-                ]);
-            } else {
-                // Log error details
-                Log::error('Invalid room detail API response', [
-                    'room_id' => $id,
-                    'status_code' => $response->status() ?? 'unknown',
-                    'response' => $data ?? null
-                ]);
-                
-                // Try to get mocked data for this room
-                $mockedRoom = $this->getMockedRoomById($id);
-                
-                if ($mockedRoom) {
-                    // Return view with mocked data
-                    return view('room-detail', [
-                        'room' => $mockedRoom,
-                        'isMocked' => true,
-                        'warning' => 'Using sample data. Live data unavailable.'
+                if ($mockRoom) {
+                    return view('rooms.show', [
+                        'initialData' => [
+                            'room' => $mockRoom,
+                            'isMockData' => true
+                        ],
+                        'warning' => 'Showing sample data. API request failed.'
                     ]);
                 }
-                
-                // Return error view if no mocked data available
-                return view('error', [
-                    'message' => 'Failed to load room details',
-                    'details' => isset($data['status']['message']) ? $data['status']['message'] : 'Room not found or unavailable'
-                ]);
             }
+            
+            return redirect()->route('rooms.index')
+                ->with('error', 'Room not found or unavailable');
         } catch (\Exception $e) {
-            // Log exception details
-            Log::error('Exception fetching room details', [
+            Log::error('Exception in RoomsController@show', [
                 'room_id' => $id,
-                'error' => $e->getMessage(),
+                'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // Try to get mocked data for this room
-            $mockedRoom = $this->getMockedRoomById($id);
-            
-            if ($mockedRoom) {
-                // Return view with mocked data
-                return view('room-detail', [
-                    'room' => $mockedRoom,
-                    'isMocked' => true,
-                    'warning' => 'Using sample data. Live data unavailable.'
-                ]);
+            // Use mock data in development
+            if (app()->environment('local', 'development')) {
+                Log::info('Using mock room detail in development after exception', ['room_id' => $id]);
+                $mockRoom = $this->getMockRoomDetail($id);
+                
+                if ($mockRoom) {
+                    return view('rooms.show', [
+                        'initialData' => [
+                            'room' => $mockRoom,
+                            'isMockData' => true
+                        ],
+                        'warning' => 'Showing sample data. API connection failed: ' . $e->getMessage()
+                    ]);
+                }
             }
             
-            // Return error view
-            return view('error', [
-                'message' => 'An error occurred while fetching room details',
-                'details' => $e->getMessage()
-            ]);
+            return redirect()->route('rooms.index')
+                ->with('error', 'An error occurred. Please try again later.');
         }
     }
     
     /**
-     * Get mocked room data for fallback
+     * Get mock room list data for development environment
      */
-    private function getMockedRoomData()
+    private function getMockRoomListData()
     {
-        $rooms = [
-            [
+        return [
+            'rooms' => [
+                [
+                    'roomId' => 1,
+                    'name' => 'Marina',
+                    'classificationId' => 2,
+                    'rentalTypeId' => 1,
+                    'rate' => 100000,
+                    'capacity' => 4,
+                    'description' => 'Spacious room with modern amenities',
+                    'classification' => [
+                        'classificationId' => 2,
+                        'name' => 'laki_laki'
+                    ],
+                    'rentalType' => [
+                        'rentalTypeId' => 1,
+                        'name' => 'harian'
+                    ],
+                    'amenities' => [
+                        [
+                            'roomId' => 1,
+                            'featureId' => 5,
+                            'quantity' => 1,
+                            'feature' => [
+                                'featureId' => 5,
+                                'name' => 'double_bed',
+                                'description' => 'Double bed'
+                            ]
+                        ],
+                        [
+                            'roomId' => 1,
+                            'featureId' => 6,
+                            'quantity' => 1,
+                            'feature' => [
+                                'featureId' => 6,
+                                'name' => 'desk',
+                                'description' => 'Study desk'
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    'roomId' => 2,
+                    'name' => 'A101',
+                    'classificationId' => 1,
+                    'rentalTypeId' => 2,
+                    'rate' => 350000,
+                    'capacity' => 2,
+                    'description' => 'Twin bed female student room with AC',
+                    'classification' => [
+                        'classificationId' => 1,
+                        'name' => 'perempuan'
+                    ],
+                    'rentalType' => [
+                        'rentalTypeId' => 2,
+                        'name' => 'bulanan'
+                    ],
+                    'amenities' => [
+                        [
+                            'roomId' => 2,
+                            'featureId' => 1,
+                            'quantity' => 1,
+                            'feature' => [
+                                'featureId' => 1,
+                                'name' => 'AC',
+                                'description' => 'Air Conditioning'
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    'roomId' => 6,
+                    'name' => 'C101',
+                    'classificationId' => 3,
+                    'rentalTypeId' => 2,
+                    'rate' => 500000,
+                    'capacity' => 1,
+                    'description' => 'Single VIP room with private bathroom and AC',
+                    'classification' => [
+                        'classificationId' => 3,
+                        'name' => 'VIP'
+                    ],
+                    'rentalType' => [
+                        'rentalTypeId' => 2,
+                        'name' => 'bulanan'
+                    ],
+                    'amenities' => [
+                        [
+                            'roomId' => 6,
+                            'featureId' => 1,
+                            'quantity' => 1,
+                            'feature' => [
+                                'featureId' => 1,
+                                'name' => 'AC',
+                                'description' => 'Air Conditioning'
+                            ]
+                        ],
+                        [
+                            'roomId' => 6,
+                            'featureId' => 2,
+                            'quantity' => 1,
+                            'feature' => [
+                                'featureId' => 2,
+                                'name' => 'private_bathroom',
+                                'description' => 'Private attached bathroom'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+    }
+    
+    /**
+     * Get mock room detail data for development environment
+     */
+    private function getMockRoomDetail($id)
+    {
+        $mockRooms = [
+            1 => [
                 'roomId' => 1,
+                'name' => 'Marina',
+                'classificationId' => 2,
+                'rentalTypeId' => 1,
+                'rate' => 100000,
+                'capacity' => 4,
+                'description' => 'Spacious room with modern amenities',
+                'classification' => [
+                    'classificationId' => 2,
+                    'name' => 'laki_laki'
+                ],
+                'rentalType' => [
+                    'rentalTypeId' => 1,
+                    'name' => 'harian'
+                ],
+                'amenities' => [
+                    [
+                        'roomId' => 1,
+                        'featureId' => 5,
+                        'quantity' => 1,
+                        'feature' => [
+                            'featureId' => 5,
+                            'name' => 'double_bed',
+                            'description' => 'Double bed'
+                        ]
+                    ],
+                    [
+                        'roomId' => 1,
+                        'featureId' => 6,
+                        'quantity' => 1,
+                        'feature' => [
+                            'featureId' => 6,
+                            'name' => 'desk',
+                            'description' => 'Study desk'
+                        ]
+                    ]
+                ]
+            ],
+            2 => [
+                'roomId' => 2,
                 'name' => 'A101',
                 'classificationId' => 1,
                 'rentalTypeId' => 2,
                 'rate' => 350000,
                 'capacity' => 2,
-                'description' => 'Sample female student room with AC',
+                'description' => 'Twin bed female student room with AC',
                 'classification' => [
                     'classificationId' => 1,
                     'name' => 'perempuan'
@@ -264,7 +404,7 @@ class RoomsController extends Controller
                 ],
                 'amenities' => [
                     [
-                        'roomId' => 1,
+                        'roomId' => 2,
                         'featureId' => 1,
                         'quantity' => 1,
                         'feature' => [
@@ -274,79 +414,10 @@ class RoomsController extends Controller
                         ]
                     ]
                 ]
-            ],
-            [
-                'roomId' => 2,
-                'name' => 'B101',
-                'classificationId' => 2,
-                'rentalTypeId' => 2,
-                'rate' => 300000,
-                'capacity' => 2,
-                'description' => 'Sample male student room with fan',
-                'classification' => [
-                    'classificationId' => 2,
-                    'name' => 'laki_laki'
-                ],
-                'rentalType' => [
-                    'rentalTypeId' => 2,
-                    'name' => 'bulanan'
-                ],
-                'amenities' => []
-            ],
-            [
-                'roomId' => 3,
-                'name' => 'C101',
-                'classificationId' => 3,
-                'rentalTypeId' => 2,
-                'rate' => 500000,
-                'capacity' => 1,
-                'description' => 'Sample VIP room with private bathroom',
-                'classification' => [
-                    'classificationId' => 3,
-                    'name' => 'VIP'
-                ],
-                'rentalType' => [
-                    'rentalTypeId' => 2,
-                    'name' => 'bulanan'
-                ],
-                'amenities' => []
-            ],
-            [
-                'roomId' => 4,
-                'name' => 'D101',
-                'classificationId' => 4,
-                'rentalTypeId' => 1,
-                'rate' => 500000,
-                'capacity' => 20,
-                'description' => 'Sample meeting room with projector',
-                'classification' => [
-                    'classificationId' => 4,
-                    'name' => 'ruang_rapat'
-                ],
-                'rentalType' => [
-                    'rentalTypeId' => 1,
-                    'name' => 'harian'
-                ],
-                'amenities' => []
             ]
         ];
         
-        return $rooms;
-    }
-    
-    /**
-     * Get mocked room by ID for fallback
-     */
-    private function getMockedRoomById($id)
-    {
-        $rooms = $this->getMockedRoomData();
-        
-        foreach ($rooms as $room) {
-            if ($room['roomId'] == $id) {
-                return $room;
-            }
-        }
-        
-        return null;
+        // Return requested room or fallback to first room
+        return $mockRooms[$id] ?? ($mockRooms[array_key_first($mockRooms)] ?? null);
     }
 }

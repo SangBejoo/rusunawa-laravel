@@ -13,7 +13,7 @@ class TenantAuthService
 
     public function __construct(ApiClient $apiClient = null)
     {
-        $this->baseUrl = env('API_BASE_URL', 'http://localhost:8001');
+        $this->baseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
         $this->apiClient = $apiClient ?? app(ApiClient::class);
     }
 
@@ -25,14 +25,50 @@ class TenantAuthService
         try {
             Log::info('TenantAuthService: Attempting login', ['email' => $email]);
             
-            // Call the authentication API using the ApiClient
-            $response = $this->apiClient->post('/v1/tenant/auth/login', [
+            // Try direct HTTP call first as backup
+            try {
+                $directResponse = Http::withHeaders([
+                    'Content-Type' => 'application/json',
+                    'Accept' => 'application/json'
+                ])->timeout(10)->post("{$this->baseUrl}/tenant/auth/login", [
+                    'email' => $email,
+                    'password' => $password
+                ]);
+                
+                Log::debug('Direct API login call', [
+                    'status' => $directResponse->status(),
+                    'successful' => $directResponse->successful(),
+                    'has_token' => isset($directResponse->json()['token']),
+                    'has_tenant' => isset($directResponse->json()['tenant'])
+                ]);
+                
+                // If direct call was successful, use that response
+                if ($directResponse->successful() && 
+                    isset($directResponse->json()['token']) && 
+                    isset($directResponse->json()['tenant'])) {
+                    
+                    $data = $directResponse->json();
+                    return [
+                        'success' => true,
+                        'status' => $directResponse->status(),
+                        'body' => $data
+                    ];
+                }
+            } catch (\Exception $e) {
+                Log::warning('Direct API login attempt failed, falling back to ApiClient', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
+            // If direct call failed, fall back to ApiClient
+            $response = $this->apiClient->post('/tenant/auth/login', [
                 'email' => $email,
                 'password' => $password
             ]);
             
             $data = $response['body'] ?? [];
-            $statusCode = $response['status'] ?? 500;            
+            $statusCode = $response['status'] ?? 500;
+            
             // Log response for debugging (remove sensitive data in production)
             Log::info('TenantAuthService: Login response', [
                 'status_code' => $statusCode,
@@ -42,56 +78,13 @@ class TenantAuthService
                 'response_message' => $data['status']['message'] ?? 'No message'
             ]);
             
-            // Validate response has required fields
-            // Only return success if we get a 2xx response, a valid token AND tenant data
+            // Validate response
             if ($response['success'] && isset($data['token']) && isset($data['tenant'])) {
-                // Make sure token is a non-empty string
-                if (empty($data['token']) || !is_string($data['token'])) {
-                    Log::error('TenantAuthService: Invalid token format', [
-                        'token_type' => gettype($data['token'])
-                    ]);
-                    
-                    return [
-                        'success' => false,
-                        'status' => 401,
-                        'body' => [
-                            'status' => [
-                                'message' => 'Authentication failed: Invalid token format'
-                            ]
-                        ]
-                    ];
-                }
-                
-                // Validate that tenant data has required fields
-                if (!isset($data['tenant']['id']) || !isset($data['tenant']['user'])) {
-                    Log::error('TenantAuthService: Invalid tenant data structure', [
-                        'tenant_data' => $data['tenant']
-                    ]);
-                    
-                    return [
-                        'success' => false,
-                        'status' => 401,
-                        'body' => [
-                            'status' => [
-                                'message' => 'Authentication failed: Invalid tenant data'
-                            ]
-                        ]
-                    ];
-                }
-                
                 return [
                     'success' => true,
                     'status' => $statusCode,
                     'body' => $data
                 ];
-            }
-            
-            // If response was successful but missing data
-            if ($response['success'] && (!isset($data['token']) || !isset($data['tenant']))) {
-                Log::warning('TenantAuthService: Successful response but missing token or tenant data', [
-                    'has_token' => isset($data['token']),
-                    'has_tenant' => isset($data['tenant'])
-                ]);
             }
             
             return [
@@ -126,6 +119,7 @@ class TenantAuthService
         $tenantData = Session::get('tenant_data');
         
         if (!$tenantData) {
+            Log::info('TenantAuthService: No tenant data in session');
             return null;
         }
         
@@ -133,6 +127,13 @@ class TenantAuthService
         if (is_string($tenantData)) {
             try {
                 $tenantData = json_decode($tenantData, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    Log::error('TenantAuthService: JSON decode error', [
+                        'error' => json_last_error_msg(),
+                        'data_sample' => substr($tenantData, 0, 100) . '...'
+                    ]);
+                    return null;
+                }
             } catch (\Exception $e) {
                 Log::error('TenantAuthService: Error decoding tenant data', [
                     'error' => $e->getMessage()
@@ -145,37 +146,47 @@ class TenantAuthService
     }
     
     /**
-     * Verify if token is valid
+     * Verify if a given token is valid
      */
     public function verifyToken($token)
     {
         try {
-            $response = $this->apiClient->get('/v1/tenant/auth/verify', [], [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $token
-                ]
+            Log::info('TenantAuthService: Verifying token');
+            
+            // Call the token verification API
+            $response = $this->apiClient->get('/tenant/auth/verify', [], [
+                'Authorization' => "Bearer {$token}"
             ]);
             
             $data = $response['body'] ?? [];
+            $statusCode = $response['status'] ?? 500;
+            
+            Log::info('TenantAuthService: Token verification response', [
+                'status_code' => $statusCode,
+                'success' => $response['success']
+            ]);
+            
+            // Token is valid if we get a successful response
+            if ($response['success'] && isset($data['tenant'])) {
+                return [
+                    'success' => true,
+                    'tenant' => $data['tenant']
+                ];
+            }
             
             return [
-                'success' => $response['success'] && isset($data['status']) && $data['status']['status'] === 'success',
-                'status' => $response['status'],
-                'body' => $data
+                'success' => false,
+                'message' => $data['status']['message'] ?? 'Invalid token'
             ];
+            
         } catch (\Exception $e) {
-            Log::error('TenantAuthService: Exception during token verification', [
+            Log::error('TenantAuthService: Token verification failed', [
                 'error' => $e->getMessage()
             ]);
             
             return [
                 'success' => false,
-                'status' => 500,
-                'body' => [
-                    'status' => [
-                        'message' => 'Failed to verify token: ' . $e->getMessage()
-                    ]
-                ]
+                'message' => 'Token verification failed'
             ];
         }
     }

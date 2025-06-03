@@ -2,556 +2,626 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
-  Heading,
-  Text,
-  Stack,
-  SimpleGrid,
   Flex,
+  Grid,
+  GridItem,
+  Image,
+  Text,
+  Heading,
   Badge,
+  Stack,
   Button,
-  Divider,
-  VStack,
-  HStack,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
   Icon,
   List,
   ListItem,
   ListIcon,
+  Divider,
+  SimpleGrid,
+  FormControl,
+  FormLabel,
+  Input,
+  FormErrorMessage,
   Alert,
   AlertIcon,
   AlertTitle,
   AlertDescription,
-  Spinner,
-  useColorModeValue,
   useToast,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Tag,
+  TagLabel,
+  TagLeftIcon
 } from '@chakra-ui/react';
-import { FaBed, FaFemale, FaMale, FaCrown, FaUsers, FaWifi, FaToilet, FaAirFreshener, 
-         FaCheckCircle, FaCalendarAlt, FaArrowLeft, FaTshirt, FaDesktop } from 'react-icons/fa';
-// Remove navbar import
-// import Navbar from './components/Navbar.jsx';
-import Footer from './components/Footer.jsx';
-import { roomApi } from './api.js';
+import { CheckIcon, InfoIcon } from '@chakra-ui/icons';
+import { FaBed, FaWifi, FaShower, FaUsers, FaAirFreshener, FaDesktop } from 'react-icons/fa';
+import axios from 'axios';
 
-export default function RoomDetailPage({ initialData = null, skipNavbar = false }) {
+// Helper function to get icon for a feature
+const getFeatureIcon = (featureName) => {
+  switch(featureName) {
+    case 'AC': 
+      return FaAirFreshener;
+    case 'private_bathroom':
+    case 'shared_bathroom':
+      return FaShower;
+    case 'single_bed':
+    case 'double_bed':
+      return FaBed;
+    case 'wifi':
+      return FaWifi;
+    case 'desk':
+      return FaDesktop;
+    default:
+      return InfoIcon;
+  }
+};
+
+// Helper function to format classification name
+const formatClassification = (classification) => {
+  switch(classification) {
+    case 'laki_laki':
+      return 'Male Only';
+    case 'perempuan':
+      return 'Female Only';
+    case 'VIP':
+      return 'VIP';
+    case 'ruang_rapat':
+      return 'Meeting Room';
+    default:
+      return classification?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || '';
+  }
+};
+
+// Helper function to format rental type
+const formatRentalType = (rentalType) => {
+  switch(rentalType) {
+    case 'harian':
+      return 'Daily';
+    case 'bulanan':
+      return 'Monthly';
+    default:
+      return rentalType?.replace(/\b\w/g, l => l.toUpperCase()) || '';
+  }
+};
+
+// Helper to generate a placeholder image based on room type
+const getPlaceholderImage = (classificationName) => {
+  switch(classificationName) {
+    case 'VIP':
+      return 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1200&q=80';
+    case 'perempuan':
+      return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
+    case 'laki_laki':
+      return 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80';
+    case 'ruang_rapat':
+      return 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=1200&q=80';
+    default:
+      return 'https://via.placeholder.com/1200x600?text=Room+Image';
+  }
+};
+
+const RoomDetailPage = ({ initialData }) => {
   const [room, setRoom] = useState(initialData?.room || null);
-  const [roomId, setRoomId] = useState(initialData?.room?.roomId || null);
   const [loading, setLoading] = useState(!initialData?.room);
   const [error, setError] = useState(null);
+  const [booking, setBooking] = useState({
+    startDate: '',
+    endDate: '',
+    roomId: initialData?.room?.roomId || '',
+    tenantId: ''
+  });
+  const [bookingErrors, setBookingErrors] = useState({});
+  const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [tenant, setTenant] = useState(null);
+  
   const toast = useToast();
   
-  // Booking form state
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
-  const [guests, setGuests] = useState(1);
-  const [notes, setNotes] = useState('');
-  const [duration, setDuration] = useState(0);
-  const [totalPrice, setTotalPrice] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(initialData?.isAuthenticated || false);
-    // Check authentication status when component mounts
   useEffect(() => {
-    // Check for authentication from multiple sources
-    const token = localStorage.getItem('tenant_token') || 
-                  sessionStorage.getItem('tenant_token') || 
-                  (window.appConfig && window.appConfig.authToken);
+    // Check if user is logged in
+    const tenantToken = localStorage.getItem('tenant_token');
+    const tenantDataStr = localStorage.getItem('tenant_data');
     
-    const tenantData = localStorage.getItem('tenant_data') || 
-                       sessionStorage.getItem('tenant_data') ||
-                       (window.appConfig && window.appConfig.tenant);
-                       
-    console.log('RoomDetailPage: Checking auth status...', { 
-      hasToken: !!token, 
-      hasTenantData: !!tenantData
-    });
-    
-    setIsAuthenticated(!!token && !!tenantData);
-  }, []);
-  // Get room ID from URL if not provided in initialData
-  useEffect(() => {
-    if (!roomId) {
-      const pathParts = window.location.pathname.split('/');
-      const idFromUrl = pathParts[pathParts.length - 1];
-      if (idFromUrl && !isNaN(parseInt(idFromUrl))) {
-        setRoomId(parseInt(idFromUrl));
-      }
-    }
-  }, [roomId]);
-  // Fetch room details
-  useEffect(() => {
-    const fetchRoomDetails = async () => {
-      // Skip fetching if we already have initialData
-      if (initialData?.room) {
-        setRoom(initialData.room);
-        if (initialData.room.capacity) {
-          setGuests(1);
-        }
-        return;
-      }
-      
-      // Skip if no roomId
-      if (!roomId) {
-        setError('No room ID provided');
-        return;
-      }
-
+    if (tenantToken && tenantDataStr) {
       try {
-        setLoading(true);
-        console.log('Fetching details for room:', roomId);
-        const response = await roomApi.getRoomById(roomId);
+        const tenantData = JSON.parse(tenantDataStr);
         
-        if (response.success && response.data && response.data.room) {
-          console.log('Room data loaded:', response.data.room);
-          setRoom(response.data.room);
-          if (response.data.room.capacity) {
-            setGuests(1);
-          }
+        // Validate that we have a tenant ID
+        if (tenantData && (tenantData.id || tenantData.tenantId || (tenantData.tenant && tenantData.tenant.id))) {
+          const actualTenantId = tenantData.id || tenantData.tenantId || (tenantData.tenant && tenantData.tenant.id);
+          
+          setIsAuthenticated(true);
+          setTenant(tenantData);
+          
+          // Set the tenant ID for booking
+          setBooking(prev => ({
+            ...prev,
+            tenantId: actualTenantId
+          }));
+          
+          // Log successful authentication state
+          console.log('User is authenticated with tenant ID:', actualTenantId);
         } else {
-          console.error('Failed response:', response);
-          setError(response.error || 'Failed to load room details. Please try again later.');
+          console.error('Tenant data does not contain an ID:', tenantData);
+          setIsAuthenticated(false);
         }
-      } catch (err) {
-        console.error('Error fetching room details:', err);
-        setError(err.message || 'An error occurred while fetching room details.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRoomDetails();
-  }, [roomId, initialData]);
-  
-  // Calculate total price when dates change
-  useEffect(() => {
-    if (checkIn && checkOut) {
-      const start = new Date(checkIn);
-      const end = new Date(checkOut);
-      
-      // Calculate difference in days
-      const timeDiff = end.getTime() - start.getTime();
-      const days = Math.ceil(timeDiff / (1000 * 3600 * 24));
-      
-      if (days > 0) {
-        setDuration(days);
-        const price = room?.rate ? room.rate * days : 0;
-        setTotalPrice(price);
+      } catch (error) {
+        console.error('Error parsing tenant data:', error);
+        setIsAuthenticated(false);
       }
     }
-  }, [checkIn, checkOut, room]);
+    
+    // Set up event listener for auth changes
+    window.addEventListener('auth-event', handleAuthEvent);
+    
+    // If no initial data, fetch room details
+    if (!initialData?.room) {
+      fetchRoomDetails();
+    }
+    
+    // Set minimum dates for the booking
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    
+    const formatDate = (date) => {
+      return date.toISOString().split('T')[0];
+    };
+    
+    setBooking(prev => ({
+      ...prev,
+      startDate: formatDate(today),
+      endDate: formatDate(tomorrow)
+    }));
+    
+    return () => {
+      window.removeEventListener('auth-event', handleAuthEvent);
+    };
+  }, []);
   
-  // Check if the room is for daily or monthly rental
-  const isDaily = room?.rentalType?.name === 'harian';
-  
-  // Get minimum dates for check-in and check-out
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const minCheckIn = tomorrow.toISOString().split('T')[0];
-  
-  const handleCheckInChange = (e) => {
-    setCheckIn(e.target.value);
-    // Make sure check-out is after check-in
-    if (checkOut && new Date(e.target.value) >= new Date(checkOut)) {
-      const nextDay = new Date(e.target.value);
-      nextDay.setDate(nextDay.getDate() + 1);
-      setCheckOut(nextDay.toISOString().split('T')[0]);
+  const fetchRoomDetails = async () => {
+    try {
+      setLoading(true);
+      
+      // Extract room ID from URL
+      const pathParts = window.location.pathname.split('/');
+      const roomId = pathParts[pathParts.length - 1];
+      
+      const response = await axios.get(`/api/rooms/${roomId}`);
+      
+      if (response.data && response.data.room) {
+        setRoom(response.data.room);
+        setBooking(prev => ({
+          ...prev,
+          roomId: response.data.room.roomId
+        }));
+      } else {
+        setError('Room details not available');
+      }
+    } catch (err) {
+      console.error('Error fetching room details:', err);
+      setError('Failed to load room details. Please try again later.');
+    } finally {
+      setLoading(false);
     }
   };
   
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleAuthEvent = (event) => {
+    const { action, data } = event.detail;
     
-    if (!isAuthenticated) {
-      // Redirect to login
-      window.location.href = `/tenant/login?redirect=${window.location.pathname}`;
-      return;
+    if (action === 'login' && data && data.tenant) {
+      setIsAuthenticated(true);
+      setTenant(data.tenant);
+      
+      // Update tenant ID in booking
+      const tenantId = data.tenant.id || data.tenant.tenantId || (data.tenant.tenant && data.tenant.tenant.id);
+      setBooking(prev => ({
+        ...prev,
+        tenantId: tenantId
+      }));
+      
+      console.log('Auth event: User logged in with tenant ID:', tenantId);
+    } else if (action === 'logout') {
+      setIsAuthenticated(false);
+      setTenant(null);
+      console.log('Auth event: User logged out');
+    }
+  };
+  
+  const handleBookingChange = (e) => {
+    const { name, value } = e.target;
+    setBooking(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error when user changes input
+    if (bookingErrors[name]) {
+      setBookingErrors(prev => ({
+        ...prev,
+        [name]: null
+      }));
+    }
+  };
+  
+  const validateBooking = () => {
+    const errors = {};
+    
+    if (!booking.startDate) {
+      errors.startDate = 'Check-in date is required';
     }
     
-    if (!checkIn || !checkOut) {
+    if (!booking.endDate) {
+      errors.endDate = 'Check-out date is required';
+    }
+    
+    if (booking.startDate && booking.endDate) {
+      const start = new Date(booking.startDate);
+      const end = new Date(booking.endDate);
+      
+      if (start >= end) {
+        errors.endDate = 'Check-out date must be after check-in date';
+      }
+    }
+    
+    setBookingErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+  
+  // Function to format dates for the API
+  const formatDateForApi = (dateStr) => {
+    const date = new Date(dateStr);
+    return date.toISOString();
+  };
+
+  const handleBookNow = async (e) => {
+    e.preventDefault();
+    
+    // Check if user is logged in - double check before submitting
+    const tenantToken = localStorage.getItem('tenant_token');
+    if (!tenantToken || !isAuthenticated) {
       toast({
-        title: "Missing dates",
-        description: "Please select both check-in and check-out dates.",
+        title: "Authentication Required",
+        description: "Please log in to book this room",
         status: "warning",
         duration: 5000,
         isClosable: true,
       });
+      
+      // Redirect to login with return URL
+      window.location.href = `/tenant/login?redirect=/rooms/${room.roomId}`;
       return;
     }
     
-    // Create a form and submit it to server-side endpoint
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/bookings';
-    
-    // Add form fields
-    const addField = (name, value) => {
-      const field = document.createElement('input');
-      field.type = 'hidden';
-      field.name = name;
-      field.value = value;
-      form.appendChild(field);
-    };
-    
-    // Add CSRF token
-    const token = document.head.querySelector('meta[name="csrf-token"]');
-    if (token) {
-      addField('_token', token.content);
+    if (!validateBooking()) {
+      return;
     }
     
-    addField('room_id', roomId);
-    addField('check_in', checkIn);
-    addField('check_out', checkOut);
-    addField('guests', guests);
-    addField('notes', notes);
-    
-    document.body.appendChild(form);
-    form.submit();
-  };
-  
-  // Function to get feature icon
-  const getFeatureIcon = (featureName) => {
-    switch(featureName) {
-      case 'AC': return FaAirFreshener;
-      case 'wifi': return FaWifi;
-      case 'private_bathroom': return FaToilet;
-      case 'shared_bathroom': return FaToilet;
-      case 'desk': return FaDesktop;
-      case 'wardrobe': return FaTshirt; // Changed from FaWardrobe to FaTshirt
-      case 'single_bed':
-      case 'double_bed': return FaBed;
-      default: return FaCheckCircle;
+    try {
+      setIsBookingSubmitting(true);
+      
+      const token = localStorage.getItem('tenant_token');
+      
+      // Prepare the booking data with proper date formatting
+      const bookingData = {
+        tenantId: parseInt(booking.tenantId),
+        roomId: parseInt(booking.roomId),
+        startDate: formatDateForApi(booking.startDate),
+        endDate: formatDateForApi(booking.endDate)
+      };
+      
+      console.log('Submitting booking with data:', bookingData);
+      
+      // Send the booking request to the API
+      const response = await axios.post('/api/bookings', bookingData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      console.log('Booking response:', response.data);
+      
+      if (response.data && response.data.booking) {
+        toast({
+          title: "Booking Successful",
+          description: "Your room has been booked successfully!",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        
+        // Redirect to booking confirmation or bookings list
+        setTimeout(() => {
+          window.location.href = `/tenant/bookings`;
+        }, 2000);
+      } else {
+        toast({
+          title: "Booking Error",
+          description: response.data?.status?.message || "There was an error with your booking. Please try again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    } catch (err) {
+      console.error('Error submitting booking:', err);
+      
+      let errorMessage = 'Failed to process your booking. Please try again later.';
+      
+      if (err.response && err.response.data && err.response.data.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      // Check if the error is due to authentication
+      if (err.response && err.response.status === 401) {
+        // Token might be invalid or expired
+        localStorage.removeItem('tenant_token');
+        localStorage.removeItem('tenant_data');
+        
+        toast({
+          title: "Authentication Error",
+          description: "Your session has expired. Please log in again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        
+        setTimeout(() => {
+          window.location.href = `/tenant/login?redirect=/rooms/${room.roomId}`;
+        }, 1000);
+        return;
+      }
+      
+      toast({
+        title: "Booking Error",
+        description: errorMessage,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsBookingSubmitting(false);
     }
   };
-  
-  // Function to get room type icon
-  const getRoomIcon = () => {
-    if (!room?.classification?.name) return FaBed;
-    
-    switch(room.classification.name) {
-      case 'perempuan': return FaFemale;
-      case 'laki_laki': return FaMale;
-      case 'VIP': return FaCrown;
-      case 'ruang_rapat': return FaUsers;
-      default: return FaBed;
-    }
-  };
-  
-  // Function to get badge color
-  const getBadgeColor = () => {
-    if (!room?.classification?.name) return 'gray';
-    
-    switch(room.classification.name) {
-      case 'perempuan': return 'pink';
-      case 'laki_laki': return 'blue';
-      case 'VIP': return 'yellow';
-      case 'ruang_rapat': return 'green';
-      default: return 'gray';
-    }
-  };
-  
-  // Function to get room type name
-  const getRoomTypeName = () => {
-    if (!room?.classification?.name) return 'Standard';
-    
-    switch(room.classification.name) {
-      case 'perempuan': return 'Female Only';
-      case 'laki_laki': return 'Male Only';
-      case 'VIP': return 'VIP Room';
-      case 'ruang_rapat': return 'Meeting Room';
-      default: return room.classification.name.replace('_', ' ');
-    }
-  };
-
-  // Cards background color
-  const cardBg = useColorModeValue('white', 'gray.700');
   
   if (loading) {
     return (
-      <Box minH="100vh" display="flex" flexDirection="column">
-        {!skipNavbar && <Navbar />}
-        <Box flex="1" display="flex" alignItems="center" justifyContent="center">
-          <VStack spacing={4}>
-            <Spinner size="xl" thickness="4px" />
-            <Text>Loading room details...</Text>
-          </VStack>
+      <Container maxW="6xl" py={10}>
+        <Box textAlign="center">
+          <Heading>Loading room details...</Heading>
         </Box>
-        {!skipNavbar && <Footer />}
-      </Box>
+      </Container>
     );
   }
   
-  if (error) {
+  if (error || !room) {
     return (
-      <Box minH="100vh" display="flex" flexDirection="column">
-        {!skipNavbar && <Navbar />}
-        <Container maxW="container.xl" py={10} flex="1">
-          <Alert status="error" borderRadius="lg">
-            <AlertIcon />
-            <AlertTitle mr={2}>Error!</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-          <Button as="a" href="/rooms" mt={4} colorScheme="blue">
-            Back to All Rooms
+      <Container maxW="6xl" py={10}>
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          <AlertTitle mr={2}>Error!</AlertTitle>
+          <AlertDescription>{error || 'Room not found'}</AlertDescription>
+        </Alert>
+        <Box textAlign="center" mt={6}>
+          <Button colorScheme="blue" as="a" href="/rooms">
+            Back to Room Listings
           </Button>
-        </Container>
-        {!skipNavbar && <Footer />}
-      </Box>
+        </Box>
+      </Container>
     );
   }
-
+  
   return (
-    <Box minH="100vh" display="flex" flexDirection="column">
-      {!skipNavbar && <Navbar />}
-      <Box flex="1">
-        <Container maxW="container.xl" py={8}>
-          <Box mb={4}>
-            <Button 
-              as="a" 
-              href="/rooms" 
-              variant="outline" 
-              size="sm" 
-              leftIcon={<Icon as={FaArrowLeft} />}
-            >
-              Back to All Rooms
-            </Button>
+    <Container maxW="6xl" py={10}>
+      <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={8}>
+        <GridItem>
+          {/* Room Images */}
+          <Box mb={6} borderRadius="lg" overflow="hidden" boxShadow="md">
+            <Image
+              src={room.imageUrl || getPlaceholderImage(room.classification?.name)}
+              alt={room.name}
+              width="100%"
+              height="400px"
+              objectFit="cover"
+            />
           </Box>
           
-          <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={8}>
-            {/* Room Details */}
-            <Box gridColumn={{ base: "1", lg: "1 / span 2" }}>
-              <Box bg={cardBg} borderRadius="lg" overflow="hidden" boxShadow="md" mb={8}>
-                <Flex direction={{ base: "column", md: "row" }}>
-                  {/* Room Icon */}
-                  <Box
-                    w={{ base: "full", md: "40%" }}
-                    h={{ base: "200px", md: "auto" }}
-                    bg="gray.100"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Icon
-                      as={getRoomIcon()}
-                      boxSize="100px"
-                      color={`${getBadgeColor()}.500`}
-                    />
-                  </Box>
-                  
-                  {/* Room Info */}
-                  <Box p={6} flex="1">
-                    <Flex justifyContent="space-between" alignItems="flex-start" mb={2}>
-                      <Heading as="h1" size="xl">Room {room?.name}</Heading>
-                      <Badge colorScheme={getBadgeColor()} px={2} py={1} fontSize="md">
-                        {getRoomTypeName()}
-                      </Badge>
-                    </Flex>
-                    
-                    <Text fontSize="xl" fontWeight="bold" color="brand.600" mb={4}>
-                      Rp {(room?.rate || 0).toLocaleString('id-ID')} / {isDaily ? 'day' : 'month'}
-                    </Text>
-                    
-                    <Text mb={4}>{room?.description || 'No description available.'}</Text>
-                    
-                    <Divider my={4} />
-                    
-                    <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
-                      <Box>
-                        <Text fontWeight="bold" mb={1}>Room Type:</Text>
-                        <Text>{getRoomTypeName()}</Text>
-                      </Box>
-                      <Box>
-                        <Text fontWeight="bold" mb={1}>Capacity:</Text>
-                        <Text>{room?.capacity} {room?.capacity > 1 ? 'persons' : 'person'}</Text>
-                      </Box>
-                      <Box>
-                        <Text fontWeight="bold" mb={1}>Rental Type:</Text>
-                        <Text>{isDaily ? 'Daily' : 'Monthly'}</Text>
-                      </Box>
-                    </SimpleGrid>
-                  </Box>
-                </Flex>
-              </Box>
-              
-              {/* Room Amenities */}
-              <Box bg={cardBg} borderRadius="lg" p={6} boxShadow="md" mb={8}>
-                <Heading as="h3" size="md" mb={4}>Room Amenities</Heading>
+          {/* Room Details */}
+          <Stack spacing={6}>
+            <Box>
+              <Flex justify="space-between" align="center" flexWrap="wrap">
+                <Heading as="h1" size="xl" mb={2}>
+                  {room.name}
+                </Heading>
                 
-                {room?.amenities && room.amenities.length > 0 ? (
-                  <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={4}>
-                    {room.amenities.map((amenity, index) => (
-                      <HStack key={index}>
-                        <Icon 
-                          as={getFeatureIcon(amenity.feature?.name)} 
-                          color="green.500" 
-                        />
-                        <Text>
-                          {amenity.feature?.description || amenity.feature?.name.replace('_', ' ')}
-                          {amenity.quantity > 1 && ` (x${amenity.quantity})`}
-                        </Text>
-                      </HStack>
-                    ))}
-                  </SimpleGrid>
-                ) : (
-                  <Text color="gray.500">No specific amenities listed for this room.</Text>
-                )}
-              </Box>
-              
-              {/* Room Policies */}
-              <Box bg={cardBg} borderRadius="lg" p={6} boxShadow="md">
-                <Heading as="h3" size="md" mb={4}>Room Policies</Heading>
-                
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                  <Box>
-                    <Heading as="h4" size="sm" mb={2}>Check-in/Check-out</Heading>
-                    <List spacing={2}>
-                      <ListItem>
-                        <ListIcon as={FaCheckCircle} color="green.500" />
-                        Check-in: 2:00 PM - 10:00 PM
-                      </ListItem>
-                      <ListItem>
-                        <ListIcon as={FaCheckCircle} color="green.500" />
-                        Check-out: Before 12:00 PM
-                      </ListItem>
-                      <ListItem>
-                        <ListIcon as={FaCheckCircle} color="green.500" />
-                        Early check-in/late check-out upon request
-                      </ListItem>
-                    </List>
-                  </Box>
+                <Stack direction="row" spacing={2}>
+                  <Badge colorScheme={
+                    room.classification?.name === 'VIP' ? 'purple' : 
+                    room.classification?.name === 'perempuan' ? 'pink' : 
+                    room.classification?.name === 'laki_laki' ? 'blue' : 'green'
+                  } py={1} px={3} borderRadius="full" fontSize="sm">
+                    {formatClassification(room.classification?.name)}
+                  </Badge>
                   
-                  <Box>
-                    <Heading as="h4" size="sm" mb={2}>Rules</Heading>
-                    <List spacing={2}>
-                      <ListItem>
-                        <ListIcon as={FaCheckCircle} color="green.500" />
-                        No smoking
-                      </ListItem>
-                      <ListItem>
-                        <ListIcon as={FaCheckCircle} color="green.500" />
-                        No pets allowed
-                      </ListItem>
-                      <ListItem>
-                        <ListIcon as={FaCheckCircle} color="green.500" />
-                        Quiet hours: 10:00 PM - 7:00 AM
-                      </ListItem>
-                    </List>
-                  </Box>
-                </SimpleGrid>
-              </Box>
+                  <Badge colorScheme="teal" py={1} px={3} borderRadius="full" fontSize="sm">
+                    {formatRentalType(room.rentalType?.name)}
+                  </Badge>
+                </Stack>
+              </Flex>
+              
+              <Flex align="center" mt={2}>
+                <Icon as={FaUsers} mr={2} color="gray.500" />
+                <Text>{room.capacity} {room.capacity > 1 ? 'Persons' : 'Person'} Capacity</Text>
+              </Flex>
+              
+              <Text mt={4} fontSize="lg" color="gray.700">
+                {room.description}
+              </Text>
             </Box>
             
-            {/* Booking Form */}
+            <Divider />
+            
+            {/* Amenities */}
             <Box>
-              <Box 
-                bg={cardBg}
-                borderRadius="lg"
-                p={6}
-                boxShadow="md"
-                position="sticky"
-                top="100px"
-              >
-                <Heading as="h3" size="md" mb={4}>Book This Room</Heading>
-                
-                <form onSubmit={handleSubmit}>
-                  <VStack spacing={4}>
-                    <FormControl isRequired>
-                      <FormLabel>Check-In Date</FormLabel>
-                      <Input
-                        type="date"
-                        value={checkIn}
-                        onChange={handleCheckInChange}
-                        min={minCheckIn}
-                      />
-                    </FormControl>
-                    
-                    <FormControl isRequired>
-                      <FormLabel>Check-Out Date</FormLabel>
-                      <Input
-                        type="date"
-                        value={checkOut}
-                        onChange={(e) => setCheckOut(e.target.value)}
-                        min={checkIn ? new Date(new Date(checkIn).getTime() + 86400000).toISOString().split('T')[0] : minCheckIn}
-                        disabled={!checkIn}
-                      />
-                    </FormControl>
-                    
-                    <FormControl>
-                      <FormLabel>Number of Guests</FormLabel>
-                      <Select 
-                        value={guests}
-                        onChange={(e) => setGuests(e.target.value)}
+              <Heading as="h3" size="md" mb={4}>
+                Room Amenities
+              </Heading>
+              
+              {room.amenities && room.amenities.length > 0 ? (
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  {room.amenities.map((amenity, index) => {
+                    const FeatureIcon = getFeatureIcon(amenity.feature?.name);
+                    return (
+                      <Tag
+                        key={index}
+                        size="lg"
+                        borderRadius="full"
+                        variant="subtle"
+                        colorScheme="blue"
+                        py={2}
                       >
-                        {[...Array(room?.capacity || 1)].map((_, i) => (
-                          <option key={i + 1} value={i + 1}>
-                            {i + 1} {i === 0 ? 'guest' : 'guests'}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    
-                    <FormControl>
-                      <FormLabel>Special Requests (optional)</FormLabel>
-                      <Textarea
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Any special requests?"
-                        rows={3}
-                      />
-                    </FormControl>
-                    
-                    {/* Price Summary */}
-                    {(checkIn && checkOut && duration > 0) && (
-                      <Box
-                        w="full"
-                        p={4}
-                        borderWidth="1px"
-                        borderRadius="md"
-                        bg={useColorModeValue('gray.50', 'gray.700')}
-                      >
-                        <Heading as="h4" size="sm" mb={2}>Price Summary</Heading>
-                        
-                        <Flex justify="space-between" mb={2}>
-                          <Text>Room Rate:</Text>
-                          <Text>Rp {(room?.rate || 0).toLocaleString('id-ID')} / {isDaily ? 'day' : 'month'}</Text>
-                        </Flex>
-                        
-                        <Flex justify="space-between" mb={2}>
-                          <Text>Duration:</Text>
-                          <Text>{duration} {duration > 1 ? 'days' : 'day'}</Text>
-                        </Flex>
-                        
-                        <Divider my={2} />
-                        
-                        <Flex justify="space-between" fontWeight="bold">
-                          <Text>Total:</Text>
-                          <Text>Rp {totalPrice.toLocaleString('id-ID')}</Text>
-                        </Flex>
-                      </Box>
-                    )}
-                    
-                    <Button
-                      type="submit"
-                      colorScheme="blue"
-                      width="full"
-                      size="lg"
-                      isLoading={submitting}
-                      loadingText="Submitting"
-                      isDisabled={!checkIn || !checkOut || duration <= 0}
-                    >
-                      {isAuthenticated ? 'Book Now' : 'Sign In to Book'}
-                    </Button>
-                  </VStack>
-                </form>
-              </Box>
+                        <TagLeftIcon as={FeatureIcon} boxSize="1.2em" />
+                        <TagLabel>
+                          {amenity.quantity > 1 && `${amenity.quantity}x `}
+                          {amenity.feature?.description}
+                        </TagLabel>
+                      </Tag>
+                    );
+                  })}
+                </SimpleGrid>
+              ) : (
+                <Text color="gray.500">No specific amenities listed for this room.</Text>
+              )}
             </Box>
-          </SimpleGrid>
-        </Container>
-      </Box>
-      {!skipNavbar && <Footer />}
-    </Box>
+            
+            <Divider />
+            
+            {/* Rules and Policies */}
+            <Box>
+              <Heading as="h3" size="md" mb={4}>
+                Rules and Policies
+              </Heading>
+              
+              <List spacing={2}>
+                <ListItem>
+                  <ListIcon as={CheckIcon} color="green.500" />
+                  Check-in time: 2:00 PM
+                </ListItem>
+                <ListItem>
+                  <ListIcon as={CheckIcon} color="green.500" />
+                  Check-out time: 12:00 PM
+                </ListItem>
+                <ListItem>
+                  <ListIcon as={CheckIcon} color="green.500" />
+                  {room.classification?.name === 'perempuan' ? 'Female students only' : 
+                   room.classification?.name === 'laki_laki' ? 'Male students only' : 'No gender restriction'}
+                </ListItem>
+                <ListItem>
+                  <ListIcon as={CheckIcon} color="green.500" />
+                  No smoking allowed
+                </ListItem>
+                <ListItem>
+                  <ListIcon as={CheckIcon} color="green.500" />
+                  {room.rentalType?.name === 'bulanan' ? 'Monthly payment required' : 'Daily payment required'}
+                </ListItem>
+              </List>
+            </Box>
+          </Stack>
+        </GridItem>
+        
+        {/* Booking Panel */}
+        <GridItem>
+          <Box 
+            position="sticky" 
+            top="100px" 
+            p={6} 
+            bg="white" 
+            borderRadius="lg"
+            boxShadow="md"
+          >
+            <Heading as="h3" size="md" mb={6}>
+              Book this Room
+            </Heading>
+            
+            <Stack spacing={6}>
+              <Stat>
+                <StatLabel>Price per {room.rentalType?.name === 'bulanan' ? 'month' : 'day'}</StatLabel>
+                <StatNumber>Rp {new Intl.NumberFormat('id-ID').format(room.rate || 0)}</StatNumber>
+                <StatHelpText>Includes all basic amenities</StatHelpText>
+              </Stat>
+              
+              <form onSubmit={handleBookNow}>
+                <Stack spacing={4}>
+                  <FormControl isInvalid={!!bookingErrors.startDate}>
+                    <FormLabel>Check-in Date</FormLabel>
+                    <Input
+                      type="date"
+                      name="startDate"
+                      value={booking.startDate}
+                      onChange={handleBookingChange}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                    {bookingErrors.startDate && (
+                      <FormErrorMessage>{bookingErrors.startDate}</FormErrorMessage>
+                    )}
+                  </FormControl>
+                  
+                  <FormControl isInvalid={!!bookingErrors.endDate}>
+                    <FormLabel>Check-out Date</FormLabel>
+                    <Input
+                      type="date"
+                      name="endDate"
+                      value={booking.endDate}
+                      onChange={handleBookingChange}
+                      min={booking.startDate}
+                    />
+                    {bookingErrors.endDate && (
+                      <FormErrorMessage>{bookingErrors.endDate}</FormErrorMessage>
+                    )}
+                  </FormControl>
+                  
+                  <Button
+                    type="submit"
+                    colorScheme="blue"
+                    bg="brand.500"
+                    size="lg"
+                    w="100%"
+                    _hover={{ bg: "brand.400" }}
+                    isLoading={isBookingSubmitting}
+                    loadingText="Processing"
+                  >
+                    Book Now
+                  </Button>
+                </Stack>
+              </form>
+              
+              {!isAuthenticated && (
+                <Alert status="warning" borderRadius="md">
+                  <AlertIcon />
+                  <AlertDescription>
+                    Please log in to book this room.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <Box fontSize="sm" color="gray.600">
+                <Text mb={2}>
+                  <strong>Booking Note:</strong> Your booking will be confirmed after review.
+                </Text>
+                <Text>
+                  <strong>Cancellation Policy:</strong> Free cancellation up to 24 hours before check-in.
+                </Text>
+              </Box>
+            </Stack>
+          </Box>
+        </GridItem>
+      </Grid>
+    </Container>
   );
-}
+};
+
+export default RoomDetailPage;

@@ -1,71 +1,113 @@
+import React from 'react';
 import {
   Box,
   Container,
-  Link,
   SimpleGrid,
   Stack,
   Text,
+  Link,
   useColorModeValue,
-  Heading,
+  Image,
+  ButtonGroup,
+  IconButton,
+  Divider,
 } from '@chakra-ui/react';
+import { FaTwitter, FaYoutube, FaInstagram, FaFacebook } from 'react-icons/fa';
+
+const ListHeader = ({ children }) => {
+  return (
+    <Text fontWeight={'500'} fontSize={'lg'} mb={2}>
+      {children}
+    </Text>
+  );
+};
 
 export default function Footer() {
   return (
     <Box
       bg={useColorModeValue('gray.50', 'gray.900')}
       color={useColorModeValue('gray.700', 'gray.200')}
-      mt="auto"
-      borderTop={1}
-      borderStyle={'solid'}
-      borderColor={useColorModeValue('gray.200', 'gray.900')}>
-      <Container as={Stack} maxW={'container.xl'} py={10}>
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={8}>
+      mt={20}
+    >
+      <Container as={Stack} maxW={'6xl'} py={10}>
+        <SimpleGrid
+          templateColumns={{ sm: '1fr 1fr', md: '2fr 1fr 1fr 1fr' }}
+          spacing={8}>
+          <Stack spacing={6}>
+            <Box>
+              <Image
+                src="/images/logo.png"
+                fallbackSrc="https://via.placeholder.com/150x50?text=RUSUNAWA"
+                alt="Rusunawa Logo"
+                h="40px"
+                objectFit="contain"
+              />
+            </Box>
+            <Text fontSize={'sm'}>
+              © {new Date().getFullYear()} Rusunawa University Housing. All rights reserved.
+            </Text>
+            <ButtonGroup variant="ghost" spacing={4}>
+              <IconButton
+                as="a"
+                href="#"
+                aria-label="Facebook"
+                icon={<FaFacebook fontSize="20px" />}
+                _hover={{ bg: 'brand.500', color: 'white' }}
+              />
+              <IconButton
+                as="a"
+                href="#"
+                aria-label="Twitter"
+                icon={<FaTwitter fontSize="20px" />}
+                _hover={{ bg: 'brand.500', color: 'white' }}
+              />
+              <IconButton
+                as="a"
+                href="#"
+                aria-label="Instagram"
+                icon={<FaInstagram fontSize="20px" />}
+                _hover={{ bg: 'brand.500', color: 'white' }}
+              />
+              <IconButton
+                as="a"
+                href="#"
+                aria-label="YouTube"
+                icon={<FaYoutube fontSize="20px" />}
+                _hover={{ bg: 'brand.500', color: 'white' }}
+              />
+            </ButtonGroup>
+          </Stack>
           <Stack align={'flex-start'}>
-            <Heading as="h5" size="sm" mb={2}>Rusunawa</Heading>
-            <Link href={'/'}>Home</Link>
-            <Link href={'/about'}>About Us</Link>
+            <ListHeader>Company</ListHeader>
+            <Link href={'/about'}>About</Link>
             <Link href={'/contact'}>Contact</Link>
-            <Link href={'/faq'}>FAQ</Link>
-          </Stack>
-          <Stack align={'flex-start'}>
-            <Heading as="h5" size="sm" mb={2}>Accommodations</Heading>
-            <Link href={'/rooms'}>Room Types</Link>
             <Link href={'/facilities'}>Facilities</Link>
-            <Link href={'/gallery'}>Gallery</Link>
+            <Link href={'/careers'}>Careers</Link>
           </Stack>
           <Stack align={'flex-start'}>
-            <Heading as="h5" size="sm" mb={2}>For Tenants</Heading>
-            <Link href={'/register'}>Sign Up</Link>
-            <Link href={'/tenant/login'}>Login</Link>
-            <Link href={'/policies'}>Policies</Link>
+            <ListHeader>Support</ListHeader>
+            <Link href={'/tenant/register'}>Registration</Link>
+            <Link href={'/faq'}>FAQ</Link>
+            <Link href={'/help'}>Help Center</Link>
+            <Link href={'/terms'}>Terms of Service</Link>
           </Stack>
           <Stack align={'flex-start'}>
-            <Heading as="h5" size="sm" mb={2}>Connect With Us</Heading>
-            <Link href={'#'}>Facebook</Link>
-            <Link href={'#'}>Twitter</Link>
-            <Link href={'#'}>Instagram</Link>
-            <Link href={'#'}>LinkedIn</Link>
+            <ListHeader>Contact</ListHeader>
+            <Text>Main Campus Building B</Text>
+            <Text>Jl. University No. 123</Text>
+            <Text>Jakarta, Indonesia</Text>
+            <Text>Email: info@rusunawa.ac.id</Text>
+            <Text>Phone: (021) 123-4567</Text>
           </Stack>
         </SimpleGrid>
       </Container>
-      <Box
-        borderTopWidth={1}
-        borderStyle={'solid'}
-        borderColor={useColorModeValue('gray.200', 'gray.700')}>
-        <Container
-          as={Stack}
-          maxW={'container.xl'}
-          py={4}
-          direction={{ base: 'column', md: 'row' }}
-          spacing={4}
-          justify={{ md: 'space-between' }}
-          align={{ md: 'center' }}>
-          <Text>© 2023 Rusunawa. All rights reserved</Text>
-          <Stack direction={'row'} spacing={6}>
-            <Link href={'#'}>Privacy Policy</Link>
-            <Link href={'#'}>Terms of Service</Link>
-          </Stack>
-        </Container>
+      
+      <Divider />
+      
+      <Box py={4} textAlign="center">
+        <Text fontSize="sm">
+          Developed by University IT Team - v1.0.5
+        </Text>
       </Box>
     </Box>
   );

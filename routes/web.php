@@ -32,6 +32,11 @@ Route::get('/tenant/login-debug', function() {
         ->header('Content-Type', 'text/plain');
 });
 
+// Debug login page for troubleshooting
+Route::get('/debug-login', function() {
+    return view('debug-login');
+})->name('debug.login');
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -46,7 +51,8 @@ Route::get('/tenant/login-debug', function() {
 // Authentication Routes for Tenants - Define login routes outside the group to avoid middleware issues
 Route::get('/tenant/login', [TenantLoginController::class, 'showLoginForm'])
     ->name('tenant.login')
-    ->withoutMiddleware(['web', 'cache.headers']);
+    ->withoutMiddleware(['web', 'cache.headers'])
+    ->middleware('web'); // Add web middleware explicitly
 
 // Add a cache-busting redirect for login
 Route::get('/login', function() {
@@ -58,8 +64,10 @@ Route::get('/login-alias', function() {
     return redirect()->route('tenant.login', ['t' => time()]);
 })->name('login');
 
+// Now handle the tenant login submission with special case for AJAX
 Route::post('/tenant/login', [TenantLoginController::class, 'login'])
-    ->name('tenant.login.submit');
+    ->name('tenant.login.submit')
+    ->middleware('web');  // Ensure web middleware is applied
 
 // Authentication Routes for Tenants
 Route::group(['prefix' => 'tenant', 'as' => 'tenant.'], function () {
@@ -145,12 +153,23 @@ Route::post('/api/bookings', function(Request $request) {
     return $response->json();
 })->middleware('tenant.auth');
 
-// CSRF token refresh endpoint
+// CSRF token refresh endpoint - moved higher in the file for visibility
 Route::get('/csrf-refresh', function () {
-    return response()->json([
-        'token' => csrf_token()
+    // Regenerate CSRF token
+    $token = csrf_token();
+    
+    // Log for debugging
+    \Illuminate\Support\Facades\Log::debug('CSRF token refreshed', [
+        'token_length' => strlen($token),
+        'session_id' => session()->getId()
     ]);
-});
+    
+    return response()->json([
+        'token' => $token,
+        'time' => now()->toIso8601String(),
+        'session_id' => session()->getId()
+    ]);
+})->middleware('web');
 
 // Failsafe login route that doesn't use React
 Route::get('/tenant/login-simple', function () {

@@ -9,7 +9,7 @@ import {
   Image,
   Center,
 } from '@chakra-ui/react';
-import Navbar from './components/Navbar.jsx';
+
 import Footer from './components/Footer.jsx';
 
 export default function NotFoundPage() {

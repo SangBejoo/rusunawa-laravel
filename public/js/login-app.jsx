@@ -38,12 +38,34 @@ const setupAxios = () => {
   }
   
   // For Laravel routes, include CSRF token
-  const csrfToken = document.head.querySelector('meta[name="csrf-token"]');
+  const csrfToken = document.querySelector('meta[name="csrf-token"]');
   if (csrfToken) {
-    // Only set these headers for same-origin requests, not for the Go backend
-    // We'll manually add these in service implementations when needed
+    // Apply CSRF token to all axios requests
+    axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken.content;
+    // Also include a traditional form token header for maximum compatibility
+    axios.defaults.headers.common['X-XSRF-TOKEN'] = getCookie('XSRF-TOKEN');
+  } else {
+    console.warn('CSRF token not found, AJAX requests may fail');
+    
+    // Try to fetch a new CSRF token
+    axios.get('/csrf-refresh')
+      .then(response => {
+        console.log('CSRF token refreshed');
+      })
+      .catch(error => {
+        console.error('Failed to refresh CSRF token', error);
+      });
   }
-    // Set up response interceptor for handling token expiration
+  
+  // Helper function to get cookie value
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return '';
+  }
+    
+  // Set up response interceptor for handling token expiration
   axios.interceptors.response.use(
     response => response,
     error => {
@@ -71,6 +93,20 @@ const setupAxios = () => {
   
   return true;
 };
+
+// In your login handling code, ensure proper storage and event dispatching:
+const handleLogin = (result) => {
+  if (result.success) {
+    // Store authentication data
+    storeAuthData(result.token, result.tenant);
+    
+    // Dispatch login event
+    dispatchAuthEvent('login', { tenant: result.tenant });
+    
+    // Show success message and redirect
+    // ...existing code...
+  }
+}
 
 // Wait for both DOM and React to be ready
 const initializeLoginApp = () => {
