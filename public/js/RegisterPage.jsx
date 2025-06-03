@@ -136,6 +136,9 @@ export default function RegisterPage() {
         }
       };
 
+      // Format tenant_type before sending - convert hyphen to underscore
+      const formattedTenantType = form.tenant_type === 'non-mahasiswa' ? 'non_mahasiswa' : form.tenant_type;
+
       const registerData = {
         name: form.name,
         email: form.email,
@@ -143,7 +146,7 @@ export default function RegisterPage() {
         phone: form.phone,
         address: form.address,
         gender: form.gender,
-        tenant_type: form.tenant_type,
+        tenant_type: formattedTenantType,  // Use the formatted value
         type_id: form.type_id,
         home_latitude: form.home_latitude,
         home_longitude: form.home_longitude
@@ -198,27 +201,28 @@ export default function RegisterPage() {
     } catch (err) {
       console.error('Registration error:', err);
       
+      let errorMessage = "An error occurred during registration";
+      
       if (err.response && err.response.data) {
+        // Extract and display more detailed error messages from the API
+        if (err.response.data.status && err.response.data.status.message) {
+          errorMessage = err.response.data.status.message;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        }
+        
         if (err.response.data.errors) {
           setErrors(err.response.data.errors);
-        } else {
-          toast({
-            title: "Registration Failed",
-            description: err.response.data.message || "An error occurred during registration",
-            status: "error",
-            duration: 5000,
-            isClosable: true,
-          });
         }
-      } else {
-        toast({
-          title: "Registration Failed",
-          description: "Unable to connect to the server. Please try again later.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
       }
+      
+      toast({
+        title: "Registration Failed",
+        description: errorMessage,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -290,6 +294,7 @@ export default function RegisterPage() {
                   >
                     <Stack direction="row">
                       <Radio value="mahasiswa">Student (Mahasiswa)</Radio>
+                      {/* Still use 'non-mahasiswa' in the UI but convert it before API call */}
                       <Radio value="non-mahasiswa">Non-Student (Non-Mahasiswa)</Radio>
                     </Stack>
                   </RadioGroup>

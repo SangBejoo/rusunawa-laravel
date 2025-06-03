@@ -14,7 +14,7 @@ import {
 export default function HeroSection() {
   return (
     <Box>
-      {/* Background image with overlay */}
+      {/* Background gradient instead of image */}
       <Box
         position="absolute"
         top={0}
@@ -22,9 +22,7 @@ export default function HeroSection() {
         height="80vh"
         width="100%"
         zIndex={-1}
-        bgImage="url('https://images.unsplash.com/photo-1554995207-c18c203602cb?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=70')"
-        bgSize="cover"
-        bgPosition="center"
+        bgGradient="linear(to-b, blue.600, blue.800)"
         _after={{
           content: '""',
           position: 'absolute',
@@ -32,7 +30,7 @@ export default function HeroSection() {
           left: 0,
           right: 0,
           bottom: 0,
-          bg: useColorModeValue('blackAlpha.600', 'blackAlpha.700'),
+          bg: useColorModeValue('blackAlpha.400', 'blackAlpha.600'),
         }}
       />
 

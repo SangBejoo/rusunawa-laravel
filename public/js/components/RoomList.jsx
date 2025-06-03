@@ -22,7 +22,9 @@ import {
   AlertDescription
 } from '@chakra-ui/react';
 import { StarIcon, RepeatIcon } from '@chakra-ui/icons';
-import { FaBed, FaWifi, FaShower, FaUsers, FaAirFreshener, FaDesktop } from 'react-icons/fa';
+import { FaBed, FaWifi, FaShower, FaUsers, FaAirFreshener, FaDesktop, 
+         FaMars as FaMale, FaVenus as FaFemale, FaStar, FaDoorOpen } from 'react-icons/fa';
+import { MdMeetingRoom } from 'react-icons/md';
 import axios from 'axios';
 
 // Helper function to get icon for a feature
@@ -79,20 +81,45 @@ const RoomCard = ({ room }) => {
   // Get primary features to display (limit to 3)
   const primaryFeatures = room.amenities?.slice(0, 3).map(amenity => amenity.feature) || [];
   
-  // Generate a placeholder image based on room type
+  // Generate placeholder using colored box instead of external image
   const getPlaceholderImage = () => {
-    switch(room.classification?.name) {
-      case 'VIP':
-        return 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=500&q=80';
-      case 'perempuan':
-        return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=500&q=80';
-      case 'laki_laki':
-        return 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=500&q=80';
-      case 'ruang_rapat':
-        return 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=500&q=80';
-      default:
-        return 'https://via.placeholder.com/500x300?text=Room+Image';
-    }
+    const bgColors = {
+      'VIP': 'purple.100',
+      'perempuan': 'pink.100',
+      'laki_laki': 'blue.100',
+      'ruang_rapat': 'green.100'
+    };
+    
+    const bgColor = bgColors[room.classification?.name] || 'gray.100';
+    
+    return (
+      <Box 
+        height="200px" 
+        width="100%"
+        bg={bgColor}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Icon 
+          as={
+            room.classification?.name === 'perempuan' ? FaFemale :
+            room.classification?.name === 'laki_laki' ? FaMale :
+            room.classification?.name === 'ruang_rapat' ? MdMeetingRoom :
+            room.classification?.name === 'VIP' ? FaStar : 
+            FaBed
+          }
+          boxSize="50px"
+          color={
+            room.classification?.name === 'perempuan' ? 'pink.500' :
+            room.classification?.name === 'laki_laki' ? 'blue.500' :
+            room.classification?.name === 'ruang_rapat' ? 'green.500' :
+            room.classification?.name === 'VIP' ? 'purple.500' : 
+            'gray.500'
+          }
+        />
+      </Box>
+    );
   };
   
   const handleViewDetails = () => {
@@ -113,13 +140,17 @@ const RoomCard = ({ room }) => {
       }}
     >
       <Box onClick={handleViewDetails} cursor="pointer">
-        <Image 
-          src={room.imageUrl || getPlaceholderImage()} 
-          alt={room.name}
-          height="200px"
-          width="100%"
-          objectFit="cover"
-        />
+        {room.imageUrl ? (
+          <Image 
+            src={room.imageUrl} 
+            alt={room.name}
+            height="200px"
+            width="100%"
+            objectFit="cover"
+          />
+        ) : (
+          getPlaceholderImage()
+        )}
       </Box>
 
       <Box p="6">

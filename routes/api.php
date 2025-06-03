@@ -251,31 +251,94 @@ Route::get('/bookings', function (Request $request) {
     }
 });
 
-// POST bookings - Create a new booking
+// Direct proxy to Go backend authentication API
+Route::post('/direct-login', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        Log::info('Direct login attempt', [
+            'email' => $request->input('email'),
+            'api_url' => "{$apiBaseUrl}/tenant/auth/login"
+        ]);
+        
+        // Forward the exact credentials without modification
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
+        ])->post("{$apiBaseUrl}/tenant/auth/login", [
+            'email' => $request->input('email'),
+            'password' => $request->input('password')
+        ]);
+        
+        $responseData = $response->json();
+        Log::info('Direct login response', [
+            'status' => $response->status(),
+            'success' => isset($responseData['token']),
+            'has_tenant' => isset($responseData['tenant'])
+        ]);
+        
+        // Return the exact response from the backend
+        return response()->json($responseData, $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in direct login API', [
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'error' => 'API connection error',
+            'message' => $e->getMessage(),
+            'status' => [
+                'message' => 'Failed to connect to authentication service',
+                'status' => 'error'
+            ]
+        ], 500);
+    }
+});
+
+// POST bookings - Create a new booking with error handling for gender mismatch
 Route::post('/bookings', function (Request $request) {
     $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
     
     try {
-        // Get token from request
+        // Get token from request - check multiple places
         $token = $request->bearerToken();
         
-        // If token not in authorization header, check session
-        if (!$token && session()->has('tenant_token')) {
-            $token = session('tenant_token');
+        // Check header directly if bearer token not found
+        if (!$token && $request->header('Authorization')) {
+            $authHeader = $request->header('Authorization');
+            if (strpos($authHeader, 'Bearer ') === 0) {
+                $token = substr($authHeader, 7);
+            } else {
+                $token = $authHeader;
+            }
         }
         
-        Log::info('Creating booking', [
+        // If not in headers, try from request body
+        if (!$token && $request->has('token')) {
+            $token = $request->input('token');
+            Log::info('Found token in request body');
+        }
+        
+        // Try from session as last resort
+        if (!$token && session()->has('tenant_token')) {
+            $token = session('tenant_token');
+            Log::info('Found token in session');
+        }
+        
+        Log::info('Booking request received', [
             'has_token' => !empty($token),
+            'token_length' => $token ? strlen($token) : 0,
+            'auth_header' => $request->header('Authorization'),
             'tenant_id' => $request->input('tenantId'),
-            'room_id' => $request->input('roomId'),
-            'start_date' => $request->input('startDate'),
-            'end_date' => $request->input('endDate'),
+            'room_id' => $request->input('roomId')
         ]);
         
         if (!$token) {
             return response()->json([
-                'error' => 'Unauthorized',
-                'message' => 'Authentication token is required',
+                'success' => false,
+                'error' => 'Authentication required',
+                'message' => 'Please login to book a room',
                 'status' => [
                     'message' => 'Authentication required',
                     'status' => 'error'
@@ -283,52 +346,30 @@ Route::post('/bookings', function (Request $request) {
             ], 401);
         }
         
-        // Format dates properly according to the API expectations
-        $requestData = [
+        // Format the request properly for the Go backend
+        $bookingData = [
             'tenantId' => (int) $request->input('tenantId'),
             'roomId' => (int) $request->input('roomId'),
             'startDate' => $request->input('startDate'),
             'endDate' => $request->input('endDate')
         ];
         
-        // Make sure dates are ISO 8601 format if not already
-        if (!empty($requestData['startDate']) && !preg_match('/^\d{4}-\d{2}-\d{2}T/', $requestData['startDate'])) {
-            $startDate = new \DateTime($requestData['startDate']);
-            $requestData['startDate'] = $startDate->format('Y-m-d\TH:i:s.v\Z');
-        }
+        // Forward the request directly to Go backend
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+            'Authorization' => "Bearer {$token}"
+        ])->post("{$apiBaseUrl}/bookings", $bookingData);
         
-        if (!empty($requestData['endDate']) && !preg_match('/^\d{4}-\d{2}-\d{2}T/', $requestData['endDate'])) {
-            $endDate = new \DateTime($requestData['endDate']);
-            $requestData['endDate'] = $endDate->format('Y-m-d\TH:i:s.v\Z');
-        }
-        
-        Log::info('Formatted booking data', ['data' => $requestData]);
-        
-        // Make API request with token
-        $response = Http::withToken($token)
-            ->withHeaders([
-                'Content-Type' => 'application/json',
-                'Accept' => 'application/json'
-            ])
-            ->post("{$apiBaseUrl}/bookings", $requestData);
-        
+        $responseData = $response->json();
         Log::info('Booking API response', [
             'status' => $response->status(),
-            'body' => $response->json()
+            'success' => $response->successful(),
+            'has_error' => isset($responseData['status']['message'])
         ]);
         
-        if ($response->successful()) {
-            return $response->json();
-        } else {
-            return response()->json([
-                'error' => 'Booking API error',
-                'message' => $response->json()['status']['message'] ?? 'Unknown error',
-                'status' => [
-                    'message' => 'Failed to create booking',
-                    'status' => 'error'
-                ]
-            ], $response->status());
-        }
+        // Return the response directly
+        return response()->json($responseData, $response->status());
     } catch (\Exception $e) {
         Log::error('Exception in booking API', [
             'message' => $e->getMessage(),
@@ -336,15 +377,16 @@ Route::post('/bookings', function (Request $request) {
         ]);
         
         return response()->json([
-            'error' => 'Failed to connect to API server',
+            'success' => false,
+            'error' => 'Error processing booking',
             'message' => $e->getMessage(),
             'status' => [
-                'message' => 'API connection error',
+                'message' => 'Failed to process booking request',
                 'status' => 'error'
             ]
         ], 500);
     }
-});
+})->withoutMiddleware(['web', 'csrf'])->middleware('api');
 
 // GET booking details
 Route::get('/bookings/{id}', function ($id, Request $request) {

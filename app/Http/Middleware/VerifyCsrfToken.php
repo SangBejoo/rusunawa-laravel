@@ -12,13 +12,9 @@ class VerifyCsrfToken extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        // If needed for testing, you could exclude login temporarily
-        // '/tenant/login', 
-        
-        // API routes are typically excluded
+        // Exclude the API routes from CSRF protection
         'api/*',
-        
-        // Exclude external API proxy routes if needed
-        '/v1/*'
+        // Exclude direct Go backend API calls
+        'v1/*'
     ];
 }

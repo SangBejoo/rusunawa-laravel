@@ -35,8 +35,11 @@ import {
   TagLeftIcon
 } from '@chakra-ui/react';
 import { CheckIcon, InfoIcon } from '@chakra-ui/icons';
-import { FaBed, FaWifi, FaShower, FaUsers, FaAirFreshener, FaDesktop } from 'react-icons/fa';
+import { FaBed, FaWifi, FaShower, FaUsers, FaAirFreshener, FaDesktop, 
+         FaMars as FaMale, FaVenus as FaFemale, FaStar } from 'react-icons/fa';
+import { MdMeetingRoom } from 'react-icons/md';
 import axios from 'axios';
+import { bookingApi, getAuthToken } from './api.js';
 
 // Helper function to get icon for a feature
 const getFeatureIcon = (featureName) => {
@@ -86,20 +89,42 @@ const formatRentalType = (rentalType) => {
   }
 };
 
-// Helper to generate a placeholder image based on room type
+// Helper to generate a placeholder using a colored box with icon instead of external image
 const getPlaceholderImage = (classificationName) => {
-  switch(classificationName) {
-    case 'VIP':
-      return 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1200&q=80';
-    case 'perempuan':
-      return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1200&q=80';
-    case 'laki_laki':
-      return 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=1200&q=80';
-    case 'ruang_rapat':
-      return 'https://images.unsplash.com/photo-1517502884422-41eaead166d4?auto=format&fit=crop&w=1200&q=80';
-    default:
-      return 'https://via.placeholder.com/1200x600?text=Room+Image';
-  }
+  return (
+    <Box 
+      height="400px" 
+      width="100%" 
+      bg={
+        classificationName === 'perempuan' ? 'pink.100' :
+        classificationName === 'laki_laki' ? 'blue.100' :
+        classificationName === 'ruang_rapat' ? 'green.100' :
+        classificationName === 'VIP' ? 'purple.100' : 
+        'gray.100'
+      }
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
+      <Icon 
+        as={
+          classificationName === 'perempuan' ? FaFemale :
+          classificationName === 'laki_laki' ? FaMale :
+          classificationName === 'ruang_rapat' ? MdMeetingRoom :
+          classificationName === 'VIP' ? FaStar : 
+          FaBed
+        }
+        boxSize="100px"
+        color={
+          classificationName === 'perempuan' ? 'pink.500' :
+          classificationName === 'laki_laki' ? 'blue.500' :
+          classificationName === 'ruang_rapat' ? 'green.500' :
+          classificationName === 'VIP' ? 'purple.500' : 
+          'gray.500'
+        }
+      />
+    </Box>
+  );
 };
 
 const RoomDetailPage = ({ initialData }) => {
@@ -275,13 +300,57 @@ const RoomDetailPage = ({ initialData }) => {
     const date = new Date(dateStr);
     return date.toISOString();
   };
+  
+  // Function to get tenant token with validation
+  const getValidTenantToken = () => {
+    const token = localStorage.getItem('tenant_token');
+    if (!token) {
+      console.error('No authentication token found in localStorage');
+      return null;
+    }
+    
+    // Basic validation - check if it's a string with reasonable length
+    if (typeof token !== 'string' || token.length < 10) {
+      console.error('Invalid token format in localStorage:', token);
+      return null;
+    }
+    
+    console.log('Found valid token in localStorage (length: ' + token.length + ')');
+    return token;
+  };
+  
+  // Function to refresh authentication if needed
+  const refreshAuthentication = async () => {
+    try {
+      console.log('Attempting to refresh authentication...');
+      
+      // Get stored tenant data
+      const tenantDataStr = localStorage.getItem('tenant_data');
+      if (!tenantDataStr) {
+        console.error('No tenant data found in localStorage');
+        return false;
+      }
+      
+      // Parse tenant data
+      const tenantData = JSON.parse(tenantDataStr);
+      
+      // Check if we have enough info to try refreshing authentication
+      // This would typically call a refresh token endpoint, but for now
+      // we'll just return whether we have valid data
+      
+      return !!tenantData;
+    } catch (error) {
+      console.error('Failed to refresh authentication:', error);
+      return false;
+    }
+  };
 
   const handleBookNow = async (e) => {
     e.preventDefault();
     
-    // Check if user is logged in - double check before submitting
-    const tenantToken = localStorage.getItem('tenant_token');
-    if (!tenantToken || !isAuthenticated) {
+    // Check if user is logged in with thorough validation
+    const tenantToken = getAuthToken();
+    if (!tenantToken) {
       toast({
         title: "Authentication Required",
         description: "Please log in to book this room",
@@ -302,8 +371,6 @@ const RoomDetailPage = ({ initialData }) => {
     try {
       setIsBookingSubmitting(true);
       
-      const token = localStorage.getItem('tenant_token');
-      
       // Prepare the booking data with proper date formatting
       const bookingData = {
         tenantId: parseInt(booking.tenantId),
@@ -314,18 +381,10 @@ const RoomDetailPage = ({ initialData }) => {
       
       console.log('Submitting booking with data:', bookingData);
       
-      // Send the booking request to the API
-      const response = await axios.post('/api/bookings', bookingData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
+      // Use the bookingApi function from api.js
+      const result = await bookingApi.createBooking(bookingData);
       
-      console.log('Booking response:', response.data);
-      
-      if (response.data && response.data.booking) {
+      if (result.success) {
         toast({
           title: "Booking Successful",
           description: "Your room has been booked successfully!",
@@ -334,51 +393,67 @@ const RoomDetailPage = ({ initialData }) => {
           isClosable: true,
         });
         
-        // Redirect to booking confirmation or bookings list
+        // Redirect to booking confirmation page
         setTimeout(() => {
-          window.location.href = `/tenant/bookings`;
+          window.location.href = `/rooms`;
         }, 2000);
       } else {
-        toast({
-          title: "Booking Error",
-          description: response.data?.status?.message || "There was an error with your booking. Please try again.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
+        // Handle specific error types
+        if (result.errorType === 'gender_mismatch') {
+          toast({
+            title: "Booking Error: Gender Restriction",
+            description: result.error,
+            status: "error",
+            duration: 7000,
+            isClosable: true,
+          });
+        } 
+        else if (result.errorType === 'date_unavailable') {
+          toast({
+            title: "Booking Error: Date Unavailable",
+            description: result.error,
+            status: "warning",
+            duration: 7000,
+            isClosable: true,
+          });
+          
+          // Optionally, suggest nearby available dates or highlight the calendar
+          setError("Please select different dates");
+        }
+        else if (result.errorType === 'authentication') {
+          // Authentication error - try to refresh token or redirect to login
+          localStorage.removeItem('tenant_token');
+          localStorage.removeItem('tenant_data');
+          
+          toast({
+            title: "Authentication Error",
+            description: "Please login again to continue",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          
+          setTimeout(() => {
+            window.location.href = `/tenant/login?redirect=/rooms/${room.roomId}`;
+          }, 1500);
+        }
+        else {
+          // Generic error
+          toast({
+            title: "Booking Error",
+            description: result.error || "There was an error with your booking. Please try again.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
       }
     } catch (err) {
       console.error('Error submitting booking:', err);
       
-      let errorMessage = 'Failed to process your booking. Please try again later.';
-      
-      if (err.response && err.response.data && err.response.data.message) {
-        errorMessage = err.response.data.message;
-      }
-      
-      // Check if the error is due to authentication
-      if (err.response && err.response.status === 401) {
-        // Token might be invalid or expired
-        localStorage.removeItem('tenant_token');
-        localStorage.removeItem('tenant_data');
-        
-        toast({
-          title: "Authentication Error",
-          description: "Your session has expired. Please log in again.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        
-        setTimeout(() => {
-          window.location.href = `/tenant/login?redirect=/rooms/${room.roomId}`;
-        }, 1000);
-        return;
-      }
-      
       toast({
         title: "Booking Error",
-        description: errorMessage,
+        description: "Failed to submit booking. Please try again later.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -421,13 +496,17 @@ const RoomDetailPage = ({ initialData }) => {
         <GridItem>
           {/* Room Images */}
           <Box mb={6} borderRadius="lg" overflow="hidden" boxShadow="md">
-            <Image
-              src={room.imageUrl || getPlaceholderImage(room.classification?.name)}
-              alt={room.name}
-              width="100%"
-              height="400px"
-              objectFit="cover"
-            />
+            {room.imageUrl ? (
+              <Image
+                src={room.imageUrl}
+                alt={room.name}
+                width="100%"
+                height="400px"
+                objectFit="cover"
+              />
+            ) : (
+              getPlaceholderImage(room.classification?.name)
+            )}
           </Box>
           
           {/* Room Details */}

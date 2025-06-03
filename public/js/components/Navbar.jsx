@@ -28,7 +28,7 @@ import {
   ChevronDownIcon,
   ChevronRightIcon,
 } from '@chakra-ui/icons';
-import { FaUser, FaBed, FaFileInvoiceDollar, FaSignOutAlt, FaHome } from 'react-icons/fa';
+import { FaUser, FaBed, FaFileInvoiceDollar, FaSignOutAlt, FaHome, FaBuilding } from 'react-icons/fa';
 
 export default function Navbar() {
   const { isOpen, onToggle } = useDisclosure();
@@ -120,13 +120,13 @@ export default function Navbar() {
         </Flex>
         <Flex flex={{ base: 1 }} justify={{ base: 'center', md: 'start' }}>
           <Link href="/">
-            <Image
-              src="/images/logo.png"
-              alt="Rusunawa Logo"
-              fallbackSrc="https://via.placeholder.com/150x50?text=RUSUNAWA"
-              h="40px"
-              objectFit="contain"
-            />
+            {/* Logo as icon */}
+            <Flex align="center">
+              <Icon as={FaBuilding} boxSize="24px" color="brand.500" mr={2} />
+              <Text fontSize="xl" fontWeight="bold" color="brand.500">
+                Rusunawa
+              </Text>
+            </Flex>
           </Link>
 
           <Flex display={{ base: 'none', md: 'flex' }} ml={10}>

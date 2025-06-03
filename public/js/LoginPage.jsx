@@ -106,7 +106,7 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      console.log("Submitting login form directly to Go backend API...");
+      console.log("Submitting login form directly to backend API...");
       
       // Create the payload for the API
       const loginData = {
@@ -114,19 +114,42 @@ export default function LoginPage() {
         password: form.password
       };
       
-      console.log("Sending login request to Go API");
-      const response = await fetch('http://localhost:8001/v1/tenant/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(loginData)
-      });
+      console.log("Sending login request", { email: loginData.email });
       
-      // Parse response
-      const data = await response.json();
-      console.log("Login response from API:", data);
+      // First try calling directly to the Go backend
+      let response = null;
+      let data = null;
+      
+      try {
+        // First attempt: call Go backend directly
+        response = await fetch('http://localhost:8001/v1/tenant/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify(loginData)
+        });
+        
+        data = await response.json();
+        console.log("Direct login response:", data);
+      } catch (directError) {
+        console.error("Direct API call failed, falling back to proxy:", directError);
+        
+        // Second attempt: use our Laravel proxy
+        response = await fetch('/api/direct-login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(loginData)
+        });
+        
+        data = await response.json();
+        console.log("Proxy login response:", data);
+      }
       
       if (data.token && data.tenant) {
         console.log("Login successful, storing credentials");
@@ -134,6 +157,12 @@ export default function LoginPage() {
         // Store authentication data
         localStorage.setItem('tenant_token', data.token);
         localStorage.setItem('tenant_data', JSON.stringify(data.tenant));
+        
+        // Also store in a cookie for backup (helpful for API requests)
+        document.cookie = `tenant_token=${data.token}; path=/; max-age=86400`;
+        
+        // Ensure token is valid
+        console.log("Stored token length:", data.token.length);
         
         // Show success message
         setShowSuccess(true);
@@ -154,32 +183,11 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error("Login error:", err);
-      
-      let errorMessage = 'An unexpected error occurred. Please try again.';
-      
-      if (err.response) {
-        if (err.response.status === 419) {
-          errorMessage = 'CSRF token mismatch. Please refresh the page and try again.';
-          
-          // Try refreshing the CSRF token
-          try {
-            await axios.get('/csrf-refresh');
-            // Reload the page to get a fresh CSRF token
-            window.location.reload();
-            return;
-          } catch (refreshErr) {
-            console.error("Failed to refresh CSRF token:", refreshErr);
-          }
-        } else if (err.response.data && err.response.data.message) {
-          errorMessage = err.response.data.message;
-        }
-      }
-      
-      setError(errorMessage);
+      setError("Connection error or invalid credentials. Please try again.");
       
       toast({
         title: "Login Error",
-        description: errorMessage,
+        description: "Failed to authenticate. Please check your credentials and try again.",
         status: "error",
         duration: 5000,
         isClosable: true,

@@ -131,16 +131,136 @@ export const bookingApi = {
    */
   createBooking: async (bookingData) => {
     try {
-      const response = await axios.post('/v1/bookings', bookingData);
-      return {
-        success: true,
-        data: response.data
-      };
+      // Get authentication token
+      const token = getAuthToken();
+      
+      if (!token) {
+        console.error('No authentication token found');
+        return {
+          success: false,
+          error: 'Authentication required'
+        };
+      }
+      
+      console.log('Creating booking with token:', token.substring(0, 10) + '...');
+      
+      // First attempt: Direct to Go backend
+      try {
+        console.log('Attempting direct booking to Go backend API');
+        const directResponse = await fetch(`${API_BASE_URL}/bookings`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            tenantId: parseInt(bookingData.tenantId),
+            roomId: parseInt(bookingData.roomId),
+            startDate: bookingData.startDate,
+            endDate: bookingData.endDate
+          })
+        });
+        
+        const directData = await directResponse.json();
+        console.log('Direct booking API response:', directData);
+        
+        if (directResponse.ok && directData.booking) {
+          return {
+            success: true,
+            data: directData
+          };
+        } else {
+          console.error('Direct booking API call failed with:', directData);
+          
+          // Check for specific error types and provide user-friendly messages
+          if (directData.status && directData.status.message) {
+            // Handle gender mismatch error
+            if (directData.status.message.includes('gender classification') || 
+                directData.status.message.includes('match tenant gender')) {
+              return {
+                success: false,
+                error: 'This room cannot be booked because it is reserved for a different gender.',
+                errorType: 'gender_mismatch',
+                details: directData.status.message
+              };
+            }
+            
+            // Handle room availability error
+            if (directData.status.message.includes('not available') || 
+                directData.status.message.includes('requested dates')) {
+              return {
+                success: false,
+                error: 'This room is not available for the selected dates. Please choose different dates or another room.',
+                errorType: 'date_unavailable',
+                details: directData.status.message
+              };
+            }
+            
+            // Return the actual error message from the backend
+            return {
+              success: false,
+              error: directData.status.message,
+              errorType: 'api_error',
+              details: directData.status
+            };
+          }
+        }
+      } catch (directError) {
+        console.error('Error calling direct booking API:', directError);
+      }
+      
+      // Second attempt: Through Laravel proxy
+      console.log('Falling back to Laravel proxy for booking');
+      try {
+        const response = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(bookingData),
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        console.log('Laravel proxy booking response:', data);
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            return {
+              success: false,
+              error: 'Your session has expired. Please log in again.',
+              errorType: 'authentication'
+            };
+          }
+          
+          return {
+            success: false,
+            error: data.message || data.status?.message || 'Failed to create booking',
+            errorType: 'api_error'
+          };
+        }
+        
+        return {
+          success: true,
+          data: data
+        };
+      } catch (proxyError) {
+        console.error('Error with Laravel proxy booking:', proxyError);
+        return {
+          success: false,
+          error: 'Connection error. Please try again later.',
+          errorType: 'connection'
+        };
+      }
     } catch (error) {
       console.error('Error creating booking:', error);
       return {
         success: false,
-        error: error.response?.data?.message || 'Failed to create booking'
+        error: error.response?.data?.message || error.message || 'Failed to create booking'
       };
     }
   },
@@ -218,4 +338,118 @@ export const tenantApi = {
       };
     }
   }
+};
+
+/**
+ * API utilities for making requests to backend services
+ */
+
+/**
+ * Get authentication token from storage
+ */
+export const getAuthToken = () => {
+  return localStorage.getItem('tenant_token');
+};
+
+/**
+ * Make an authenticated API request
+ * @param {string} endpoint - API endpoint path
+ * @param {Object} options - Request options
+ * @returns {Promise} - Fetch promise
+ */
+export const apiRequest = async (endpoint, options = {}) => {
+  const token = getAuthToken();
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+  
+  // Add authentication header if token exists
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const fetchOptions = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...(options.headers || {})
+    }
+  };
+  
+  // Use direct API endpoint if it starts with http, otherwise prepend API_BASE_URL
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+  
+  console.log(`Making API request to: ${url}`, fetchOptions);
+  
+  try {
+    const response = await fetch(url, fetchOptions);
+    
+    // Parse JSON response
+    const data = await response.json();
+    console.log(`API response from ${url}:`, data);
+    
+    if (!response.ok) {
+      throw {
+        status: response.status,
+        data,
+        message: data.status?.message || 'API request failed'
+      };
+    }
+    
+    return data;
+  } catch (error) {
+    console.error(`API Error (${endpoint}):`, error);
+    throw error;
+  }
+};
+
+/**
+ * Login with credentials
+ * @param {Object} credentials - User credentials
+ * @returns {Promise} - Login response
+ */
+export const login = async (credentials) => {
+  try {
+    // First attempt: Try direct API call
+    try {
+      console.log("Attempting direct login to Go backend");
+      return await apiRequest('/tenant/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(credentials)
+      });
+    } catch (directError) {
+      console.log("Direct login failed, trying proxy");
+      // Second attempt: Try Laravel proxy
+      const response = await fetch('/api/direct-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(credentials)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw {
+          status: response.status,
+          data,
+          message: data.status?.message || 'Login failed'
+        };
+      }
+      
+      return data;
+    }
+  } catch (error) {
+    console.error("All login attempts failed:", error);
+    throw error;
+  }
+};
+
+export default {
+  apiRequest,
+  login,
+  getAuthToken
 };

@@ -11,8 +11,10 @@ import {
   ButtonGroup,
   IconButton,
   Divider,
+  Flex,
+  Icon,
 } from '@chakra-ui/react';
-import { FaTwitter, FaYoutube, FaInstagram, FaFacebook } from 'react-icons/fa';
+import { FaTwitter, FaYoutube, FaInstagram, FaFacebook, FaHome } from 'react-icons/fa';
 
 const ListHeader = ({ children }) => {
   return (
@@ -35,13 +37,13 @@ export default function Footer() {
           spacing={8}>
           <Stack spacing={6}>
             <Box>
-              <Image
-                src="/images/logo.png"
-                fallbackSrc="https://via.placeholder.com/150x50?text=RUSUNAWA"
-                alt="Rusunawa Logo"
-                h="40px"
-                objectFit="contain"
-              />
+              {/* Replace image with icon */}
+              <Flex align="center">
+                <Icon as={FaHome} boxSize="24px" color="gray.400" mr={2} />
+                <Text fontSize="xl" fontWeight="bold" color="gray.400">
+                  Rusunawa
+                </Text>
+              </Flex>
             </Box>
             <Text fontSize={'sm'}>
               © {new Date().getFullYear()} Rusunawa University Housing. All rights reserved.
