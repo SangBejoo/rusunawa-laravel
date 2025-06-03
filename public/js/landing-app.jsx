@@ -1,46 +1,37 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import ChakraProvider from './ChakraProvider.jsx';
+import { ChakraProvider, extendTheme } from '@chakra-ui/react';
 import LandingPage from './LandingPage.jsx';
-import RoomListPage from './RoomListPage.jsx';
-import RoomDetailPage from './RoomDetailPage.jsx';
-import DashboardPage from './DashboardPage.jsx';
-import BookingHistoryPage from './BookingHistoryPage.jsx';
-import DocumentUploadPage from './DocumentUploadPage.jsx';
-import PaymentPage from './PaymentPage.jsx';
-import NotFoundPage from './NotFoundPage.jsx';
-import UnderDevelopmentPage from './UnderDevelopmentPage.jsx';
-import ApiStatusAlert from './components/ApiStatusAlert.jsx';
 
-// Main App component with routing
-const App = () => {
-  return (
-    <ChakraProvider>
-      <ApiStatusAlert />
-      <Router>
-        <Routes>
-          <Route exact path="/" element={<LandingPage />} />
-          <Route path="/rooms" element={<RoomListPage />} />
-          <Route path="/rooms/:roomId" element={<RoomDetailPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/bookings" element={<BookingHistoryPage />} />
-          <Route path="/documents" element={<DocumentUploadPage />} />
-          <Route path="/payment/:bookingId" element={<PaymentPage />} />
-          <Route path="/facilities" element={<UnderDevelopmentPage />} />
-          <Route path="/about" element={<UnderDevelopmentPage />} />
-          <Route path="/contact" element={<UnderDevelopmentPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </Router>
-    </ChakraProvider>
-  );
-};
+// Define brand colors for theme consistency
+const theme = extendTheme({
+  colors: {
+    brand: {
+      50: '#e3f2fd',
+      100: '#badcfb',
+      200: '#8fc5f5',
+      300: '#62adf0',
+      400: '#3f99eb',
+      500: '#1c85e8',
+      600: '#0e6cc5',
+      700: '#0052a2',
+      800: '#003a7d',
+      900: '#00235b',
+    },
+  },
+});
 
-// Mount the React application when DOM is loaded
+// Mount the landing page content without Router or Navbar
 document.addEventListener('DOMContentLoaded', function() {
-  const root = document.getElementById('landing-root');
-  if (root) {
-    createRoot(root).render(<App />);
+  const landingRoot = document.getElementById('landing-root');
+  if (landingRoot) {
+    console.log('Mounting landing page content');
+    createRoot(landingRoot).render(
+      <ChakraProvider theme={theme}>
+        <LandingPage skipNavbar={true} />
+      </ChakraProvider>
+    );
+  } else {
+    console.error('Landing root element not found!');
   }
 });

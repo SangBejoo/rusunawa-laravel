@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Room Details - Rusunawa')
+@section('title', 'Room ' . ($room['name'] ?? 'Detail'))
 
 @section('content')
 <!-- React Mount Point -->
@@ -8,10 +8,14 @@
 @endsection
 
 @section('scripts')
+<!-- Pass room data to React -->
 <script>
     window.roomData = {
-        roomId: {{ $roomId ?? 'null' }}
+        room: @json($room ?? []),
+        isAuthenticated: {{ session('tenant_token') ? 'true' : 'false' }}
     };
 </script>
+
+<!-- Load React Component -->
 @vite(['public/js/room-app.jsx'])
 @endsection

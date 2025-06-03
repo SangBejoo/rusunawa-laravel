@@ -3,9 +3,10 @@
 @section('title', 'Available Rooms - Rusunawa')
 
 @section('content')
-<div id="landing-root"></div>
+<!-- React Mount Point -->
+<div id="room-list-root"></div>
 @endsection
 
 @section('scripts')
-@vite(['public/js/landing-app.jsx'])
+@vite(['public/js/room-app.jsx'])
 @endsection

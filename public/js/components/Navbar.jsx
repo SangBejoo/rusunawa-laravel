@@ -29,7 +29,8 @@ import {
   ChevronRightIcon 
 } from '@chakra-ui/icons';
 
-const Navbar = () => {
+const Navbar = ({ forceDisplay = false }) => {
+  // Always render navbar regardless of whether another navbar exists
   const { isOpen, onToggle } = useDisclosure();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [tenant, setTenant] = useState(null);
@@ -37,17 +38,51 @@ const Navbar = () => {
   // Check authentication status on component mount and when localStorage changes
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('tenant_token');
-      const tenantData = localStorage.getItem('tenant_data');
+      // Try to get token from multiple sources
+      const token = localStorage.getItem('tenant_token') || 
+                   sessionStorage.getItem('tenant_token') || 
+                   (window.appConfig && window.appConfig.authToken);
+      
+      // Try to get tenant data from multiple sources
+      let tenantData = localStorage.getItem('tenant_data') || 
+                      sessionStorage.getItem('tenant_data') ||
+                      (window.appConfig && window.appConfig.tenant);
+      
+      console.log('Navbar: Checking auth status...', { 
+        hasToken: !!token, 
+        hasTenantData: !!tenantData
+      });
       
       if (token && tenantData) {
-        setIsAuthenticated(true);
         try {
-          setTenant(JSON.parse(tenantData));
+          // If tenantData is a string, parse it
+          const parsedTenant = typeof tenantData === 'string' ? JSON.parse(tenantData) : tenantData;
+          console.log('Tenant data found:', parsedTenant);
+          
+          // Normalize tenant data to ensure tenantType is properly structured
+          if (parsedTenant.tenant && parsedTenant.tenant.tenantType && 
+              typeof parsedTenant.tenant.tenantType === 'object' && 
+              parsedTenant.tenant.tenantType !== null) {
+            console.log('Normalizing nested tenant type:', parsedTenant.tenant.tenantType);
+            parsedTenant.tenant.tenantType = parsedTenant.tenant.tenantType.name || '';
+          }
+          
+          if (parsedTenant.tenantType && 
+              typeof parsedTenant.tenantType === 'object' && 
+              parsedTenant.tenantType !== null) {
+            console.log('Normalizing direct tenant type:', parsedTenant.tenantType);
+            parsedTenant.tenantType = parsedTenant.tenantType.name || '';
+          }
+          
+          setIsAuthenticated(true);
+          setTenant(parsedTenant);
         } catch (e) {
           console.error('Error parsing tenant data:', e);
+          setIsAuthenticated(false);
+          setTenant(null);
         }
       } else {
+        console.log('Not authenticated: missing token or tenant data');
         setIsAuthenticated(false);
         setTenant(null);
       }
@@ -59,6 +94,7 @@ const Navbar = () => {
     // Listen for storage changes (for cross-tab synchronization)
     const handleStorageChange = (e) => {
       if (e.key === 'tenant_token' || e.key === 'tenant_data') {
+        console.log('Storage change detected:', e.key);
         checkAuth();
       }
     };
@@ -66,7 +102,10 @@ const Navbar = () => {
     window.addEventListener('storage', handleStorageChange);
     
     // Custom event for within-page changes
-    const handleAuthEvent = () => checkAuth();
+    const handleAuthEvent = () => {
+      console.log('Auth event detected, updating navbar');
+      checkAuth();
+    };
     window.addEventListener('tenantAuthChanged', handleAuthEvent);
     
     return () => {
@@ -119,22 +158,64 @@ const Navbar = () => {
   const getTenantName = () => {
     if (!tenant) return 'User';
     
+    console.log('Getting tenant name from:', tenant);
+    
     // Handle different possible structures
     if (typeof tenant === 'object') {
       if (tenant.user && tenant.user.fullName) {
-        return tenant.user.fullName;
+        return String(tenant.user.fullName);
       }
+      
       if (tenant.tenant && tenant.tenant.user && tenant.tenant.user.fullName) {
-        return tenant.tenant.user.fullName;
+        return String(tenant.tenant.user.fullName);
       }
-      return tenant.name || tenant.fullName || 'User';
+      
+      // Try to use name or fullName properties if they exist
+      if (tenant.name) return String(tenant.name);
+      if (tenant.fullName) return String(tenant.fullName);
+      
+      return 'User';
     }
     
     return 'User';
   };
 
+  // Get tenant type name safely as string
+  const getTenantTypeName = () => {
+    if (!tenant) return '';
+    
+    console.log('Getting tenant type from:', tenant);
+    
+    // At this point, tenant.tenant.tenantType and tenant.tenantType should be strings
+    // due to our normalization in checkAuth, but let's be safe anyway
+    
+    // Handle nested tenant type
+    if (tenant.tenant && tenant.tenant.tenantType) {
+      const tenantType = tenant.tenant.tenantType;
+      console.log('Nested tenant type:', tenantType);
+      
+      if (typeof tenantType === 'object' && tenantType !== null) {
+        return tenantType.name || '';
+      }
+      return typeof tenantType === 'string' ? tenantType : '';
+    }
+    
+    // Direct tenant type
+    if (tenant.tenantType) {
+      const tenantType = tenant.tenantType;
+      console.log('Direct tenant type:', tenantType);
+      
+      if (typeof tenantType === 'object' && tenantType !== null) {
+        return tenantType.name || '';
+      }
+      return typeof tenantType === 'string' ? tenantType : '';
+    }
+    
+    return '';
+  };
+
   return (
-    <Box>
+    <Box position="sticky" top="0" width="100%" zIndex="1000">
       <Flex
         bg={useColorModeValue('white', 'gray.800')}
         color={useColorModeValue('gray.600', 'white')}
@@ -145,9 +226,7 @@ const Navbar = () => {
         borderStyle={'solid'}
         borderColor={useColorModeValue('gray.200', 'gray.900')}
         align={'center'}
-        position="sticky"
-        top="0"
-        zIndex="sticky"
+        position="relative"
         boxShadow="sm"
       >
         <Flex
@@ -199,6 +278,8 @@ const Navbar = () => {
                 <Avatar
                   size="sm"
                   name={getTenantName()}
+                  // Add key to force re-render when tenant changes
+                  key={isAuthenticated ? 'logged-in' : 'logged-out'}
                 />
               </MenuButton>
               <MenuList>
@@ -220,10 +301,8 @@ const Navbar = () => {
                 onClick={(e) => {
                   e.preventDefault(); // Prevent React Router from intercepting
                   console.log("Sign In clicked, navigating to /tenant/login");
-                  // Add a timestamp to prevent caching issues
-                  const timestamp = new Date().getTime();
-                  // Use direct window.location navigation to bypass React Router
-                  window.location.href = `/tenant/login?t=${timestamp}`;
+                  // Navigate directly to login page without timestamp
+                  window.location.href = `/tenant/login`;
                 }}
               >
                 Sign In
@@ -389,12 +468,10 @@ const MobileNav = ({ isAuthenticated, handleLogout }) => {
             w="full"
             fontSize={'sm'}
             bg={'brand.50'}
-            color={'brand.600'}
-            onClick={(e) => {
-              e.preventDefault();
-              const timestamp = new Date().getTime();
-              window.location.href = `/tenant/login?t=${timestamp}`;
-            }}
+            color={'brand.600'}              onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = '/tenant/login';
+                }}
           >
             Sign In
           </Button>

@@ -5,39 +5,95 @@ namespace App\Http\Controllers;
 use App\Services\TenantAuthService;
 use App\Services\TenantService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
 class ProfileController extends Controller
 {
-    protected $authService;
+    protected $tenantAuthService;
     protected $tenantService;
 
-    public function __construct(TenantAuthService $authService, TenantService $tenantService)
+    public function __construct(TenantAuthService $tenantAuthService = null, TenantService $tenantService = null)
     {
-        $this->authService = $authService;
-        $this->tenantService = $tenantService;
-        $this->middleware('tenant.auth');
+        $this->tenantAuthService = $tenantAuthService ?? new TenantAuthService();
+        $this->tenantService = $tenantService ?? new TenantService();
     }
 
     /**
-     * Display tenant profile
+     * Display the tenant's profile page.
      */
     public function show()
     {
-        $tenant = $this->authService->getTenantData();
-        
-        if (!$tenant) {
-            return redirect()->route('tenant.login')
-                ->with('error', 'Your session has expired. Please login again.');
+        try {
+            Log::info('ProfileController::show - Starting method');
+            
+            // Get tenant data from the session
+            $tenantData = Session::get('tenant_data');
+            Log::info('Retrieved tenant data from session', ['raw_data' => $tenantData]);
+            
+            if (!$tenantData) {
+                Log::warning('No tenant data found in session');
+                return redirect()->route('tenant.login')
+                    ->with('error', 'Your session has expired. Please login again.');
+            }
+            
+            // Parse tenant data
+            $tenant = [];
+            try {
+                if (is_string($tenantData)) {
+                    $tenant = json_decode($tenantData, true);
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        Log::error('JSON decode error', ['error' => json_last_error_msg()]);
+                        $tenant = ['name' => 'JSON Error', 'email' => 'error@example.com'];
+                    }
+                } else {
+                    $tenant = $tenantData;
+                }
+                
+                Log::info('Tenant data parsed', ['tenant' => $tenant]);
+            } catch (\Exception $e) {
+                Log::error('Failed to parse tenant data from session', [
+                    'error' => $e->getMessage(),
+                    'tenant_data' => $tenantData
+                ]);
+                
+                // Create minimal tenant data to avoid template errors
+                $tenant = [
+                    'name' => 'Error loading profile',
+                    'email' => 'Please try again later'
+                ];
+            }
+            
+            // Add debug timestamp
+            $tenant['_debug_timestamp'] = now()->toDateTimeString();
+            
+            Log::info('Rendering profile view with tenant data', [
+                'tenant_keys' => is_array($tenant) ? array_keys($tenant) : 'not_array'
+            ]);
+            
+            return view('tenant.profile', compact('tenant'));
+            
+        } catch (\Exception $e) {
+            Log::error('Exception in ProfileController::show', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Return a view with error information rather than redirecting
+            return view('tenant.profile', [
+                'tenant' => [
+                    'name' => 'Error',
+                    'email' => 'An unexpected error occurred',
+                    'error_message' => $e->getMessage(),
+                    '_debug_timestamp' => now()->toDateTimeString()
+                ]
+            ]);
         }
-        
-        return view('tenant.profile', [
-            'tenant' => $tenant
-        ]);
     }
 
     /**
-     * Update tenant profile
+     * Update the tenant's profile information.
      */
     public function update(Request $request)
     {
@@ -53,7 +109,7 @@ class ProfileController extends Controller
             return back()->withErrors($validator)->withInput();
         }
         
-        $tenant = $this->authService->getTenantData();
+        $tenant = $this->tenantAuthService->getTenantData();
         
         if (!$tenant) {
             return redirect()->route('tenant.login')
@@ -91,7 +147,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update tenant location coordinates
+     * Update the tenant's home location.
      */
     public function updateLocation(Request $request)
     {
@@ -104,7 +160,7 @@ class ProfileController extends Controller
             return back()->withErrors($validator)->withInput();
         }
         
-        $tenant = $this->authService->getTenantData();
+        $tenant = $this->tenantAuthService->getTenantData();
         
         if (!$tenant) {
             return redirect()->route('tenant.login')
@@ -136,7 +192,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update tenant NIM (Student ID)
+     * Update tenant's NIM.
      */
     public function updateNIM(Request $request)
     {
@@ -148,7 +204,7 @@ class ProfileController extends Controller
             return back()->withErrors($validator)->withInput();
         }
         
-        $tenant = $this->authService->getTenantData();
+        $tenant = $this->tenantAuthService->getTenantData();
         
         if (!$tenant) {
             return redirect()->route('tenant.login')

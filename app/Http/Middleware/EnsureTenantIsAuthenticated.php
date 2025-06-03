@@ -35,18 +35,24 @@ class EnsureTenantIsAuthenticated
             if (!$this->authService->isLoggedIn()) {
                 Log::info('Auth middleware redirecting to login', [
                     'path' => $request->path(),
-                    'is_ajax' => $request->ajax()
+                    'is_ajax' => $request->ajax(),
+                    'has_session_token' => Session::has('tenant_token')
                 ]);
+                
+                // Store the intended URL to redirect back after login
+                if (!$request->is('login*') && !$request->is('tenant/login*')) {
+                    Session::put('url.intended', $request->fullUrl());
+                }
                 
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Unauthenticated',
-                        'redirect' => route('tenant.login')
+                        'redirect' => route('tenant.login', ['redirect' => $request->fullUrl()])
                     ], 401);
                 }
                 
-                return redirect()->route('tenant.login');
+                return redirect()->route('tenant.login', ['redirect' => $request->fullUrl()]);
             }
             
             return $next($request);

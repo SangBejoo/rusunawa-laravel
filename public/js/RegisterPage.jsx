@@ -157,12 +157,29 @@ export default function RegisterPage() {
       // Make direct API call to the backend
       const response = await axios.post('http://localhost:8001/v1/tenant/auth/register', registerData, config);
       
-      if (response.data && response.data.status && response.data.status.status === 'success') {
-        setRegistrationSuccess(true);
+      if (response.data && response.data.status && response.data.status.status === 'success') {        setRegistrationSuccess(true);
         
         // Store user data if needed
         if (response.data.tenant) {
-          localStorage.setItem('tenant_data', JSON.stringify(response.data.tenant));
+          // Normalize tenant data before storing
+          const normalizedTenant = { ...response.data.tenant };
+          
+          // Convert tenant type objects to strings to prevent React rendering issues
+          if (normalizedTenant.tenant && normalizedTenant.tenant.tenantType && 
+              typeof normalizedTenant.tenant.tenantType === 'object' && 
+              normalizedTenant.tenant.tenantType !== null) {
+            console.log('Normalizing nested tenant type on register:', normalizedTenant.tenant.tenantType);
+            normalizedTenant.tenant.tenantType = normalizedTenant.tenant.tenantType.name || '';
+          }
+          
+          if (normalizedTenant.tenantType && 
+              typeof normalizedTenant.tenantType === 'object' && 
+              normalizedTenant.tenantType !== null) {
+            console.log('Normalizing direct tenant type on register:', normalizedTenant.tenantType);
+            normalizedTenant.tenantType = normalizedTenant.tenantType.name || '';
+          }
+          
+          localStorage.setItem('tenant_data', JSON.stringify(normalizedTenant));
         }
         
         toast({

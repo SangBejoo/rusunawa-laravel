@@ -14,6 +14,8 @@ export default defineConfig({
                 'public/js/register-app.jsx',
                 'public/js/login-app.jsx',
                 'public/js/landing-app.jsx',
+                'public/js/room-app.jsx',  // Add the room app
+                'public/js/navbar-loader.jsx',  // Add the navbar loader
                 
                 // Pages
                 'public/js/LoginPage.jsx',

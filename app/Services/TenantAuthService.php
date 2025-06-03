@@ -2,50 +2,105 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
-class TenantAuthService extends ApiClient
+class TenantAuthService
 {
-    /**
-     * Login a tenant
-     */
-    public function login(string $email, string $password)
+    protected $baseUrl;
+    protected $apiClient;
+
+    public function __construct(ApiClient $apiClient = null)
     {
-        // Log the login attempt for debugging
-        \Illuminate\Support\Facades\Log::debug('Tenant login attempt', [
-            'email' => $email,
-            'endpoint' => '/v1/tenant/auth/login'
-        ]);
-        
+        $this->baseUrl = env('API_BASE_URL', 'http://localhost:8001');
+        $this->apiClient = $apiClient ?? app(ApiClient::class);
+    }
+
+    /**
+     * Authenticate tenant with given credentials
+     */
+    public function login($email, $password)
+    {
         try {
-            $response = $this->post('/v1/tenant/auth/login', [
+            Log::info('TenantAuthService: Attempting login', ['email' => $email]);
+            
+            // Call the authentication API using the ApiClient
+            $response = $this->apiClient->post('/v1/tenant/auth/login', [
                 'email' => $email,
                 'password' => $password
             ]);
-
-            if ($response['success']) {
-                // Store token and user details in session
-                Session::put('tenant_token', $response['body']['token']);
-                Session::put('tenant_data', $response['body']['tenant']);
+            
+            $data = $response['body'] ?? [];
+            $statusCode = $response['status'] ?? 500;            
+            // Log response for debugging (remove sensitive data in production)
+            Log::info('TenantAuthService: Login response', [
+                'status_code' => $statusCode,
+                'success' => $response['success'],
+                'has_token' => isset($data['token']),
+                'has_tenant' => isset($data['tenant']),
+                'response_message' => $data['status']['message'] ?? 'No message'
+            ]);
+            
+            // Validate response has required fields
+            // Only return success if we get a 2xx response, a valid token AND tenant data
+            if ($response['success'] && isset($data['token']) && isset($data['tenant'])) {
+                // Make sure token is a non-empty string
+                if (empty($data['token']) || !is_string($data['token'])) {
+                    Log::error('TenantAuthService: Invalid token format', [
+                        'token_type' => gettype($data['token'])
+                    ]);
+                    
+                    return [
+                        'success' => false,
+                        'status' => 401,
+                        'body' => [
+                            'status' => [
+                                'message' => 'Authentication failed: Invalid token format'
+                            ]
+                        ]
+                    ];
+                }
                 
-                // Log successful login
-                \Illuminate\Support\Facades\Log::info('Tenant login successful', [
-                    'email' => $email,
-                    'tenant_id' => $response['body']['tenant']['tenant_id'] ?? null
-                ]);
-            } else {
-                // Log failed login
-                \Illuminate\Support\Facades\Log::warning('Tenant login failed', [
-                    'email' => $email,
-                    'status' => $response['status'],
-                    'message' => $response['body']['message'] ?? 'Unknown error'
+                // Validate that tenant data has required fields
+                if (!isset($data['tenant']['id']) || !isset($data['tenant']['user'])) {
+                    Log::error('TenantAuthService: Invalid tenant data structure', [
+                        'tenant_data' => $data['tenant']
+                    ]);
+                    
+                    return [
+                        'success' => false,
+                        'status' => 401,
+                        'body' => [
+                            'status' => [
+                                'message' => 'Authentication failed: Invalid tenant data'
+                            ]
+                        ]
+                    ];
+                }
+                
+                return [
+                    'success' => true,
+                    'status' => $statusCode,
+                    'body' => $data
+                ];
+            }
+            
+            // If response was successful but missing data
+            if ($response['success'] && (!isset($data['token']) || !isset($data['tenant']))) {
+                Log::warning('TenantAuthService: Successful response but missing token or tenant data', [
+                    'has_token' => isset($data['token']),
+                    'has_tenant' => isset($data['tenant'])
                 ]);
             }
-
-            return $response;
+            
+            return [
+                'success' => false,
+                'status' => $statusCode,
+                'body' => $data
+            ];
         } catch (\Exception $e) {
-            // Log any exceptions
-            \Illuminate\Support\Facades\Log::error('Tenant login exception', [
+            Log::error('TenantAuthService: Exception during login', [
                 'email' => $email,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -54,133 +109,118 @@ class TenantAuthService extends ApiClient
             return [
                 'success' => false,
                 'status' => 500,
-                'body' => ['message' => 'Login failed: ' . $e->getMessage()]
+                'body' => [
+                    'status' => [
+                        'message' => 'An error occurred during authentication: ' . $e->getMessage()
+                    ]
+                ]
             ];
         }
     }
 
     /**
-     * Register a new tenant
+     * Get authenticated tenant data
      */
-    public function register(array $data)
+    public function getTenantData()
+    {
+        $tenantData = Session::get('tenant_data');
+        
+        if (!$tenantData) {
+            return null;
+        }
+        
+        // If stored as JSON string, decode it
+        if (is_string($tenantData)) {
+            try {
+                $tenantData = json_decode($tenantData, true);
+            } catch (\Exception $e) {
+                Log::error('TenantAuthService: Error decoding tenant data', [
+                    'error' => $e->getMessage()
+                ]);
+                return null;
+            }
+        }
+        
+        return $tenantData;
+    }
+    
+    /**
+     * Verify if token is valid
+     */
+    public function verifyToken($token)
     {
         try {
-            // Log the registration attempt for debugging
-            \Illuminate\Support\Facades\Log::debug('Tenant registration attempt', [
-                'email' => $data['email'],
-                'endpoint' => '/v1/tenant/auth/register',
-                'api_url' => $this->baseUrl
+            $response = $this->apiClient->get('/v1/tenant/auth/verify', [], [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $token
+                ]
             ]);
             
-            $response = $this->post('/v1/tenant/auth/register', $data);
+            $data = $response['body'] ?? [];
             
-            // Log the response for debugging
-            \Illuminate\Support\Facades\Log::debug('Registration API response', [
+            return [
+                'success' => $response['success'] && isset($data['status']) && $data['status']['status'] === 'success',
                 'status' => $response['status'],
-                'success' => $response['success'],
-                'message' => $response['body']['message'] ?? 'No message'
-            ]);
-            
-            return $response;
-        } catch (\Exception $e) {
-            // Log any exceptions
-            \Illuminate\Support\Facades\Log::error('Tenant registration exception', [
-                'email' => $data['email'],
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return [
-                'success' => false,
-                'status' => 500,
-                'body' => ['message' => 'Registration failed: ' . $e->getMessage()]
+                'body' => $data
             ];
-        }
-    }
-
-    /**
-     * Request password reset
-     */
-    public function forgotPassword(string $email)
-    {
-        return $this->post('/v1/tenant/auth/forgot-password', [
-            'email' => $email
-        ]);
-    }
-
-    /**
-     * Reset password with token
-     */
-    public function resetPassword(string $token, string $newPassword)
-    {
-        return $this->post('/v1/tenant/auth/reset-password', [
-            'token' => $token,
-            'new_password' => $newPassword
-        ]);
-    }
-
-    /**
-     * Verify if the current token is valid
-     */
-    public function verifyToken()
-    {
-        $token = Session::get('tenant_token');
-        
-        if (!$token) {
-            return [
-                'success' => false,
-                'status' => 401,
-                'body' => ['message' => 'No authentication token found']
-            ];
-        }
-        
-        try {
-            $response = $this->post('/v1/tenant/auth/verify-token', ['token' => $token]);
-            return $response;
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Token verification failed', [
+            Log::error('TenantAuthService: Exception during token verification', [
                 'error' => $e->getMessage()
             ]);
             
             return [
                 'success' => false,
                 'status' => 500,
-                'body' => ['message' => 'Error verifying token: ' . $e->getMessage()]
+                'body' => [
+                    'status' => [
+                        'message' => 'Failed to verify token: ' . $e->getMessage()
+                    ]
+                ]
             ];
         }
     }
-
+    
     /**
      * Check if user is logged in
+     * 
+     * @return bool
      */
     public function isLoggedIn()
     {
-        $hasToken = Session::has('tenant_token');
-        
-        // Log login check for debugging
-        \Illuminate\Support\Facades\Log::info('TenantAuthService::isLoggedIn check', [
-            'has_token' => $hasToken,
-            'session_id' => Session::getId(),
-            'session_data_exists' => Session::has('tenant_data')
-        ]);
-        
-        return $hasToken;
-    }
-
-    /**
-     * Logout the current tenant
-     */
-    public function logout()
-    {
-        Session::forget('tenant_token');
-        Session::forget('tenant_data');
-    }
-
-    /**
-     * Get the authenticated tenant's data
-     */
-    public function getTenantData()
-    {
-        return Session::get('tenant_data');
+        try {
+            // Check if tenant token exists in session
+            $token = Session::get('tenant_token');
+            
+            if (!$token) {
+                Log::debug('TenantAuthService::isLoggedIn - No token in session');
+                return false;
+            }
+            
+            // For better performance, we can optionally skip verification
+            // and just check for token existence
+            if (env('SKIP_TOKEN_VERIFICATION', false)) {
+                Log::debug('TenantAuthService::isLoggedIn - Skipping token verification');
+                return true;
+            }
+            
+            // Verify token with API
+            $response = $this->verifyToken($token);
+            
+            if (!$response['success']) {
+                Log::warning('TenantAuthService::isLoggedIn - Token verification failed', [
+                    'status' => $response['status'],
+                    'message' => $response['body']['status']['message'] ?? 'No message'
+                ]);
+            }
+            
+            return $response['success'];
+        } catch (\Exception $e) {
+            Log::error('TenantAuthService: Exception during isLoggedIn check', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return false;
+        }
     }
 }

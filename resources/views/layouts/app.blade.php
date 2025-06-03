@@ -4,43 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Rusunawa - Student Housing Portal')</title>
+    <title>@yield('title') - Rusunawa</title>
     
-    <!-- Favicon -->
-    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
-      <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     
-    <!-- Styles -->
-    @vite(['public/css/app.css'])
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Additional styles -->
+    <!-- Custom CSS for navbar positioning -->
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-top: 0 !important; /* Remove any padding */
+            margin-top: 0 !important;  /* Remove any margin */
+        }
+        
+        #navbar-root {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        
+        /* Fix main content positioning */
+        main {
+            flex: 1;
+            padding-top: 0; /* Remove padding to ensure navbar is flush with top */
+        }
+        
+        /* Make sure there's no space between navbar and content */
+        .container-fluid, .container {
+            padding-top: 0;
         }
     </style>
     
-    <!-- Scripts -->
-    <script>
-        // Global configuration for JavaScript
-        window._config = {
-            apiBaseUrl: "{{ config('app.golang_api_url', 'http://localhost:8001') }}",
-            csrfToken: "{{ csrf_token() }}"
-        };
-    </script>
+    @yield('styles')
+    
+    <!-- Vite Assets -->
+    @vite(['public/css/app.css'])
 </head>
 <body>
-    <div id="app">
+    <!-- React Navbar will be mounted here -->
+    <div id="navbar-root"></div>
+
+    <!-- Main content -->
+    <main class="flex-grow-1">
         @yield('content')
-    </div>
-      @yield('scripts')
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h5>Rusunawa</h5>
+                    <p class="text-muted">Affordable, comfortable, and convenient student housing.</p>
+                </div>
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ route('landing') }}" class="text-decoration-none text-muted">Home</a></li>
+                        <li><a href="{{ route('rooms') }}" class="text-decoration-none text-muted">Rooms</a></li>
+                        <li><a href="{{ route('about') }}" class="text-decoration-none text-muted">About</a></li>
+                        <li><a href="{{ route('contact') }}" class="text-decoration-none text-muted">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>Contact Us</h5>
+                    <address class="text-muted">
+                        <i class="fas fa-map-marker-alt fa-fw me-1"></i> 123 University Street<br>
+                        <i class="fas fa-phone fa-fw me-1"></i> (123) 456-7890<br>
+                        <i class="fas fa-envelope fa-fw me-1"></i> info@rusunawa.com
+                    </address>
+                </div>
+            </div>
+            <div class="border-top border-secondary pt-3 mt-3 text-center">
+                <p class="mb-0">&copy; {{ date('Y') }} Rusunawa. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Debug Helper (remove in production) -->
-    @if(config('app.debug', true))
-        <script src="{{ asset('js/debug-helper.js') }}"></script>
-    @endif
+    <!-- React dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Load navbar component -->
+    @vite(['public/js/navbar-loader.jsx'])
+    
+    <!-- Make sure navbars are refreshed when the page loads -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.loadNavbar === 'function') {
+            setTimeout(window.loadNavbar, 100);
+        }
+    });
+    </script>
+    
+    @yield('scripts')
 </body>
 </html>

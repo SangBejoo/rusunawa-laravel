@@ -31,8 +31,7 @@ import {
 } from '@chakra-ui/react';
 import { FaBed, FaFemale, FaMale, FaCrown, FaUsers, FaWifi, FaToilet, FaAirFreshener, 
          FaCheckCircle, FaCalendarAlt, FaArrowLeft, FaTshirt, FaDesktop } from 'react-icons/fa';
-// Remove navbar import
-// import Navbar from './components/Navbar.jsx';
+import Navbar from './components/Navbar.jsx';
 import Footer from './components/Footer.jsx';
 import { roomApi } from './api.js';
 
@@ -52,7 +51,8 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
   const [totalPrice, setTotalPrice] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(initialData?.isAuthenticated || false);
-    // Check authentication status when component mounts
+  
+  // Check authentication status when component mounts
   useEffect(() => {
     // Check for authentication from multiple sources
     const token = localStorage.getItem('tenant_token') || 
@@ -70,6 +70,7 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
     
     setIsAuthenticated(!!token && !!tenantData);
   }, []);
+  
   // Get room ID from URL if not provided in initialData
   useEffect(() => {
     if (!roomId) {
@@ -80,42 +81,32 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
       }
     }
   }, [roomId]);
-  // Fetch room details
-  useEffect(() => {
-    const fetchRoomDetails = async () => {
-      // Skip fetching if we already have initialData
-      if (initialData?.room) {
-        setRoom(initialData.room);
-        if (initialData.room.capacity) {
-          setGuests(1);
-        }
-        return;
-      }
-      
-      // Skip if no roomId
-      if (!roomId) {
-        setError('No room ID provided');
-        return;
-      }
 
+  // Fetch room details when roomId changes
+  useEffect(() => {
+    // If we have initial data or no roomId yet, skip fetching
+    if (initialData?.room || !roomId) {
+      return;
+    }
+
+    const fetchRoomDetails = async () => {
       try {
         setLoading(true);
-        console.log('Fetching details for room:', roomId);
         const response = await roomApi.getRoomById(roomId);
         
         if (response.success && response.data && response.data.room) {
-          console.log('Room data loaded:', response.data.room);
           setRoom(response.data.room);
+          console.log('Room data loaded:', response.data.room);
+          // Set initial guests value based on room capacity
           if (response.data.room.capacity) {
-            setGuests(1);
+            setGuests(1); // Default to 1 guest
           }
         } else {
-          console.error('Failed response:', response);
-          setError(response.error || 'Failed to load room details. Please try again later.');
+          setError('Failed to load room details. Please try again later.');
         }
       } catch (err) {
         console.error('Error fetching room details:', err);
-        setError(err.message || 'An error occurred while fetching room details.');
+        setError('An error occurred while fetching room details.');
       } finally {
         setLoading(false);
       }
@@ -124,26 +115,38 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
     fetchRoomDetails();
   }, [roomId, initialData]);
   
+  // Check if the room is for daily or monthly rental
+  const isDaily = room?.rentalType?.name === 'harian';
+  
   // Calculate total price when dates change
   useEffect(() => {
     if (checkIn && checkOut) {
-      const start = new Date(checkIn);
-      const end = new Date(checkOut);
+      let start = new Date(checkIn);
+      let end = new Date(checkOut);
       
-      // Calculate difference in days
-      const timeDiff = end.getTime() - start.getTime();
-      const days = Math.ceil(timeDiff / (1000 * 3600 * 24));
-      
-      if (days > 0) {
-        setDuration(days);
-        const price = room?.rate ? room.rate * days : 0;
-        setTotalPrice(price);
+      if (isDaily) {
+        // For daily rental, calculate difference in days
+        const timeDiff = end.getTime() - start.getTime();
+        const days = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        
+        if (days > 0) {
+          setDuration(days);
+          const price = room?.rate ? room.rate * days : 0;
+          setTotalPrice(price);
+        }
+      } else {
+        // For monthly rental, calculate difference in months
+        const months = (end.getFullYear() - start.getFullYear()) * 12 + 
+                      (end.getMonth() - start.getMonth());
+        
+        if (months > 0) {
+          setDuration(months);
+          const price = room?.rate ? room.rate * months : 0;
+          setTotalPrice(price);
+        }
       }
     }
-  }, [checkIn, checkOut, room]);
-  
-  // Check if the room is for daily or monthly rental
-  const isDaily = room?.rentalType?.name === 'harian';
+  }, [checkIn, checkOut, room, isDaily]);
   
   // Get minimum dates for check-in and check-out
   const today = new Date();
@@ -152,16 +155,49 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
   
   const minCheckIn = tomorrow.toISOString().split('T')[0];
   
+  // Handle check-in date change
   const handleCheckInChange = (e) => {
-    setCheckIn(e.target.value);
-    // Make sure check-out is after check-in
-    if (checkOut && new Date(e.target.value) >= new Date(checkOut)) {
-      const nextDay = new Date(e.target.value);
-      nextDay.setDate(nextDay.getDate() + 1);
-      setCheckOut(nextDay.toISOString().split('T')[0]);
+    const selectedDate = e.target.value;
+    setCheckIn(selectedDate);
+    
+    // Make check-out date handling dependent on rental type
+    if (isDaily) {
+      // For daily rental, set check-out to next day if needed
+      if (checkOut && new Date(selectedDate) >= new Date(checkOut)) {
+        const nextDay = new Date(selectedDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+        setCheckOut(nextDay.toISOString().split('T')[0]);
+      }
+    } else {
+      // For monthly rental, set check-out to next month if needed
+      if (checkOut && new Date(selectedDate) >= new Date(checkOut)) {
+        const nextMonth = new Date(selectedDate);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        setCheckOut(nextMonth.toISOString().split('T')[0]);
+      }
     }
   };
   
+  // Get next date based on rental type
+  const getNextDate = () => {
+    if (!checkIn) return minCheckIn;
+    
+    const checkInDate = new Date(checkIn);
+    
+    if (isDaily) {
+      // For daily rental, next day
+      const nextDay = new Date(checkInDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      return nextDay.toISOString().split('T')[0];
+    } else {
+      // For monthly rental, next month
+      const nextMonth = new Date(checkInDate);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      return nextMonth.toISOString().split('T')[0];
+    }
+  };
+  
+  // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -174,7 +210,7 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
     if (!checkIn || !checkOut) {
       toast({
         title: "Missing dates",
-        description: "Please select both check-in and check-out dates.",
+        description: `Please select both check-in and check-out ${isDaily ? 'dates' : 'months'}.`,
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -207,6 +243,7 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
     addField('check_out', checkOut);
     addField('guests', guests);
     addField('notes', notes);
+    addField('rental_type', isDaily ? 'daily' : 'monthly');
     
     document.body.appendChild(form);
     form.submit();
@@ -220,7 +257,7 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
       case 'private_bathroom': return FaToilet;
       case 'shared_bathroom': return FaToilet;
       case 'desk': return FaDesktop;
-      case 'wardrobe': return FaTshirt; // Changed from FaWardrobe to FaTshirt
+      case 'wardrobe': return FaTshirt;
       case 'single_bed':
       case 'double_bed': return FaBed;
       default: return FaCheckCircle;
@@ -268,6 +305,15 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
 
   // Cards background color
   const cardBg = useColorModeValue('white', 'gray.700');
+  
+  // Format date label based on rental type
+  const getDateLabel = (isCheckIn) => {
+    if (isDaily) {
+      return isCheckIn ? 'Check-In Date' : 'Check-Out Date';
+    } else {
+      return isCheckIn ? 'Start Month' : 'End Month';
+    }
+  };
   
   if (loading) {
     return (
@@ -459,7 +505,7 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
                 <form onSubmit={handleSubmit}>
                   <VStack spacing={4}>
                     <FormControl isRequired>
-                      <FormLabel>Check-In Date</FormLabel>
+                      <FormLabel>{getDateLabel(true)}</FormLabel>
                       <Input
                         type="date"
                         value={checkIn}
@@ -469,12 +515,12 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
                     </FormControl>
                     
                     <FormControl isRequired>
-                      <FormLabel>Check-Out Date</FormLabel>
+                      <FormLabel>{getDateLabel(false)}</FormLabel>
                       <Input
                         type="date"
                         value={checkOut}
                         onChange={(e) => setCheckOut(e.target.value)}
-                        min={checkIn ? new Date(new Date(checkIn).getTime() + 86400000).toISOString().split('T')[0] : minCheckIn}
+                        min={checkIn ? getNextDate() : minCheckIn}
                         disabled={!checkIn}
                       />
                     </FormControl>
@@ -521,7 +567,10 @@ export default function RoomDetailPage({ initialData = null, skipNavbar = false 
                         
                         <Flex justify="space-between" mb={2}>
                           <Text>Duration:</Text>
-                          <Text>{duration} {duration > 1 ? 'days' : 'day'}</Text>
+                          <Text>{duration} {isDaily 
+                            ? (duration > 1 ? 'days' : 'day')
+                            : (duration > 1 ? 'months' : 'month')
+                          }</Text>
                         </Flex>
                         
                         <Divider my={2} />

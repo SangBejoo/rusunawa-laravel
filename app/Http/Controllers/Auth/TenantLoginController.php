@@ -16,10 +16,7 @@ class TenantLoginController extends Controller
     public function __construct(TenantAuthService $tenantAuthService)
     {
         $this->tenantAuthService = $tenantAuthService;
-        // Do not apply any middleware in the constructor
-    }
-
-    /**
+    }    /**
      * Show the login form
      */
     public function showLoginForm()
@@ -27,17 +24,37 @@ class TenantLoginController extends Controller
         // Log access attempt for debugging
         Log::info('TenantLoginController::showLoginForm accessed', [
             'url' => request()->fullUrl(),
-            'session_id' => session()->getId(),
+            'session_id' => session()->getId()
         ]);
 
+        // Always ensure a clean session state for login
+        if (!Session::has('tenant_token')) {
+            Session::regenerate(); // Only regenerate if not logged in
+            
+            // Also clear authentication cookies if any
+            $response = response()->view('tenant.login', ['errors' => $this->getErrorBag()]);
+            $response->headers->clearCookie('tenant_session');
+            $response->headers->clearCookie('tenant_token');
+            
+            return $response->withHeaders([
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => 'Sat, 01 Jan 2000 00:00:00 GMT'
+            ]);
+        }
+        
         // If already logged in, redirect to landing page
-        if (Session::has('tenant_token') && !request()->has('force')) {
+        if (Session::has('tenant_token')) {
             Log::info('User already logged in, redirecting to landing page');
             return redirect()->route('landing');
         }
         
-        // Always render the login view directly
-        return view('tenant.login');
+        // Return the view with no-cache headers
+        return response()->view('tenant.login', ['errors' => $this->getErrorBag()])->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Sat, 01 Jan 2000 00:00:00 GMT'
+        ]);
     }
 
     /**
@@ -58,14 +75,35 @@ class TenantLoginController extends Controller
         }
 
         try {
+            // Make sure any old session data is cleared
+            Session::forget('tenant_token');
+            Session::forget('tenant_data');
+            
+            // Attempt login
             $response = $this->tenantAuthService->login(
                 $request->input('email'),
                 $request->input('password')
             );
 
             if ($response['success']) {
+                // Verify we actually have a token
+                if (empty($response['body']['token'])) {
+                    Log::error('Missing token in successful login response');
+                    
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Authentication error: Invalid token'
+                        ], 500);
+                    }
+                    
+                    return back()
+                        ->withInput($request->only('email'))
+                        ->withErrors(['email' => 'Authentication error: Invalid token']);
+                }
+                
                 // Store token
-                Session::put('tenant_token', $response['body']['token'] ?? null);
+                Session::put('tenant_token', $response['body']['token']);
                 
                 // Store tenant data for frontend access
                 if (isset($response['body']['tenant'])) {
@@ -75,24 +113,70 @@ class TenantLoginController extends Controller
                         'token' => $response['body']['token']
                     ];
                     Session::put('tenant_data', json_encode($tenantData));
+                } else {
+                    Log::error('Missing tenant data in successful login response');
+                    
+                    if ($request->expectsJson()) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Authentication error: Missing tenant data'
+                        ], 500);
+                    }
+                    
+                    return back()
+                        ->withInput($request->only('email'))
+                        ->withErrors(['email' => 'Authentication error: Missing tenant data']);
                 }
                 
-                // Always redirect to landing page
-                $returnUrl = route('landing');
+                // Log successful login
+                Log::info('Login successful', [
+                    'email' => $request->input('email'),
+                    'tenant_id' => $response['body']['tenant']['id'] ?? 'unknown'
+                ]);                // Determine redirect URL
+                $returnUrl = $request->query('redirect');
+                
+                // If no redirect URL provided, check for intended URL in session
+                if (!$returnUrl && Session::has('url.intended')) {
+                    $returnUrl = Session::get('url.intended');
+                    Session::forget('url.intended');
+                }
+                
+                // Default to dashboard if no redirect URL found
+                if (!$returnUrl) {
+                    $returnUrl = route('tenant.dashboard');
+                }
                 
                 // If request is an AJAX request
                 if ($request->expectsJson()) {
-                    return response()->json([
+                    // Create the response with proper session data
+                    $jsonResponse = response()->json([
                         'success' => true,
                         'message' => 'Login successful',
                         'redirect' => $returnUrl,
-                        'tenant_token' => $response['body']['token'] ?? null,
-                        'tenant_data' => $response['body']['tenant'] ?? null
-                    ]);
+                        'tenant_token' => $response['body']['token'],
+                        'tenant_data' => $response['body']['tenant']
+                    ]);                // Store token in session cookie
+                $jsonResponse->cookie('tenant_token', $response['body']['token'], 60 * 24, null, null, false, true);
+                
+                // Store tenant data in both session and response
+                Session::put('tenant_token', $response['body']['token']);
+                Session::put('tenant_data', json_encode([
+                    'tenant' => $response['body']['tenant'],
+                    'token' => $response['body']['token']
+                ]));
+                Session::save();
+                
+                return $jsonResponse;
                 }
                 
                 // Regular form submission
-                return redirect($returnUrl);
+                return redirect($returnUrl)->with([
+                    'tenant_token' => $response['body']['token'],
+                    'tenant_data' => json_encode([
+                        'tenant' => $response['body']['tenant'],
+                        'token' => $response['body']['token']
+                    ])
+                ]);
             } else {
                 Log::warning('Login failed', [
                     'email' => $request->input('email'),
@@ -104,7 +188,7 @@ class TenantLoginController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => $response['body']['status']['message'] ?? 'Invalid credentials'
-                    ], $response['status']);
+                    ], $response['status'] >= 400 ? $response['status'] : 401);
                 }
                 
                 return back()
@@ -120,7 +204,7 @@ class TenantLoginController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'An error occurred during login'
+                    'message' => 'An error occurred during login: ' . $e->getMessage()
                 ], 500);
             }
             
@@ -135,9 +219,11 @@ class TenantLoginController extends Controller
      */
     public function logout(Request $request)
     {
+        // Clear all session data
         Session::forget('tenant_token');
         Session::forget('tenant_data');
         
+        // If sending and API request
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
@@ -146,5 +232,14 @@ class TenantLoginController extends Controller
         }
         
         return redirect()->route('landing');
+    }
+
+    /**
+     * Helper method to get an empty error bag to prevent 'undefined variable' errors
+     */
+    private function getErrorBag()
+    {
+        // Create an empty MessageBag instance for errors
+        return new \Illuminate\Support\MessageBag();
     }
 }

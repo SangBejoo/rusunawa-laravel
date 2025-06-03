@@ -133,9 +133,15 @@ class ApiClient
     /**
      * Make a GET request
      */
-    public function get(string $endpoint, array $query = [])
+    public function get(string $endpoint, array $query = [], array $options = [])
     {
-        return $this->request('GET', $endpoint, ['query' => $query]);
+        $requestOptions = ['query' => $query];
+        
+        if (!empty($options)) {
+            $requestOptions = array_merge($requestOptions, $options);
+        }
+        
+        return $this->request('GET', $endpoint, $requestOptions);
     }
 
     /**
@@ -213,19 +219,57 @@ class ApiClient
         }
         
         if ($endpoint === '/v1/tenant/auth/login') {
+            // Create a more robust mock tenant object based on the protocol buffer definition
+            $tenant = [
+                'id' => rand(1, 1000),
+                'email' => $data['email'] ?? 'mock@example.com',
+                'full_name' => 'Mock User',
+                'type_id' => 1,
+                'user' => [
+                    'id' => rand(1, 1000),
+                    'name' => 'Mock User',
+                    'email' => $data['email'] ?? 'mock@example.com',
+                ],
+                'phone' => '08123456789',
+                'address' => 'Mock Address',
+                'gender' => 'L',
+                'nim' => 'NIM' . rand(10000, 99999),
+                'created_at' => date('c'),
+                'updated_at' => date('c')
+            ];
+            
             return [
                 'status' => 200,
                 'body' => [
                     'token' => 'mock_token_' . time(),
+                    'tenant' => $tenant,
+                    'status' => [
+                        'status' => 'success',
+                        'message' => 'Login successful (MOCK MODE)'
+                    ]
+                ],
+                'success' => true,
+            ];
+        }
+        
+        if ($endpoint === '/v1/tenant/auth/verify') {
+            return [
+                'status' => 200,
+                'body' => [
                     'tenant' => [
-                        'tenant_id' => rand(1, 1000),
-                        'user_id' => rand(1, 1000),
-                        'email' => $data['email'] ?? 'mock@example.com',
-                        'name' => 'Mock User',
+                        'id' => rand(1, 1000),
+                        'email' => 'mock@example.com',
+                        'full_name' => 'Mock User',
+                        'type_id' => 1,
+                        'user' => [
+                            'id' => rand(1, 1000),
+                            'name' => 'Mock User',
+                            'email' => 'mock@example.com',
+                        ],
                     ],
                     'status' => [
-                        'message' => 'Login successful (MOCK MODE)',
-                        'status' => 'success'
+                        'status' => 'success',
+                        'message' => 'Token is valid (MOCK MODE)'
                     ]
                 ],
                 'success' => true,

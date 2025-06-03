@@ -26,16 +26,18 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Icon,
 } from '@chakra-ui/react';
-import { SearchIcon, StarIcon } from '@chakra-ui/icons';
+import { SearchIcon } from '@chakra-ui/icons';
 import { Link } from 'react-router-dom';
-import Navbar from './components/Navbar.jsx';
+import { FaBed, FaFemale, FaMale, FaCrown, FaUsers, FaWifi, FaToilet, FaAirFreshener } from 'react-icons/fa';
 import Footer from './components/Footer.jsx';
 import { roomApi } from './api.js';
 
-export default function RoomListPage() {
-  const [rooms, setRooms] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function RoomListPage({ initialData = null, skipNavbar = false }) {
+  const [rooms, setRooms] = useState(initialData?.rooms || []);
+  const [totalCount, setTotalCount] = useState(initialData?.totalCount || 0);
+  const [loading, setLoading] = useState(!initialData?.rooms);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('price_asc');
   const [filters, setFilters] = useState({
@@ -45,45 +47,38 @@ export default function RoomListPage() {
   });
 
   useEffect(() => {
+    // If we have initial data from the server, use it
+    if (initialData && initialData.rooms && initialData.rooms.length > 0) {
+      console.log('Using server-provided room data:', initialData.rooms.length, 'rooms');
+      setRooms(initialData.rooms);
+      setTotalCount(initialData.totalCount || initialData.rooms.length);
+      setLoading(false);
+      return;
+    }
+
     const fetchRooms = async () => {
       try {
         setLoading(true);
         const response = await roomApi.getRooms();
         
-        if (response.data && response.data.rooms) {
-          // Transform API data to match our component's expected format
-          const formattedRooms = response.data.rooms.map(room => ({
-            id: room.roomId,
-            title: room.name,
-            type: getTypeFromClassification(room.classification),
-            description: room.description || 'Comfortable accommodation for your stay.',
-            price: room.rate,
-            rating: 4, // Default rating since API doesn't provide one
-            reviews: Math.floor(Math.random() * 50) + 5, // Random review count since API doesn't provide one
-            available: true, // Assuming all returned rooms are available
-            features: room.amenities?.map(a => a.name) || getDefaultFeatures(room.classification),
-            image: getRoomImage(room.classification),
-            capacity: room.capacity,
-            classification: room.classification
-          }));
-          
-          setRooms(formattedRooms);
+        if (response.success && response.data && response.data.rooms) {
+          console.log(`Loaded ${response.data.rooms.length} rooms from API`);
+          setRooms(response.data.rooms);
+          setTotalCount(response.data.totalCount || response.data.rooms.length);
         } else {
-          // Fallback to mock data if API response structure is unexpected
-          setRooms(mockRooms);
+          setError('Could not load rooms from server. Please try again later.');
         }
         
         setLoading(false);
       } catch (err) {
         console.error('Error fetching rooms:', err);
         setError('Failed to fetch rooms. Please try again later.');
-        setRooms(mockRooms); // Use mock data on error
         setLoading(false);
       }
     };
 
     fetchRooms();
-  }, []);
+  }, [initialData]);
 
   const filteredAndSortedRooms = React.useMemo(() => {
     // Step 1: Apply filters
@@ -93,34 +88,34 @@ export default function RoomListPage() {
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       filteredRooms = filteredRooms.filter(room => 
-        room.title.toLowerCase().includes(searchTerm) || 
-        room.description.toLowerCase().includes(searchTerm)
+        (room.name && room.name.toLowerCase().includes(searchTerm)) || 
+        (room.description && room.description.toLowerCase().includes(searchTerm))
       );
     }
     
     // Filter by room type
     if (filters.type !== 'all') {
-      filteredRooms = filteredRooms.filter(room => room.type === filters.type);
+      filteredRooms = filteredRooms.filter(room => 
+        room.classification && room.classification.name === filters.type
+      );
     }
     
     // Filter by price range
     if (filters.priceRange !== 'all') {
       const [min, max] = filters.priceRange.split('-').map(Number);
       filteredRooms = filteredRooms.filter(room => 
-        room.price >= min && (max ? room.price <= max : true)
+        room.rate >= min && (max ? room.rate <= max : true)
       );
     }
     
     // Step 2: Apply sorting
     switch (sortBy) {
       case 'price_asc':
-        return filteredRooms.sort((a, b) => a.price - b.price);
+        return filteredRooms.sort((a, b) => a.rate - b.rate);
       case 'price_desc':
-        return filteredRooms.sort((a, b) => b.price - a.price);
-      case 'rating_desc':
-        return filteredRooms.sort((a, b) => b.rating - a.rating);
-      case 'availability':
-        return filteredRooms.sort((a, b) => b.available - a.available);
+        return filteredRooms.sort((a, b) => b.rate - a.rate);
+      case 'capacity':
+        return filteredRooms.sort((a, b) => b.capacity - a.capacity);
       default:
         return filteredRooms;
     }
@@ -138,14 +133,53 @@ export default function RoomListPage() {
     }));
   };
 
+  // Function to get room type icon
+  const getRoomTypeIcon = (classification) => {
+    if (!classification || !classification.name) return FaBed;
+    
+    switch(classification.name) {
+      case 'perempuan': return FaFemale;
+      case 'laki_laki': return FaMale;
+      case 'VIP': return FaCrown;
+      case 'ruang_rapat': return FaUsers;
+      default: return FaBed;
+    }
+  };
+
+  // Function to get amenity icons
+  const getAmenityIcon = (amenityName) => {
+    switch(amenityName) {
+      case 'AC': return FaAirFreshener;
+      case 'wifi': return FaWifi;
+      case 'private_bathroom': 
+      case 'shared_bathroom': 
+        return FaToilet;
+      default: return null;
+    }
+  };
+
+  // Function to get badge color
+  const getBadgeColor = (classification) => {
+    if (!classification || !classification.name) return 'gray';
+    
+    switch(classification.name) {
+      case 'perempuan': return 'pink';
+      case 'laki_laki': return 'blue';
+      case 'VIP': return 'yellow';
+      case 'ruang_rapat': return 'green';
+      default: return 'gray';
+    }
+  };
+
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
-      <Navbar />
+      {/* Only include Navbar if skipNavbar is false */}
+      
       <Box flex="1">
         <Container maxW="container.xl" py={8}>
           <Stack spacing={8}>
             <Stack spacing={2}>
-              <Heading as="h1" size="xl">Find Your Perfect Room</Heading>
+              <Heading as="h1" size="xl">Available Rooms</Heading>
               <Text color={useColorModeValue('gray.600', 'gray.400')}>
                 Browse through our selection of rooms and find the one that suits your needs
               </Text>
@@ -179,9 +213,10 @@ export default function RoomListPage() {
                   w={{ base: '100%', md: '200px' }}
                 >
                   <option value="all">All Room Types</option>
-                  <option value="standard">Standard Single</option>
-                  <option value="premium">Premium Single</option>
-                  <option value="shared">Shared Room</option>
+                  <option value="laki_laki">Male Only</option>
+                  <option value="perempuan">Female Only</option>
+                  <option value="VIP">VIP</option>
+                  <option value="ruang_rapat">Meeting Room</option>
                 </Select>
                 
                 <Select 
@@ -191,10 +226,10 @@ export default function RoomListPage() {
                   w={{ base: '100%', md: '200px' }}
                 >
                   <option value="all">All Price Ranges</option>
-                  <option value="0-1000000">Under Rp 1,000,000</option>
-                  <option value="1000000-1500000">Rp 1,000,000 - Rp 1,500,000</option>
-                  <option value="1500000-2000000">Rp 1,500,000 - Rp 2,000,000</option>
-                  <option value="2000000-">Over Rp 2,000,000</option>
+                  <option value="0-200000">Under Rp 200,000</option>
+                  <option value="200000-350000">Rp 200,000 - Rp 350,000</option>
+                  <option value="350000-500000">Rp 350,000 - Rp 500,000</option>
+                  <option value="500000-">Over Rp 500,000</option>
                 </Select>
 
                 <Select 
@@ -204,8 +239,7 @@ export default function RoomListPage() {
                 >
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
-                  <option value="rating_desc">Highest Rated</option>
-                  <option value="availability">Availability</option>
+                  <option value="capacity">Capacity</option>
                 </Select>
               </Stack>
             </Box>
@@ -231,251 +265,190 @@ export default function RoomListPage() {
                 <AlertDescription>Try changing your search criteria.</AlertDescription>
               </Alert>
             ) : (
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
-                {filteredAndSortedRooms.map((room) => (
-                  <Card key={room.id} overflow="hidden" variant="outline">
-                    <Box position="relative">
-                      <Image
-                        src={room.image}
-                        alt={room.title}
-                        h="200px"
-                        w="100%"
-                        objectFit="cover"
-                      />
-                      {!room.available && (
-                        <Badge
-                          position="absolute"
-                          top="10px"
-                          right="10px"
-                          px="2"
-                          py="1"
-                          colorScheme="red"
-                          borderRadius="md"
-                        >
-                          Not Available
-                        </Badge>
-                      )}
-                    </Box>
-                    
-                    <CardBody>
-                      <Stack spacing={2}>
-                        <HStack justify="space-between" align="center">
-                          <Heading size="md">{room.title}</Heading>
-                          <Badge colorScheme={getBadgeColor(room.type)}>{room.type}</Badge>
-                        </HStack>
-                        
-                        <HStack>
-                          {Array(5)
-                            .fill('')
-                            .map((_, i) => (
-                              <StarIcon
-                                key={i}
-                                color={i < room.rating ? 'yellow.500' : 'gray.300'}
-                              />
-                            ))}
-                          <Text ml={1} fontSize="sm">({room.reviews} reviews)</Text>
-                        </HStack>
-                        
-                        <Text color={useColorModeValue('gray.600', 'gray.400')} noOfLines={2}>
-                          {room.description}
-                        </Text>
-                        
-                        <HStack spacing={4} wrap="wrap">
-                          {room.features.slice(0, 3).map((feature, index) => (
-                            <Badge key={index} colorScheme="green" variant="subtle">
-                              {feature}
+              <>
+                <Text>Showing {filteredAndSortedRooms.length} of {totalCount} rooms</Text>
+                
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+                  {filteredAndSortedRooms.map((room) => (
+                    <Card key={room.roomId} overflow="hidden" variant="outline">
+                      <Box position="relative" height="200px" bg="gray.100" display="flex" alignItems="center" justifyContent="center">
+                        <Icon 
+                          as={getRoomTypeIcon(room.classification)} 
+                          boxSize="80px" 
+                          color={`${getBadgeColor(room.classification)}.500`}
+                        />
+                      </Box>
+                      
+                      <CardBody>
+                        <Stack spacing={2}>
+                          <HStack justify="space-between" align="center">
+                            <Heading size="md">Room {room.name}</Heading>
+                            <Badge colorScheme={getBadgeColor(room.classification)}>
+                              {room.classification?.name === 'perempuan' ? 'Female Only' : 
+                               room.classification?.name === 'laki_laki' ? 'Male Only' :
+                               room.classification?.name === 'ruang_rapat' ? 'Meeting Room' :
+                               room.classification?.name === 'VIP' ? 'VIP' :
+                               'Standard'}
                             </Badge>
-                          ))}
-                          {room.features.length > 3 && (
-                            <Badge colorScheme="gray" variant="subtle">+{room.features.length - 3}</Badge>
-                          )}
-                        </HStack>
-                        
-                        <Divider my={2} />
-                        
-                        <Flex justifyContent="space-between" alignItems="center">
-                          <Text fontWeight="bold" fontSize="xl" color="brand.500">
-                            Rp {room.price.toLocaleString('id-ID')}
-                            <Text as="span" fontSize="sm" color="gray.500"> /night</Text>
+                          </HStack>
+                          
+                          <Text color={useColorModeValue('gray.600', 'gray.400')} noOfLines={2}>
+                            {room.description || 'Comfortable accommodation for your stay.'}
                           </Text>
-                          <Button 
-                            as={Link}
-                            to={`/rooms/${room.id}`}
-                            size="sm" 
-                            colorScheme="blue"
-                            isDisabled={!room.available}
-                          >
-                            View Details
-                          </Button>
-                        </Flex>
-                      </Stack>
-                    </CardBody>
-                  </Card>
-                ))}
-              </SimpleGrid>
+                          
+                          {/* Amenities */}
+                          <HStack spacing={3} overflow="hidden" flexWrap="wrap">
+                            {room.amenities && room.amenities.slice(0, 3).map((amenity, idx) => {
+                              const icon = getAmenityIcon(amenity.feature?.name);
+                              if (!icon) return null;
+                              return (
+                                <Icon 
+                                  key={idx}
+                                  as={icon} 
+                                  color="gray.500" 
+                                  title={amenity.feature?.description || amenity.feature?.name}
+                                />
+                              );
+                            })}
+                            {room.amenities && room.amenities.length > 3 && (
+                              <Text fontSize="sm" color="gray.500">+{room.amenities.length - 3} more</Text>
+                            )}
+                          </HStack>
+                          
+                          <HStack spacing={4}>
+                            <Badge colorScheme="blue" variant="subtle">
+                              {room.capacity} {room.capacity > 1 ? 'persons' : 'person'}
+                            </Badge>
+                            <Badge colorScheme="green" variant="subtle">
+                              {room.rentalType?.name === 'harian' ? 'Daily' : 'Monthly'}
+                            </Badge>
+                          </HStack>
+                          
+                          <Divider my={2} />
+                          
+                          <Flex justifyContent="space-between" alignItems="center">
+                            <Text fontWeight="bold" fontSize="xl" color="brand.500">
+                              Rp {(room.rate || 0).toLocaleString('id-ID')}
+                              <Text as="span" fontSize="sm" color="gray.500"> 
+                                /{room.rentalType?.name === 'harian' ? 'day' : 'month'}
+                              </Text>
+                            </Text>
+                            <Button 
+                              as="a"
+                              href={`/rooms/${room.roomId}`}
+                              size="sm" 
+                              colorScheme="blue"
+                            >
+                              View Details
+                            </Button>
+                          </Flex>
+                        </Stack>
+                      </CardBody>
+                    </Card>
+                  ))}
+                </SimpleGrid>
+              </>
             )}
           </Stack>
         </Container>
       </Box>
-      <Footer />
+      
+      {/* Only include Footer if skipNavbar is false (since we usually pair these) */}
+      {!skipNavbar && <Footer />}
     </Box>
   );
 }
 
-// Helper function to determine room type from classification
-function getTypeFromClassification(classification) {
-  if (!classification) return 'standard';
-  
-  switch(classification.classificationId) {
-    case 1:
-      return 'premium'; // Female
-    case 2:
-      return 'standard'; // Male
-    default:
-      return 'shared';
-  }
-}
-
-// Helper function to get default features based on room type
-function getDefaultFeatures(classification) {
-  const baseFeatures = ['WiFi', 'Desk', 'Wardrobe'];
-  
-  if (!classification) return baseFeatures;
-  
-  if (classification.classificationId === 1) {
-    return [...baseFeatures, 'Private Bathroom', 'Premium Furniture'];
-  } else if (classification.classificationId === 2) {
-    return baseFeatures;
-  } else {
-    return [...baseFeatures, 'Shared Bathroom'];
-  }
-}
-
-// Helper function to get room image based on classification
-function getRoomImage(classification) {
-  if (!classification) {
-    return 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80';
-  }
-  
-  // Different images based on room type
-  switch(classification.classificationId) {
-    case 1: // Female
-      return 'https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1469&q=80';
-    case 2: // Male
-      return 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80';
-    default:
-      return 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80';
-  }
-}
-
-// Mock room data
+// Mock room data as fallback
 const mockRooms = [
   {
-    id: 1,
-    title: 'Standard Single Room A-101',
-    type: 'standard',
+    roomId: 1,
+    name: 'Standard Single Room A-101',
+    classification: { name: 'standard' },
     description: 'Comfortable single room with all essential amenities for students. Located on the first floor with good natural light.',
-    price: 1000000,
-    rating: 4,
-    reviews: 32,
+    rate: 1000000,
     available: true,
-    features: ['WiFi', 'Desk', 'Wardrobe'],
-    image: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80',
+    capacity: 1,
+    rentalType: { name: 'harian' },
   },
   {
-    id: 2,
-    title: 'Premium Single Room B-205',
-    type: 'premium',
+    roomId: 2,
+    name: 'Premium Single Room B-205',
+    classification: { name: 'premium' },
     description: 'Spacious premium room with private bathroom, additional storage space and better furnishings. Quiet location with park view.',
-    price: 1800000,
-    rating: 5,
-    reviews: 18,
+    rate: 1800000,
     available: true,
-    features: ['Private Bathroom', 'WiFi', 'Study Area'],
-    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1469&q=80',
+    capacity: 1,
+    rentalType: { name: 'harian' },
   },
   {
-    id: 3,
-    title: 'Shared Room C-301',
-    type: 'shared',
+    roomId: 3,
+    name: 'Shared Room C-301',
+    classification: { name: 'shared' },
     description: 'Economic shared room option with two beds, shared desk area, and storage for each resident. Perfect for those who enjoy company.',
-    price: 750000,
-    rating: 3.5,
-    reviews: 24,
+    rate: 750000,
     available: true,
-    features: ['Shared', 'WiFi', '2 Beds'],
-    image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+    capacity: 2,
+    rentalType: { name: 'bulanan' },
   },
   {
-    id: 4,
-    title: 'Standard Single Room A-102',
-    type: 'standard',
+    roomId: 4,
+    name: 'Standard Single Room A-102',
+    classification: { name: 'standard' },
     description: 'Comfortable single room with east-facing window for morning sun. Located on the first floor with easy access.',
-    price: 1050000,
-    rating: 4.2,
-    reviews: 15,
+    rate: 1050000,
     available: false,
-    features: ['WiFi', 'Desk', 'Wardrobe'],
-    image: 'https://images.unsplash.com/photo-1560448205-4d9b3e6bb6db?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+    capacity: 1,
+    rentalType: { name: 'harian' },
   },
   {
-    id: 5,
-    title: 'Premium Single Room B-210',
-    type: 'premium',
+    roomId: 5,
+    name: 'Premium Single Room B-210',
+    classification: { name: 'premium' },
     description: 'Luxurious corner room with extra space, better furnishings, and a beautiful view of the campus gardens.',
-    price: 2000000,
-    rating: 4.8,
-    reviews: 28,
+    rate: 2000000,
     available: true,
-    features: ['Private Bathroom', 'WiFi', 'Premium Furniture'],
-    image: 'https://images.unsplash.com/photo-1540518614846-7eded433c457?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1457&q=80',
+    capacity: 1,
+    rentalType: { name: 'harian' },
   },
   {
-    id: 6,
-    title: 'Shared Room C-302',
-    type: 'shared',
+    roomId: 6,
+    name: 'Shared Room C-302',
+    classification: { name: 'shared' },
     description: 'Spacious shared room with large windows, comfortable beds, and individual storage units. Perfect for social students.',
-    price: 800000,
-    rating: 3.8,
-    reviews: 21,
+    rate: 800000,
     available: true,
-    features: ['Shared', 'WiFi', '2 Beds'],
-    image: 'https://images.unsplash.com/photo-1444201983204-c43cbd584d93?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+    capacity: 2,
+    rentalType: { name: 'bulanan' },
   },
   {
-    id: 7,
-    title: 'Standard Single Room A-203',
-    type: 'standard',
+    roomId: 7,
+    name: 'Standard Single Room A-203',
+    classification: { name: 'standard' },
     description: 'Well-maintained standard room located on the second floor with good ventilation and quiet environment.',
-    price: 1100000,
-    rating: 4.1,
-    reviews: 19,
+    rate: 1100000,
     available: true,
-    features: ['WiFi', 'Desk', 'Wardrobe'],
-    image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+    capacity: 1,
+    rentalType: { name: 'harian' },
   },
   {
-    id: 8,
-    title: 'Premium Single Room B-301',
-    type: 'premium',
+    roomId: 8,
+    name: 'Premium Single Room B-301',
+    classification: { name: 'premium' },
     description: 'Top floor premium room with excellent ventilation, city view, and additional seating area for guests.',
-    price: 1900000,
-    rating: 4.7,
-    reviews: 26,
+    rate: 1900000,
     available: false,
-    features: ['Private Bathroom', 'WiFi', 'Study Area'],
-    image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+    capacity: 1,
+    rentalType: { name: 'harian' },
   },
   {
-    id: 9,
-    title: 'Shared Room C-105',
-    type: 'shared',
+    roomId: 9,
+    name: 'Shared Room C-105',
+    classification: { name: 'shared' },
     description: 'Entry-level shared accommodation with basic amenities, well-suited for students looking for economical options.',
-    price: 700000,
-    rating: 3.3,
-    reviews: 14,
+    rate: 700000,
     available: true,
-    features: ['Shared', 'WiFi', '2 Beds'],
-    image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
+    capacity: 2,
+    rentalType: { name: 'bulanan' },
   },
 ];

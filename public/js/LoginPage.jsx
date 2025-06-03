@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -14,14 +14,13 @@ import {
   InputGroup,
   InputRightElement,
   Link,
-  Flex,
-  Divider,
   ScaleFade,
   Center,
-  Icon
+  Icon,
+  Divider
 } from '@chakra-ui/react';
 import { ViewIcon, ViewOffIcon, CheckCircleIcon } from '@chakra-ui/icons';
-import axios from 'axios';
+import tenantAuthService from './services/tenantAuthService.js';
 
 export default function LoginPage() {
   const [form, setForm] = useState({
@@ -29,10 +28,37 @@ export default function LoginPage() {
     password: ''
   });
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  
+  // Clear any existing tokens on page load
+  useEffect(() => {
+    // Check if we already have a token (for auto-redirect)
+    const token = localStorage.getItem('tenant_token');
+    const tenantData = localStorage.getItem('tenant_data');
+    
+    if (token && tenantData) {
+      console.log('Already logged in, redirecting...');
+      // Get return URL from query params or use landing page as default
+      const params = new URLSearchParams(window.location.search);
+      const returnUrl = params.get('redirect') || '/';
+      window.location.href = returnUrl;
+      return;
+    }
+    
+    // If not already logged in, clean up any invalid auth data
+    localStorage.removeItem('tenant_token');
+    localStorage.removeItem('tenant_data');
+    sessionStorage.removeItem('tenant_token');
+    sessionStorage.removeItem('tenant_data');
+    
+    try {
+      window.dispatchEvent(new Event('tenantAuthChanged'));
+    } catch (e) {
+      console.error('Error dispatching event:', e);
+    }
+  }, []);
 
   const handleChange = e => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -42,117 +68,70 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(null);
     
     try {
-      // Set appropriate headers
-      const config = {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-        }
-      };
+      // Client-side validation
+      if (!form.email) {
+        setError('Email is required');
+        setLoading(false);
+        return;
+      }
       
-      // First try with Laravel endpoint
+      if (!form.password) {
+        setError('Password is required');
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Attempting login with Go backend...');
+      const response = await tenantAuthService.login(form.email, form.password);
+      
+      console.log('Login successful:', response);
+      
+      // Normalize tenant data before storing
+      const normalizedTenant = { ...response.tenant };
+      
+      // Convert tenant type objects to strings to prevent React rendering issues
+      if (normalizedTenant.tenant && normalizedTenant.tenant.tenantType && 
+          typeof normalizedTenant.tenant.tenantType === 'object' && 
+          normalizedTenant.tenant.tenantType !== null) {
+        console.log('Normalizing nested tenant type on login:', normalizedTenant.tenant.tenantType);
+        normalizedTenant.tenant.tenantType = normalizedTenant.tenant.tenantType.name || '';
+      }
+      
+      if (normalizedTenant.tenantType && 
+          typeof normalizedTenant.tenantType === 'object' && 
+          normalizedTenant.tenantType !== null) {
+        console.log('Normalizing direct tenant type on login:', normalizedTenant.tenantType);
+        normalizedTenant.tenantType = normalizedTenant.tenantType.name || '';
+      }
+      
+      // Make sure data is in both localStorage and sessionStorage for consistency
+      localStorage.setItem('tenant_token', response.token);
+      localStorage.setItem('tenant_data', JSON.stringify(normalizedTenant));
+      
+      // Force a tenantAuthChanged event to update all components
       try {
-        console.log('Attempting Laravel login...');
-        const response = await axios.post('/tenant/login', {
-          email: form.email,
-          password: form.password
-        }, config);
-        
-        console.log('Login response:', response);
-        
-        if (response.data && response.data.success) {
-          // Store authentication data
-          if (response.data.tenant_token) {
-            localStorage.setItem('tenant_token', response.data.tenant_token);
-            sessionStorage.setItem('tenant_token', response.data.tenant_token);
-          }
-          
-          if (response.data.tenant_data) {
-            localStorage.setItem('tenant_data', JSON.stringify(response.data.tenant_data));
-            sessionStorage.setItem('tenant_data', JSON.stringify(response.data.tenant_data));
-          }
-          
-          // Notify other components about the login
-          window.dispatchEvent(new Event('tenantAuthChanged'));
-          
-          setSuccess('Login successful!');
-          setShowSuccess(true);
-          
-          // Wait briefly then redirect
-          setTimeout(() => {
-            // Use explicit URL to navigate back to landing page
-            window.location.href = response.data.redirect || '/';
-            
-            // Dispatch a custom event for any listening components
-            window.dispatchEvent(new CustomEvent('loginSuccess', {
-              detail: {
-                tenant: response.data.tenant_data,
-                token: response.data.tenant_token
-              }
-            }));
-          }, 1000);
-          return;
-        }
-      } catch (laravelErr) {
-        console.error('Laravel login attempt failed:', laravelErr);
-        
-        // Only show error if it's a validation error, not a network error
-        if (laravelErr.response && laravelErr.response.status === 422) {
-          setError(laravelErr.response.data.errors || 'Invalid email or password');
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // Fallback to direct API call
-      const response = await axios.post('http://localhost:8001/v1/tenant/auth/login', {
-        email: form.email,
-        password: form.password
-      }, config);
-      
-      if (response.data) {
-        // Store JWT token in localStorage 
-        if (response.data.token) {
-          localStorage.setItem('tenant_token', response.data.token);
-          sessionStorage.setItem('tenant_token', response.data.token);
-        }
-        
-        // Store tenant data
-        if (response.data.tenant) {
-          localStorage.setItem('tenant_data', JSON.stringify(response.data.tenant));
-          sessionStorage.setItem('tenant_data', JSON.stringify(response.data.tenant));
-        }
-        
-        // Notify other components about the login
         window.dispatchEvent(new Event('tenantAuthChanged'));
-        
-        setSuccess('Login successful!');
-        setShowSuccess(true);
-        
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1000);
-      } else {
-        setError('Login failed. Please check your credentials.');
+      } catch (e) {
+        console.error('Error dispatching auth event:', e);
       }
-    } catch (err) {
-      console.error('Login error:', err);
       
-      if (err.response) {
-        if (err.response.data && err.response.data.status) {
-          setError(err.response.data.status.message || 'Login failed. Please check your credentials.');
-        } else {
-          setError(err.response.data.message || 'Login failed. Please check your credentials.');
-        }
-      } else if (err.request) {
-        setError('Unable to connect to the server. The backend API may not be running.');
-      } else {
-        setError('Login failed. Please try again later.');
-      }
+      // Show success message first
+      setShowSuccess(true);
+      
+      // Get return URL from query params or use landing page as default
+      const params = new URLSearchParams(window.location.search);
+      const returnUrl = params.get('redirect') || '/';
+      
+      // Redirect after short delay
+      setTimeout(() => {
+        window.location.href = returnUrl;
+      }, 1500);
+      
+    } catch (err) {
+      console.error('Login failed:', err);
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -183,7 +162,7 @@ export default function LoginPage() {
               </Center>
             </ScaleFade>
           ) : (
-            <form onSubmit={handleSubmit}>
+            <form id="login-form" onSubmit={handleSubmit}>
               <Stack spacing="6">
                 <Stack spacing="5">
                   <FormControl id="email" isRequired isInvalid={!!error}>
@@ -222,13 +201,6 @@ export default function LoginPage() {
                     <Alert status="error">
                       <AlertIcon />
                       {error}
-                    </Alert>
-                  )}
-                  
-                  {success && (
-                    <Alert status="success">
-                      <AlertIcon />
-                      {success}
                     </Alert>
                   )}
                   

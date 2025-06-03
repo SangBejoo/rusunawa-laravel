@@ -1,36 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Heading,
-  Container,
-  Text,
   Button,
-  Stack,
-  Icon,
-  useColorModeValue,
-  createIcon,
+  Container,
   Flex,
-  SimpleGrid,
+  Heading,
   Image,
+  Stack,
+  Text,
+  VStack,
+  createIcon,
+  SimpleGrid,
   Stat,
   StatLabel,
   StatNumber,
-  VStack,
-  Card,
-  CardBody,
-  Center,
-  Badge,
   HStack,
   Divider,
   Avatar,
   Wrap,
   WrapItem,
   useBreakpointValue,
+  useColorModeValue,
+  Card,
+  CardBody,
+  Badge,
+  Center,
+  Icon,
 } from '@chakra-ui/react';
-import Navbar from './components/Navbar.jsx';
-import Footer from './components/Footer.jsx';
 
-export default function LandingPage() {
+const LandingPage = ({ skipNavbar = true }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
   
@@ -43,7 +41,24 @@ export default function LandingPage() {
       if (tenantToken && tenantData) {
         setIsLoggedIn(true);
         try {
-          setUserData(JSON.parse(tenantData));
+          const parsedData = JSON.parse(tenantData);
+          
+          // Normalize tenant data to ensure tenantType is properly structured
+          if (parsedData.tenant && parsedData.tenant.tenantType && 
+              typeof parsedData.tenant.tenantType === 'object' && 
+              parsedData.tenant.tenantType !== null) {
+            console.log('LandingPage: Normalizing nested tenant type:', parsedData.tenant.tenantType);
+            parsedData.tenant.tenantType = parsedData.tenant.tenantType.name || '';
+          }
+          
+          if (parsedData.tenantType && 
+              typeof parsedData.tenantType === 'object' && 
+              parsedData.tenantType !== null) {
+            console.log('LandingPage: Normalizing direct tenant type:', parsedData.tenantType);
+            parsedData.tenantType = parsedData.tenantType.name || '';
+          }
+          
+          setUserData(parsedData);
         } catch (e) {
           console.error('Error parsing tenant data:', e);
         }
@@ -89,441 +104,470 @@ export default function LandingPage() {
   const getTenantType = () => {
     if (!userData) return '';
     
-    if (userData.tenant && userData.tenant.tenantType && userData.tenant.tenantType.name) {
-      return userData.tenant.tenantType.name;
+    console.log('LandingPage: Getting tenant type from userData:', userData);
+    
+    if (userData.tenant && userData.tenant.tenantType) {
+      // Handle case where tenantType is an object with a name property
+      if (typeof userData.tenant.tenantType === 'object' && userData.tenant.tenantType !== null) {
+        console.log('LandingPage: Nested tenant type is an object:', userData.tenant.tenantType);
+        return userData.tenant.tenantType.name || '';
+      }
+      // Handle case where tenantType is a string
+      if (typeof userData.tenant.tenantType === 'string') {
+        console.log('LandingPage: Nested tenant type is a string:', userData.tenant.tenantType);
+        return userData.tenant.tenantType;
+      }
+      return '';
     }
     
-    return userData.tenantType || '';
+    // Handle direct tenantType property
+    if (userData.tenantType) {
+      if (typeof userData.tenantType === 'object' && userData.tenantType !== null) {
+        console.log('LandingPage: Direct tenant type is an object:', userData.tenantType);
+        return userData.tenantType.name || '';
+      }
+      console.log('LandingPage: Direct tenant type is not an object:', userData.tenantType);
+      return typeof userData.tenantType === 'string' ? userData.tenantType : '';
+    }
+    
+    return '';
   };
 
   return (
-    <Box minH="100vh" display="flex" flexDirection="column">
-      <Navbar />
-      <Box flex="1">
-        {/* Hero Section */}
-        <Box position="relative" height="90vh">
-          {/* Background image with overlay */}
-          <Box
-            position="absolute"
-            top="0"
-            left="0"
-            width="100%"
-            height="100%"
-            backgroundImage="url('https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')"
-            backgroundSize="cover"
-            backgroundPosition="center"
-            _after={{
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              bg: 'rgba(0,0,0,0.5)',
-              zIndex: 0,
-            }}
-            zIndex="-1"
-          />
-          <Container maxW={'container.xl'} position="relative" height="100%" zIndex={1}>
-            <Stack
-              as={Box}
-              textAlign={'center'}
-              spacing={{ base: 8, md: 14 }}
-              pt={{ base: 20, md: 36 }}
-              color="white">
-              <Heading
-                fontWeight={700}
-                fontSize={{ base: '3xl', sm: '4xl', md: '6xl' }}
-                lineHeight={'110%'}
-                textShadow="0px 2px 4px rgba(0, 0, 0, 0.5)">
-                Find Your Perfect <br />
-                <Text as={'span'} color={'brand.400'}>
-                  Student Housing
-                </Text>
-              </Heading>
-              <Text fontSize={{ base: 'lg', md: 'xl' }} maxW={'3xl'} mx="auto" textShadow="0px 1px 3px rgba(0, 0, 0, 0.7)">
-                Affordable, comfortable, and convenient accommodations for students.
-                Our rusunawa offers modern amenities, security, and a supportive community.
+    <Box>
+      {/* Hero Section */}
+      <Box 
+        as="section" 
+        bg="gray.50" 
+        pt={20} 
+        pb={16}
+        position="relative"
+        height="90vh"
+      >
+        {/* Background image with overlay */}
+        <Box
+          position="absolute"
+          top="0"
+          left="0"
+          width="100%"
+          height="100%"
+          backgroundImage="url('https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')"
+          backgroundSize="cover"
+          backgroundPosition="center"
+          _after={{
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            bg: 'rgba(0,0,0,0.5)',
+            zIndex: 0,
+          }}
+          zIndex="-1"
+        />
+        <Container maxW={'container.xl'} position="relative" height="100%" zIndex={1}>
+          <Stack
+            as={Box}
+            textAlign={'center'}
+            spacing={{ base: 8, md: 14 }}
+            pt={{ base: 20, md: 36 }}
+            color="white">
+            <Heading
+              fontWeight={700}
+              fontSize={{ base: '3xl', sm: '4xl', md: '6xl' }}
+              lineHeight={'110%'}
+              textShadow="0px 2px 4px rgba(0, 0, 0, 0.5)">
+              Find Your Perfect <br />
+              <Text as={'span'} color={'brand.400'}>
+                Student Housing
               </Text>
-              <Stack
-                direction={{ base: 'column', sm: 'row' }}
-                spacing={3}
-                align={'center'}
-                alignSelf={'center'}
-                position={'relative'}>
-                {isLoggedIn ? (
-                  <>
-                    <Button
-                      colorScheme={'green'}
-                      bg={'brand.500'}
-                      rounded={'full'}
-                      px={6}
-                      _hover={{
-                        bg: 'brand.400',
-                      }}
-                      as="a"
-                      href="/rooms">
-                      Browse Rooms
-                    </Button>
-                    <Button
-                      variant={'outline'}
-                      colorScheme={'white'}
-                      rounded={'full'}
-                      px={6}
-                      as="a" 
-                      href="/facilities">
-                      View Facilities
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      colorScheme={'green'}
-                      bg={'brand.500'}
-                      rounded={'full'}
-                      px={6}
-                      _hover={{
-                        bg: 'brand.400',
-                      }}
-                      as="a"
-                      href="/tenant/register">
-                      Register Now
-                    </Button>
-                    <Button
-                      variant={'outline'}
-                      colorScheme={'white'}
-                      rounded={'full'}
-                      px={6}
-                      as="a" 
-                      href="/rooms">
-                      Find Rooms
-                    </Button>
-                  </>
-                )}
-                <Box display={{ base: 'none', md: 'block' }}>
-                  <Icon
-                    as={Arrow}
-                    color={'white'}
-                    w={71}
-                    position={'absolute'}
-                    right={-71}
-                    top={'10px'}
-                  />
-                  <Text
-                    fontSize={'lg'}
-                    position={'absolute'}
-                    right={'-115px'}
-                    top={'-15px'}
-                    transform={'rotate(10deg)'}
-                    textShadow="0px 1px 3px rgba(0, 0, 0, 0.7)">
-                    {isLoggedIn ? 'Your space awaits!' : 'Register now!'}
-                  </Text>
-                </Box>
-              </Stack>
-            </Stack>
-          </Container>
-        </Box>
-
-        {/* Welcome Back Section (Only for logged in users) */}
-        {isLoggedIn && userData && (
-          <Box 
-            py={8} 
-            bg={useColorModeValue('brand.50', 'gray.800')} 
-            borderBottom="1px" 
-            borderColor={useColorModeValue('gray.200', 'gray.700')}>
-            <Container maxW={'container.xl'}>
-              <Flex direction={{ base: 'column', md: 'row' }} align="center" justify="space-between">
-                <Box mb={{ base: 4, md: 0 }}>
-                  <Heading size="lg" mb={2}>
-                    Welcome, {getUserName()}!
-                    {getTenantType() && (
-                      <Badge ml={2} colorScheme="green">{getTenantType()}</Badge>
-                    )}
-                  </Heading>
-                  <Text color={'gray.600'}>
-                    Explore our facilities and find the perfect accommodation for your needs.
-                  </Text>
-                </Box>
-                <HStack spacing={4}>
-                  <Button as="a" href="/rooms" colorScheme="blue">Browse Rooms</Button>
-                  <Button as="a" href="/bookings" colorScheme="green">My Bookings</Button>
-                  <Button as="a" href="/contact" variant="outline">Need Help?</Button>
-                </HStack>
-              </Flex>
-            </Container>
-          </Box>
-        )}
-
-        {/* Features Section */}
-        <Box py={12} bg={useColorModeValue('white', 'gray.700')}>
-          <Container maxW={'container.xl'}>
+            </Heading>
+            <Text fontSize={{ base: 'lg', md: 'xl' }} maxW={'3xl'} mx="auto" textShadow="0px 1px 3px rgba(0, 0, 0, 0.7)">
+              Affordable, comfortable, and convenient accommodations for students.
+              Our rusunawa offers modern amenities, security, and a supportive community.
+            </Text>
             <Stack
-              textAlign={'center'}
+              direction={{ base: 'column', sm: 'row' }}
+              spacing={3}
               align={'center'}
-              spacing={{ base: 5, md: 8 }}
-              py={{ base: 10, md: 12 }}>
-              <Heading
-                fontWeight={600}
-                fontSize={{ base: '2xl', sm: '4xl' }}
-                lineHeight={'110%'}>
-                Why Choose Our{' '}
-                <Text as={'span'} color={'brand.500'}>
-                  Rusunawa
+              alignSelf={'center'}
+              position={'relative'}>
+              {isLoggedIn ? (
+                <>
+                  <Button
+                    colorScheme={'green'}
+                    bg={'brand.500'}
+                    rounded={'full'}
+                    px={6}
+                    _hover={{
+                      bg: 'brand.400',
+                    }}
+                    as="a"
+                    href="/rooms">
+                    Browse Rooms
+                  </Button>
+                  <Button
+                    variant={'outline'}
+                    colorScheme={'white'}
+                    rounded={'full'}
+                    px={6}
+                    as="a" 
+                    href="/facilities">
+                    View Facilities
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    colorScheme={'green'}
+                    bg={'brand.500'}
+                    rounded={'full'}
+                    px={6}
+                    _hover={{
+                      bg: 'brand.400',
+                    }}
+                    as="a"
+                    href="/tenant/register">
+                    Register Now
+                  </Button>
+                  <Button
+                    variant={'outline'}
+                    colorScheme={'white'}
+                    rounded={'full'}
+                    px={6}
+                    as="a" 
+                    href="/rooms">
+                    Find Rooms
+                  </Button>
+                </>
+              )}
+              <Box display={{ base: 'none', md: 'block' }}>
+                <Icon
+                  as={Arrow}
+                  color={'white'}
+                  w={71}
+                  position={'absolute'}
+                  right={-71}
+                  top={'10px'}
+                />
+                <Text
+                  fontSize={'lg'}
+                  position={'absolute'}
+                  right={'-115px'}
+                  top={'-15px'}
+                  transform={'rotate(10deg)'}
+                  textShadow="0px 1px 3px rgba(0, 0, 0, 0.7)">
+                  {isLoggedIn ? 'Your space awaits!' : 'Register now!'}
                 </Text>
-              </Heading>
-              <Text color={'gray.600'} maxW={'3xl'}>
-                Our student housing offers everything you need for a comfortable and productive academic life. 
-                From modern facilities to a supportive community, we've got you covered.
-              </Text>
+              </Box>
             </Stack>
-
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10} mt={10}>
-              {features.map((feature) => (
-                <Box 
-                  key={feature.id} 
-                  p={6} 
-                  shadow="lg" 
-                  borderWidth="1px" 
-                  borderRadius="lg" 
-                  transition="all 0.3s"
-                  _hover={{
-                    transform: 'translateY(-5px)',
-                    shadow: 'xl',
-                  }}>
-                  <Center mb={4}>
-                    <Icon as={feature.icon} w={10} h={10} color="brand.500" />
-                  </Center>
-                  <Heading fontSize="xl" mb={2} textAlign="center">{feature.title}</Heading>
-                  <Text color={'gray.600'} textAlign="center">{feature.text}</Text>
-                </Box>
-              ))}
-            </SimpleGrid>
+          </Stack>
           </Container>
-        </Box>
-
-        {/* Room Types Preview */}
-        <Box bg={useColorModeValue('gray.50', 'gray.900')} py={12}>
-          <Container maxW={'container.xl'}>
-            <Stack
-              textAlign={'center'}
-              align={'center'}
-              spacing={{ base: 5, md: 8 }}
-              py={{ base: 5, md: 8 }}>
-              <Heading
-                fontWeight={600}
-                fontSize={{ base: '2xl', sm: '4xl' }}
-                lineHeight={'110%'}>
-                Room Types & {' '}
-                <Text as={'span'} color={'brand.500'}>
-                  Pricing
-                </Text>
-              </Heading>
-              <Text color={'gray.600'} maxW={'3xl'}>
-                Choose from a variety of room options that fit your needs and budget.
-                All rooms come with essential furnishings and access to shared facilities.
-              </Text>
-            </Stack>
-
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10} mt={10}>
-              {roomTypes.map((room) => (
-                <Card 
-                  key={room.id} 
-                  borderRadius="lg" 
-                  overflow="hidden" 
-                  variant="outline"
-                  transition="all 0.3s"
-                  _hover={{
-                    transform: 'translateY(-5px)',
-                    shadow: 'xl',
-                  }}>
-                  <Box position="relative">
-                    <Image
-                      src={room.image}
-                      alt={room.title}
-                      h="200px"
-                      objectFit="cover"
-                      w="100%"
-                    />
-                    <Badge 
-                      position="absolute" 
-                      top="10px" 
-                      right="10px" 
-                      colorScheme={room.availability === 'Limited' ? 'orange' : room.availability === 'Available' ? 'green' : 'red'}
-                      fontSize="0.8em"
-                      px={2}
-                      py={1}
-                      borderRadius="md">
-                      {room.availability}
-                    </Badge>
-                  </Box>
-                  <CardBody>
-                    <Stack spacing={4}>
-                      <Heading size="md">{room.title}</Heading>
-                      <Text color={'gray.600'}>{room.description}</Text>
-                      <HStack>
-                        {room.features.map((feature, index) => (
-                          <Badge key={index} colorScheme="blue" variant="subtle">{feature}</Badge>
-                        ))}
-                      </HStack>
-                      <Divider />
-                      <Stack direction="row" justify="space-between" align="center">
-                        <Text fontWeight={600} fontSize="xl" color="brand.500">
-                          Rp {room.price.toLocaleString('id-ID')} / month
-                        </Text>
-                        <Button as="a" href={`/rooms/${room.id}`} colorScheme="blue" size="sm">
-                          View Details
-                        </Button>
-                      </Stack>
-                    </Stack>
-                  </CardBody>
-                </Card>
-              ))}
-            </SimpleGrid>
-
-            <Center mt={10}>
-              <Button
-                as="a"
-                href="/rooms"
-                rounded={'full'}
-                px={6}
-                colorScheme={'blue'}
-                bg={'brand.500'}
-                _hover={{ bg: 'brand.400' }}>
-                View All Rooms
-              </Button>
-            </Center>
-          </Container>
-        </Box>
-
-        {/* Statistics Section */}
-        <Box py={12}>
-          <Container maxW={'container.xl'}>
-            <Stack
-              textAlign={'center'}
-              align={'center'}
-              spacing={{ base: 5, md: 8 }}
-              py={{ base: 5, md: 8 }}>
-              <Heading
-                fontWeight={600}
-                fontSize={{ base: '2xl', sm: '4xl' }}
-                lineHeight={'110%'}>
-                Our Rusunawa in {' '}
-                <Text as={'span'} color={'brand.500'}>
-                  Numbers
-                </Text>
-              </Heading>
-            </Stack>
-            <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={5}>
-              {stats.map((stat) => (
-                <Stat
-                  key={stat.id}
-                  px={{ base: 2, md: 4 }}
-                  py={5}
-                  shadow={'xl'}
-                  border={'1px solid'}
-                  borderColor={useColorModeValue('gray.200', 'gray.500')}
-                  rounded={'lg'}>
-                  <Flex justifyContent={'center'}>
-                    <Box
-                      my={'auto'}
-                      color={useColorModeValue('gray.800', 'gray.200')}
-                      alignContent={'center'}>
-                      <StatLabel fontWeight={'medium'} isTruncated>
-                        {stat.title}
-                      </StatLabel>
-                      <StatNumber fontSize={'2xl'} fontWeight={'bold'}>
-                        {stat.value}
-                      </StatNumber>
-                      <Text fontSize={'sm'} mt={2}>{stat.description}</Text>
-                    </Box>
-                  </Flex>
-                </Stat>
-              ))}
-            </SimpleGrid>
-          </Container>
-        </Box>
-
-        {/* Testimonials Section */}
-        <Box bg={useColorModeValue('gray.50', 'gray.800')} py={12}>
-          <Container maxW={'container.xl'}>
-            <Stack
-              textAlign={'center'}
-              align={'center'}
-              spacing={{ base: 5, md: 8 }}
-              py={{ base: 5, md: 8 }}>
-              <Heading
-                fontWeight={600}
-                fontSize={{ base: '2xl', sm: '4xl' }}
-                lineHeight={'110%'}>
-                What Our {' '}
-                <Text as={'span'} color={'brand.500'}>
-                  Residents Say
-                </Text>
-              </Heading>
-            </Stack>
-            
-            <Wrap spacing="30px" justify="center" mt={10}>
-              {testimonials.map((testimonial) => (
-                <WrapItem key={testimonial.id} width={{ base: '100%', md: '45%', lg: '30%' }}>
-                  <Box
-                    bg={useColorModeValue('white', 'gray.700')}
-                    boxShadow={'lg'}
-                    borderRadius={'md'}
-                    p={8}
-                    rounded={'md'}
-                    h={'full'}>
-                    <Text fontSize={'lg'} fontWeight={600} mb={2}>
-                      "{testimonial.quote}"
-                    </Text>
-                    <Text fontSize={'md'} color={'gray.600'} mb={4}>
-                      {testimonial.content}
-                    </Text>
-                    <HStack mt={8}>
-                      <Avatar src={testimonial.avatar} name={testimonial.name} size={'sm'} />
-                      <VStack align="start" spacing={0}>
-                        <Text fontWeight={600}>{testimonial.name}</Text>
-                        <Text fontSize={'sm'} color={'gray.600'}>{testimonial.role}</Text>
-                      </VStack>
-                    </HStack>
-                  </Box>
-                </WrapItem>
-              ))}
-            </Wrap>
-          </Container>
-        </Box>
-
-        {/* Call to Action */}
-        <Box bg={useColorModeValue('brand.500', 'brand.600')} color="white" py={10}>
-          <Container maxW={'container.xl'}>
-            <Stack direction={{ base: 'column', md: 'row' }} spacing={4} align="center" justify="space-between">
-              <VStack align={{ base: 'center', md: 'start'}} spacing={2} mb={{ base: 4, md: 0 }}>
-                <Heading size="lg">Ready to join our community?</Heading>
-                <Text>
-                  {isLoggedIn 
-                    ? 'Explore our rooms and facilities to find your perfect fit'
-                    : 'Register now to apply for a room at our rusunawa!'
-                  }
-                </Text>
-              </VStack>
-              <Button
-                as="a"
-                href={isLoggedIn ? "/rooms" : "/tenant/register"}
-                rounded={'full'}
-                px={6}
-                colorScheme="whiteAlpha"
-                _hover={{
-                  bg: 'whiteAlpha.500',
-                }}>
-                {isLoggedIn ? 'Browse Rooms' : 'Register Today'}
-              </Button>
-            </Stack>
-          </Container>
-        </Box>
       </Box>
-      <Footer />
+
+      {/* Welcome Back Section (Only for logged in users) */}
+      {isLoggedIn && userData && (
+        <Box 
+          py={8} 
+          bg={useColorModeValue('brand.50', 'gray.800')} 
+          borderBottom="1px" 
+          borderColor={useColorModeValue('gray.200', 'gray.700')}>
+          <Container maxW={'container.xl'}>
+            <Flex direction={{ base: 'column', md: 'row' }} align="center" justify="space-between">
+              <Box mb={{ base: 4, md: 0 }}>
+                <Heading size="lg" mb={2}>
+                  Welcome, {getUserName()}!
+                  {getTenantType() && (
+                    <Badge ml={2} colorScheme="green">
+                      {typeof getTenantType() === 'object' ? 
+                        (getTenantType().name || 'User') : 
+                        getTenantType()}
+                    </Badge>
+                  )}
+                </Heading>
+                <Text color={'gray.600'}>
+                  Explore our facilities and find the perfect accommodation for your needs.
+                </Text>
+              </Box>
+              <HStack spacing={4}>
+                <Button as="a" href="/rooms" colorScheme="blue">Browse Rooms</Button>
+                <Button as="a" href="/bookings" colorScheme="green">My Bookings</Button>
+                <Button as="a" href="/contact" variant="outline">Need Help?</Button>
+              </HStack>
+            </Flex>
+          </Container>
+        </Box>
+      )}
+
+      {/* Features Section */}
+      <Box py={12} bg={useColorModeValue('white', 'gray.700')}>
+        <Container maxW={'container.xl'}>
+          <Stack
+            textAlign={'center'}
+            align={'center'}
+            spacing={{ base: 5, md: 8 }}
+            py={{ base: 10, md: 12 }}>
+            <Heading
+              fontWeight={600}
+              fontSize={{ base: '2xl', sm: '4xl' }}
+              lineHeight={'110%'}>
+              Why Choose Our{' '}
+              <Text as={'span'} color={'brand.500'}>
+                Rusunawa
+              </Text>
+            </Heading>
+            <Text color={'gray.600'} maxW={'3xl'}>
+              Our student housing offers everything you need for a comfortable and productive academic life. 
+              From modern facilities to a supportive community, we've got you covered.
+            </Text>
+          </Stack>
+
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10} mt={10}>
+            {features.map((feature) => (
+              <Box 
+                key={feature.id} 
+                p={6} 
+                shadow="lg" 
+                borderWidth="1px" 
+                borderRadius="lg" 
+                transition="all 0.3s"
+                _hover={{
+                  transform: 'translateY(-5px)',
+                  shadow: 'xl',
+                }}>
+                <Center mb={4}>
+                  <Icon as={feature.icon} w={10} h={10} color="brand.500" />
+                </Center>
+                <Heading fontSize="xl" mb={2} textAlign="center">{feature.title}</Heading>
+                <Text color={'gray.600'} textAlign="center">{feature.text}</Text>
+              </Box>
+            ))}
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Room Types Preview */}
+      <Box bg={useColorModeValue('gray.50', 'gray.900')} py={12}>
+        <Container maxW={'container.xl'}>
+          <Stack
+            textAlign={'center'}
+            align={'center'}
+            spacing={{ base: 5, md: 8 }}
+            py={{ base: 5, md: 8 }}>
+            <Heading
+              fontWeight={600}
+              fontSize={{ base: '2xl', sm: '4xl' }}
+              lineHeight={'110%'}>
+              Room Types & {' '}
+              <Text as={'span'} color={'brand.500'}>
+                Pricing
+              </Text>
+            </Heading>
+            <Text color={'gray.600'} maxW={'3xl'}>
+              Choose from a variety of room options that fit your needs and budget.
+              All rooms come with essential furnishings and access to shared facilities.
+            </Text>
+          </Stack>
+
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10} mt={10}>
+            {roomTypes.map((room) => (
+              <Card 
+                key={room.id} 
+                borderRadius="lg" 
+                overflow="hidden" 
+                variant="outline"
+                transition="all 0.3s"
+                _hover={{
+                  transform: 'translateY(-5px)',
+                  shadow: 'xl',
+                }}>
+                <Box position="relative">
+                  <Image
+                    src={room.image}
+                    alt={room.title}
+                    h="200px"
+                    objectFit="cover"
+                    w="100%"
+                  />
+                  <Badge 
+                    position="absolute" 
+                    top="10px" 
+                    right="10px" 
+                    colorScheme={room.availability === 'Limited' ? 'orange' : room.availability === 'Available' ? 'green' : 'red'}
+                    fontSize="0.8em"
+                    px={2}
+                    py={1}
+                    borderRadius="md">
+                    {room.availability}
+                  </Badge>
+                </Box>
+                <CardBody>
+                  <Stack spacing={4}>
+                    <Heading size="md">{room.title}</Heading>
+                    <Text color={'gray.600'}>{room.description}</Text>
+                    <HStack>
+                      {room.features.map((feature, index) => (
+                        <Badge key={index} colorScheme="blue" variant="subtle">{feature}</Badge>
+                      ))}
+                    </HStack>
+                    <Divider />
+                    <Stack direction="row" justify="space-between" align="center">
+                      <Text fontWeight={600} fontSize="xl" color="brand.500">
+                        Rp {room.price.toLocaleString('id-ID')} / month
+                      </Text>
+                      <Button as="a" href={`/rooms/${room.id}`} colorScheme="blue" size="sm">
+                        View Details
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </CardBody>
+              </Card>
+            ))}
+          </SimpleGrid>
+
+          <Center mt={10}>
+            <Button
+              as="a"
+              href="/rooms"
+              rounded={'full'}
+              px={6}
+              colorScheme={'blue'}
+              bg={'brand.500'}
+              _hover={{ bg: 'brand.400' }}>
+              View All Rooms
+            </Button>
+          </Center>
+        </Container>
+      </Box>
+
+      {/* Statistics Section */}
+      <Box py={12}>
+        <Container maxW={'container.xl'}>
+          <Stack
+            textAlign={'center'}
+            align={'center'}
+            spacing={{ base: 5, md: 8 }}
+            py={{ base: 5, md: 8 }}>
+            <Heading
+              fontWeight={600}
+              fontSize={{ base: '2xl', sm: '4xl' }}
+              lineHeight={'110%'}>
+              Our Rusunawa in {' '}
+              <Text as={'span'} color={'brand.500'}>
+                Numbers
+              </Text>
+            </Heading>
+          </Stack>
+          <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={5}>
+            {stats.map((stat) => (
+              <Stat
+                key={stat.id}
+                px={{ base: 2, md: 4 }}
+                py={5}
+                shadow={'xl'}
+                border={'1px solid'}
+                borderColor={useColorModeValue('gray.200', 'gray.500')}
+                rounded={'lg'}>
+                <Flex justifyContent={'center'}>
+                  <Box
+                    my={'auto'}
+                    color={useColorModeValue('gray.800', 'gray.200')}
+                    alignContent={'center'}>
+                    <StatLabel fontWeight={'medium'} isTruncated>
+                      {stat.title}
+                    </StatLabel>
+                    <StatNumber fontSize={'2xl'} fontWeight={'bold'}>
+                      {stat.value}
+                    </StatNumber>
+                    <Text fontSize={'sm'} mt={2}>{stat.description}</Text>
+                  </Box>
+                </Flex>
+              </Stat>
+            ))}
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Testimonials Section */}
+      <Box bg={useColorModeValue('gray.50', 'gray.800')} py={12}>
+        <Container maxW={'container.xl'}>
+          <Stack
+            textAlign={'center'}
+            align={'center'}
+            spacing={{ base: 5, md: 8 }}
+            py={{ base: 5, md: 8 }}>
+            <Heading
+              fontWeight={600}
+              fontSize={{ base: '2xl', sm: '4xl' }}
+              lineHeight={'110%'}>
+              What Our {' '}
+              <Text as={'span'} color={'brand.500'}>
+                Residents Say
+              </Text>
+            </Heading>
+          </Stack>
+          
+          <Wrap spacing="30px" justify="center" mt={10}>
+            {testimonials.map((testimonial) => (
+              <WrapItem key={testimonial.id} width={{ base: '100%', md: '45%', lg: '30%' }}>
+                <Box
+                  bg={useColorModeValue('white', 'gray.700')}
+                  boxShadow={'lg'}
+                  borderRadius={'md'}
+                  p={8}
+                  rounded={'md'}
+                  h={'full'}>
+                  <Text fontSize={'lg'} fontWeight={600} mb={2}>
+                    "{testimonial.quote}"
+                  </Text>
+                  <Text fontSize={'md'} color={'gray.600'} mb={4}>
+                    {testimonial.content}
+                  </Text>
+                  <HStack mt={8}>
+                    <Avatar src={testimonial.avatar} name={testimonial.name} size={'sm'} />
+                    <VStack align="start" spacing={0}>
+                      <Text fontWeight={600}>{testimonial.name}</Text>
+                      <Text fontSize={'sm'} color={'gray.600'}>{testimonial.role}</Text>
+                    </VStack>
+                  </HStack>
+                </Box>
+              </WrapItem>
+            ))}
+          </Wrap>
+        </Container>
+      </Box>
+
+      {/* Call to Action */}
+      <Box bg={useColorModeValue('brand.500', 'brand.600')} color="white" py={10}>
+        <Container maxW={'container.xl'}>
+          <Stack direction={{ base: 'column', md: 'row' }} spacing={4} align="center" justify="space-between">
+            <VStack align={{ base: 'center', md: 'start'}} spacing={2} mb={{ base: 4, md: 0 }}>
+              <Heading size="lg">Ready to join our community?</Heading>
+              <Text>
+                {isLoggedIn 
+                  ? 'Explore our rooms and facilities to find your perfect fit'
+                  : 'Register now to apply for a room at our rusunawa!'
+                }
+              </Text>
+            </VStack>
+            <Button
+              as="a"
+              href={isLoggedIn ? "/rooms" : "/tenant/register"}
+              rounded={'full'}
+              px={6}
+              colorScheme="whiteAlpha"
+              _hover={{
+                bg: 'whiteAlpha.500',
+              }}>
+              {isLoggedIn ? 'Browse Rooms' : 'Register Today'}
+            </Button>
+          </Stack>
+        </Container>
+      </Box>
     </Box>
   );
-}
+};
 
 // Arrow icon for hero section
 const Arrow = createIcon({
@@ -681,3 +725,5 @@ function CommunityIcon(props) {
     </Icon>
   );
 }
+
+export default LandingPage;
