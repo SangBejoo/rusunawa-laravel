@@ -31,10 +31,9 @@ class TenantAuthenticate
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthenticated'
-                ], 401);
-            }
+                ], 401);            }
             
-            return redirect()->route('login');
+            return redirect()->route('tenant.login');
         }
 
         // Verify token with API
@@ -50,9 +49,8 @@ class TenantAuthenticate
                     'success' => false,
                     'message' => 'Session expired. Please log in again.'
                 ], 401);
-            }
-            
-            return redirect()->route('login')
+            }            
+            return redirect()->route('tenant.login')
                 ->with('error', 'Session expired. Please log in again.');
         }
 

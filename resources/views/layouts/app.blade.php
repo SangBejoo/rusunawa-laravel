@@ -36,7 +36,11 @@
     <div id="app">
         @yield('content')
     </div>
+      @yield('scripts')
     
-    @yield('scripts')
+    <!-- Debug Helper (remove in production) -->
+    @if(config('app.debug', true))
+        <script src="{{ asset('js/debug-helper.js') }}"></script>
+    @endif
 </body>
 </html>

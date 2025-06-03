@@ -27,7 +27,7 @@ class DocumentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('login')
+            return redirect()->route('tenant.login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -60,7 +60,7 @@ class DocumentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('login')
+            return redirect()->route('tenant.login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -90,7 +90,7 @@ class DocumentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('login')
+            return redirect()->route('tenant.login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -123,7 +123,7 @@ class DocumentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('login')
+            return redirect()->route('tenant.login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         
@@ -153,7 +153,7 @@ class DocumentController extends Controller
         $tenant = $this->authService->getTenantData();
         
         if (!$tenant) {
-            return redirect()->route('login')
+            return redirect()->route('tenant.login')
                 ->with('error', 'Your session has expired. Please login again.');
         }
         

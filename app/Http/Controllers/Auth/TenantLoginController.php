@@ -16,6 +16,7 @@ class TenantLoginController extends Controller
     public function __construct(TenantAuthService $tenantAuthService)
     {
         $this->tenantAuthService = $tenantAuthService;
+        // Do not apply any middleware in the constructor
     }
 
     /**
@@ -23,11 +24,19 @@ class TenantLoginController extends Controller
      */
     public function showLoginForm()
     {
-        // If already logged in, redirect to dashboard
-        if (Session::has('tenant_token')) {
-            return redirect()->route('tenant.dashboard');
+        // Log access attempt for debugging
+        Log::info('TenantLoginController::showLoginForm accessed', [
+            'url' => request()->fullUrl(),
+            'session_id' => session()->getId(),
+        ]);
+
+        // If already logged in, redirect to landing page
+        if (Session::has('tenant_token') && !request()->has('force')) {
+            Log::info('User already logged in, redirecting to landing page');
+            return redirect()->route('landing');
         }
         
+        // Always render the login view directly
         return view('tenant.login');
     }
 
@@ -55,34 +64,52 @@ class TenantLoginController extends Controller
             );
 
             if ($response['success']) {
+                // Store token
+                Session::put('tenant_token', $response['body']['token'] ?? null);
+                
+                // Store tenant data for frontend access
+                if (isset($response['body']['tenant'])) {
+                    // Store both the raw tenant data and the token
+                    $tenantData = [
+                        'tenant' => $response['body']['tenant'],
+                        'token' => $response['body']['token']
+                    ];
+                    Session::put('tenant_data', json_encode($tenantData));
+                }
+                
+                // Always redirect to landing page
+                $returnUrl = route('landing');
+                
                 // If request is an AJAX request
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => true,
                         'message' => 'Login successful',
-                        'redirect' => route('tenant.dashboard')
+                        'redirect' => $returnUrl,
+                        'tenant_token' => $response['body']['token'] ?? null,
+                        'tenant_data' => $response['body']['tenant'] ?? null
                     ]);
                 }
                 
                 // Regular form submission
-                return redirect()->route('tenant.dashboard');
+                return redirect($returnUrl);
             } else {
                 Log::warning('Login failed', [
                     'email' => $request->input('email'),
                     'status' => $response['status'],
-                    'message' => $response['body']['message'] ?? 'Unknown error'
+                    'message' => $response['body']['status']['message'] ?? 'Unknown error'
                 ]);
                 
                 if ($request->expectsJson()) {
                     return response()->json([
                         'success' => false,
-                        'message' => $response['body']['message'] ?? 'Invalid credentials'
+                        'message' => $response['body']['status']['message'] ?? 'Invalid credentials'
                     ], $response['status']);
                 }
                 
                 return back()
                     ->withInput($request->only('email'))
-                    ->withErrors(['email' => $response['body']['message'] ?? 'Invalid credentials']);
+                    ->withErrors(['email' => $response['body']['status']['message'] ?? 'Invalid credentials']);
             }
         } catch (\Exception $e) {
             Log::error('Exception during login', [
@@ -118,6 +145,6 @@ class TenantLoginController extends Controller
             ]);
         }
         
-        return redirect()->route('login');
+        return redirect()->route('landing');
     }
 }

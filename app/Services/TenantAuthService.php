@@ -155,7 +155,16 @@ class TenantAuthService extends ApiClient
      */
     public function isLoggedIn()
     {
-        return Session::has('tenant_token');
+        $hasToken = Session::has('tenant_token');
+        
+        // Log login check for debugging
+        \Illuminate\Support\Facades\Log::info('TenantAuthService::isLoggedIn check', [
+            'has_token' => $hasToken,
+            'session_id' => Session::getId(),
+            'session_data_exists' => Session::has('tenant_data')
+        ]);
+        
+        return $hasToken;
     }
 
     /**

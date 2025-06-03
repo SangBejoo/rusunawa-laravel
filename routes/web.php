@@ -1,68 +1,84 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Auth\TenantLoginController;
 use App\Http\Controllers\Auth\TenantRegisterController;
 use App\Http\Controllers\Auth\TenantPasswordController;
-use App\Http\Controllers\LandingController;
 use App\Http\Controllers\TenantDashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\IssueController;
+
+// Include debug routes
+require_once __DIR__.'/debug.php';
+// Include test routes
+require_once __DIR__.'/test.php';
+
+// Direct login route with no middleware to test for redirect issues
+Route::get('/tenant/login-direct', function() {
+    \Illuminate\Support\Facades\Log::info('Direct login route accessed with no middleware');
+    return view('tenant.login');
+})->withoutMiddleware(\App\Http\Middleware\TrackRedirectsMiddleware::class);
+
+// Debug route to check raw response
+Route::get('/tenant/login-debug', function() {
+    return response('Login page debug endpoint - Response is being returned directly', 200)
+        ->header('Content-Type', 'text/plain');
+});
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
 */
 
-// Frontend Landing Pages (SPA)
-Route::get('/', [LandingController::class, 'index'])->name('landing');
-Route::get('/rooms', [LandingController::class, 'index']);
-Route::get('/facilities', [LandingController::class, 'index']);
-Route::get('/about', [LandingController::class, 'index']);
-Route::get('/contact', [LandingController::class, 'index']);
+// Authentication Routes for Tenants - Define login routes outside the group to avoid middleware issues
+Route::get('/tenant/login', [TenantLoginController::class, 'showLoginForm'])
+    ->name('tenant.login')
+    ->withoutMiddleware(['web']);
 
-// Authentication Routes for Tenants at top level
-Route::get('/login', [TenantLoginController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [TenantLoginController::class, 'login']);
-Route::post('/logout', [TenantLoginController::class, 'logout'])->name('logout');
+Route::post('/tenant/login', [TenantLoginController::class, 'login'])
+    ->name('tenant.login.submit');
 
-// Registration Routes
-Route::get('/register', [TenantRegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [TenantRegisterController::class, 'register']);
-
-// Other tenant routes with prefix
-Route::prefix('tenant')->group(function () {
-    // Password Reset Routes
-    Route::get('/forgot-password', [TenantPasswordController::class, 'showLinkRequestForm'])->name('tenant.password.request');
-    Route::post('/forgot-password', [TenantPasswordController::class, 'sendResetLinkEmail'])->name('tenant.password.email');
-    Route::get('/reset-password/{token}', [TenantPasswordController::class, 'showResetForm'])->name('tenant.password.reset');
-    Route::post('/reset-password', [TenantPasswordController::class, 'reset'])->name('tenant.password.update');
+// Authentication Routes for Tenants
+Route::group(['prefix' => 'tenant', 'as' => 'tenant.'], function () {
+    // Logout route
+    Route::post('/logout', [TenantLoginController::class, 'logout'])->name('logout');
     
-    // Dashboard (protected by middleware)
-    Route::get('/dashboard', [TenantDashboardController::class, 'index'])->name('tenant.dashboard')->middleware('tenant.auth');
+    // Registration Routes
+    Route::get('/register', [TenantRegisterController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [TenantRegisterController::class, 'register'])->name('register.submit');
+    
+    // Password Reset Routes
+    Route::get('/password/reset', [TenantPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/password/email', [TenantPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/password/reset/{token}', [TenantPasswordController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/password/reset', [TenantPasswordController::class, 'reset'])->name('password.update');
+    
+    // Authenticated tenant routes
+    Route::middleware('tenant.auth')->group(function () {
+        Route::get('/dashboard', [TenantDashboardController::class, 'index'])->name('tenant.dashboard');
+        Route::get('/profile', [ProfileController::class, 'show'])->name('tenant.profile');
+        Route::get('/bookings', function () { return view('tenant.bookings'); })->name('tenant.bookings');
+        Route::get('/invoices', [PaymentController::class, 'invoices'])->name('tenant.invoices');
+        Route::get('/payments', [PaymentController::class, 'payments'])->name('tenant.payments');
+    });
 });
 
-// Registration Routes
-Route::get('/register', [TenantRegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('/register', [TenantRegisterController::class, 'register']);
+// General page routes
+Route::get('/', [LandingController::class, 'index'])->name('landing');
+Route::get('/rooms', function () { return view('rooms'); })->name('rooms');
+Route::get('/about', function () { return view('about'); })->name('about');
+Route::get('/contact', function () { return view('contact'); })->name('contact');
+Route::get('/facilities', function () { return view('facilities'); })->name('facilities');
 
-// API Health check route
-Route::get('/api/health-check', function () {
-    try {
-        $apiClient = app(\App\Services\ApiClient::class);
-        $isHealthy = $apiClient->checkHealth();
-        
-        if ($isHealthy) {
-            return response()->json(['status' => 'ok', 'message' => 'API is running']);
-        } else {
-            return response()->json(['status' => 'error', 'message' => 'API returned an error'], 500);
-        }
-    } catch (\Exception $e) {
-        \Illuminate\Support\Facades\Log::error('API Health Check Failed', [
-            'error' => $e->getMessage()
-        ]);
-        return response()->json(['status' => 'error', 'message' => 'Failed to connect to API'], 503);
-    }
-});
-
-// 404 Fallback - should be last
+// Make sure the fallback route is the LAST route defined
+// This can cause issues if it intercepts other routes
 Route::fallback([LandingController::class, 'notFound']);

@@ -135,15 +135,14 @@ class TenantPasswordController extends Controller
             );
 
             if ($response['success']) {
-                if ($request->expectsJson()) {
-                    return response()->json([
+                if ($request->expectsJson()) {                    return response()->json([
                         'success' => true,
                         'message' => 'Password has been reset successfully',
-                        'redirect' => route('login')
+                        'redirect' => route('tenant.login')
                     ]);
                 }
                 
-                return redirect()->route('login')
+                return redirect()->route('tenant.login')
                     ->with('status', 'Password has been reset successfully');
             } else {
                 if ($request->expectsJson()) {

@@ -71,15 +71,14 @@ class TenantRegisterController extends Controller
             ]);
 
             if ($response['success']) {
-                if ($request->expectsJson()) {
-                    return response()->json([
+                if ($request->expectsJson()) {                    return response()->json([
                         'success' => true,
                         'message' => 'Registration successful! Please login.',
-                        'redirect' => route('login')
+                        'redirect' => route('tenant.login')
                     ]);
                 }
                 
-                return redirect()->route('login')
+                return redirect()->route('tenant.login')
                     ->with('status', 'Registration successful! Please login.');
             } else {
                 Log::warning('Registration failed', [
