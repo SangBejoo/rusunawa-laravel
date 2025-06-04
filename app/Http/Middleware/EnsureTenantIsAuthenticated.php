@@ -29,33 +29,45 @@ class EnsureTenantIsAuthenticated
                 return $next($request);
             }
             
-            Log::debug('Auth middleware checking authentication for: ' . $request->path(), [
-                'session_id' => Session::getId(),
-                'has_session_token' => Session::has('tenant_token'),
-                'has_cookie_token' => $request->cookie('tenant_token') ? 'yes' : 'no'
-            ]);
-            
-            // First check if auth_token was passed from frontend
-            if ($request->has('auth_token')) {
-                $authToken = $request->input('auth_token');
-                Log::debug('Using auth_token from request parameter');
+            // Check for redirect loop - store requested URL in session
+            if ($request->is('tenant/profile')) {
+                $lastRequestedUrl = Session::get('last_requested_url');
+                $lastRedirectTime = Session::get('last_redirect_time', 0);
+                $currentTime = time();
                 
-                // Validate the token with API
-                $verifyResponse = $this->authService->verifyToken($authToken);
-                
-                if ($verifyResponse['success']) {
-                    Log::debug('Token from request parameter is valid');
-                    // Store the token in session
-                    session(['tenant_token' => $authToken]);
+                // If we just came from login page with a redirect back to profile, we might be in a loop
+                if ($lastRequestedUrl === 'tenant/login' && ($currentTime - $lastRedirectTime) < 2) {
+                    Log::warning('Possible redirect loop detected! Breaking the cycle.');
                     
-                    if ($request->has('tenant_data')) {
-                        session(['tenant_data' => $request->input('tenant_data')]);
-                    }
+                    // Force through to the profile page with a special flag
+                    Session::put('force_profile_access', true);
+                    return $next($request);
                 }
+                
+                // Update last requested URL and time for tracking
+                Session::put('last_requested_url', 'tenant/profile');
+                Session::put('last_redirect_time', $currentTime);
             }
             
-            // Check session for token, then cookie as fallback
+            // For debugging - log all authentication credentials
+            Log::debug('Auth middleware checking authentication for: ' . $request->path(), [
+                'session_id' => Session::getId(),
+                'has_session_token' => Session::has('tenant_token') ? 'yes' : 'no',
+                'has_cookie_token' => $request->cookie('tenant_token') ? 'yes' : 'no',
+                'force_profile_access' => Session::get('force_profile_access') ? 'yes' : 'no'
+            ]);
+            
+            // Break the redirect loop if forced access is granted
+            if ($request->is('tenant/profile') && Session::get('force_profile_access')) {
+                Log::info('Forcing access to profile page to break redirect loop');
+                Session::forget('force_profile_access');
+                return $next($request);
+            }
+            
+            // Check both JWT token in localStorage via JavaScript and session token
             $token = Session::get('tenant_token');
+            
+            // Also check cookies as a fallback
             if (!$token) {
                 $token = $request->cookie('tenant_token');
                 if ($token) {
@@ -64,12 +76,29 @@ class EnsureTenantIsAuthenticated
                 }
             }
             
+            // Try to get the token from the Authorization header as well (for API requests)
+            if (!$token && $request->header('Authorization')) {
+                $authHeader = $request->header('Authorization');
+                if (strpos($authHeader, 'Bearer ') === 0) {
+                    $token = substr($authHeader, 7);
+                    Log::debug('Using token from Authorization header');
+                    Session::put('tenant_token', $token);
+                }
+            }
+            
+            // If we still don't have a token, check for tenant_token parameter
+            if (!$token && $request->has('tenant_token')) {
+                $token = $request->input('tenant_token');
+                Log::debug('Using token from request parameter');
+                Session::put('tenant_token', $token);
+            }
+            
             // Final check if user is authenticated
-            if (!$this->authService->isLoggedIn()) {
+            if (!$token || !$this->authService->isLoggedIn()) {
                 Log::info('Auth middleware redirecting to login', [
                     'path' => $request->path(),
                     'is_ajax' => $request->ajax(),
-                    'has_session_token' => Session::has('tenant_token'),
+                    'has_session_token' => Session::has('tenant_token') ? 'yes' : 'no',
                     'has_cookie_token' => $request->cookie('tenant_token') ? 'yes' : 'no'
                 ]);
                 
@@ -78,6 +107,10 @@ class EnsureTenantIsAuthenticated
                     Session::put('url.intended', $request->fullUrl());
                     Log::debug('Stored intended URL: ' . $request->fullUrl());
                 }
+                
+                // Update last requested URL for tracking redirect loops
+                Session::put('last_requested_url', $request->path());
+                Session::put('last_redirect_time', time());
                 
                 if ($request->ajax() || $request->expectsJson()) {
                     return response()->json([

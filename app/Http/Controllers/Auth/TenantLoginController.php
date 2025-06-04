@@ -26,7 +26,8 @@ class TenantLoginController extends Controller
         // Log access attempt for debugging
         Log::info('TenantLoginController::showLoginForm accessed', [
             'url' => request()->fullUrl(),
-            'session_id' => session()->getId()
+            'session_id' => session()->getId(),
+            'redirect_param' => request()->input('redirect')
         ]);
 
         // Always ensure a clean session state for login
@@ -45,9 +46,34 @@ class TenantLoginController extends Controller
             ]);
         }
         
-        // If already logged in, redirect to landing page
+        // If already logged in, handle redirection properly
         if (Session::has('tenant_token')) {
-            Log::info('User already logged in, redirecting to landing page');
+            Log::info('User already logged in, checking for redirect parameter');
+            
+            // Check if there's a redirect parameter
+            $redirect = request()->query('redirect');
+            
+            // If trying to redirect to tenant/profile, check for possible loop
+            if ($redirect && strpos($redirect, 'tenant/profile') !== false) {
+                $lastRedirectTime = Session::get('last_redirect_time', 0);
+                $currentTime = time();
+                
+                // If we've been redirected recently, we might be in a loop
+                if (($currentTime - $lastRedirectTime) < 2) {
+                    Log::warning('Possible redirect loop detected in login! Breaking cycle');
+                    Session::put('force_profile_access', true);
+                    return redirect()->route('tenant.profile');
+                }
+                
+                Session::put('last_redirect_time', $currentTime);
+            }
+            
+            // If we have a redirect parameter, use it
+            if ($redirect) {
+                return redirect($redirect);
+            }
+            
+            // Otherwise go to landing page
             return redirect()->route('landing');
         }
         
@@ -193,8 +219,13 @@ class TenantLoginController extends Controller
                     'session_id' => Session::getId()
                 ]);
                 
-                // Determine redirect URL
+                // Determine redirect URL - be more careful about this
                 $returnUrl = $request->query('redirect');
+                
+                // If the redirect URL is tenant/profile, set a flag to prevent loops
+                if ($returnUrl && strpos($returnUrl, 'tenant/profile') !== false) {
+                    Session::put('force_profile_access', true);
+                }
                 
                 if (!$returnUrl && Session::has('url.intended')) {
                     $returnUrl = Session::get('url.intended');

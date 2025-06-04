@@ -32,6 +32,11 @@ Route::get('/tenant/login-debug', function() {
         ->header('Content-Type', 'text/plain');
 });
 
+// Tenant profile route - without middleware to avoid redirect loops
+Route::get('/tenant/profile', function() {
+    return view('tenant.profile');
+})->name('tenant.profile'); // Removed tenant.auth middleware
+
 // Debug login page for troubleshooting
 Route::get('/debug-login', function() {
     return view('debug-login');
@@ -86,7 +91,6 @@ Route::group(['prefix' => 'tenant', 'as' => 'tenant.'], function () {
     
     // React SPA entry points (NO tenant.auth middleware, so React+JWT works)
     Route::get('/dashboard', function () { return view('tenant.react-app'); })->name('dashboard');
-    Route::get('/profile', function () { return view('tenant.react-app'); })->name('profile');
     Route::get('/bookings', function () { return view('tenant.react-app'); })->name('bookings');
     Route::get('/invoices', function () { return view('tenant.react-app'); })->name('invoices');
     Route::get('/payments', function () { return view('tenant.react-app'); })->name('payments');

@@ -40,22 +40,31 @@ export default function Navbar() {
     const tenantToken = localStorage.getItem('tenant_token');
     const tenantDataStr = localStorage.getItem('tenant_data');
     
+    console.log("Navbar: Checking authentication state");
+    console.log("Navbar: Has token:", !!tenantToken);
+    console.log("Navbar: Has tenant data:", !!tenantDataStr);
+    
     if (tenantToken && tenantDataStr) {
       try {
         const tenantData = JSON.parse(tenantDataStr);
         setIsAuthenticated(true);
         setTenant(tenantData);
+        console.log("Navbar: Successfully authenticated user:", tenantData.name);
       } catch (error) {
         console.error('Error parsing tenant data:', error);
         setIsAuthenticated(false);
       }
+    } else {
+      console.log("Navbar: User is not authenticated");
     }
     
     // Listen for auth events 
     window.addEventListener('auth-event', handleAuthEvent);
+    window.addEventListener('storage', handleStorageChange);
     
     return () => {
       window.removeEventListener('auth-event', handleAuthEvent);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
   
@@ -68,6 +77,29 @@ export default function Navbar() {
     } else if (action === 'logout') {
       setIsAuthenticated(false);
       setTenant(null);
+    }
+  };
+  
+  const handleStorageChange = (event) => {
+    // Update auth state if localStorage changes (for cross-tab sync)
+    if (event.key === 'tenant_token') {
+      if (event.newValue) {
+        try {
+          const tenantDataStr = localStorage.getItem('tenant_data');
+          if (tenantDataStr) {
+            const tenantData = JSON.parse(tenantDataStr);
+            setIsAuthenticated(true);
+            setTenant(tenantData);
+            console.log("Navbar: Auth state updated from storage event - logged in");
+          }
+        } catch (e) {
+          console.error("Navbar: Error handling storage event", e);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setTenant(null);
+        console.log("Navbar: Auth state updated from storage event - logged out");
+      }
     }
   };
   

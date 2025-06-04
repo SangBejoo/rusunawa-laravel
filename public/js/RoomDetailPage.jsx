@@ -32,7 +32,8 @@ import {
   StatHelpText,
   Tag,
   TagLabel,
-  TagLeftIcon
+  TagLeftIcon,
+  Select // Added Select component import
 } from '@chakra-ui/react';
 import { CheckIcon, InfoIcon } from '@chakra-ui/icons';
 import { FaBed, FaWifi, FaShower, FaUsers, FaAirFreshener, FaDesktop, 
@@ -135,7 +136,10 @@ const RoomDetailPage = ({ initialData }) => {
     startDate: '',
     endDate: '',
     roomId: initialData?.room?.roomId || '',
-    tenantId: ''
+    tenantId: '',
+    startMonth: new Date().getMonth() + 1, // Current month (1-12)
+    startYear: new Date().getFullYear(), // Current year
+    durationMonths: 1 // Default duration in months
   });
   const [bookingErrors, setBookingErrors] = useState({});
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
@@ -198,7 +202,9 @@ const RoomDetailPage = ({ initialData }) => {
     setBooking(prev => ({
       ...prev,
       startDate: formatDate(today),
-      endDate: formatDate(tomorrow)
+      endDate: formatDate(tomorrow),
+      startMonth: today.getMonth() + 1, // 1-12 month format
+      startYear: today.getFullYear()
     }));
     
     return () => {
@@ -262,6 +268,33 @@ const RoomDetailPage = ({ initialData }) => {
       [name]: value
     }));
     
+    // Additional logic for monthly rental - calculate end date based on duration
+    if (name === 'durationMonths' && room.rentalType?.name === 'bulanan') {
+      // Calculate the end date based on start month/year and duration
+      const startMonth = booking.startMonth;
+      const startYear = booking.startYear;
+      
+      let endMonth = parseInt(startMonth) + parseInt(value) - 1;
+      let endYear = parseInt(startYear);
+      
+      // Adjust for month overflow
+      if (endMonth > 12) {
+        endYear += Math.floor(endMonth / 12);
+        endMonth = endMonth % 12;
+        if (endMonth === 0) endMonth = 12; // Handle December case
+      }
+      
+      // Format dates for API
+      const startDate = new Date(startYear, startMonth - 1, 1);
+      const endDate = new Date(endYear, endMonth, 0); // Last day of the month
+      
+      setBooking(prev => ({
+        ...prev,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      }));
+    }
+    
     // Clear error when user changes input
     if (bookingErrors[name]) {
       setBookingErrors(prev => ({
@@ -271,23 +304,79 @@ const RoomDetailPage = ({ initialData }) => {
     }
   };
   
+  const handleMonthYearChange = (e) => {
+    const { name, value } = e.target;
+    setBooking(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Recalculate the actual dates when month/year selection changes
+    setTimeout(() => {
+      const startMonth = name === 'startMonth' ? value : booking.startMonth;
+      const startYear = name === 'startYear' ? value : booking.startYear;
+      const duration = booking.durationMonths;
+      
+      let endMonth = parseInt(startMonth) + parseInt(duration) - 1;
+      let endYear = parseInt(startYear);
+      
+      // Adjust for month overflow
+      if (endMonth > 12) {
+        endYear += Math.floor(endMonth / 12);
+        endMonth = endMonth % 12;
+        if (endMonth === 0) endMonth = 12;
+      }
+      
+      // Format dates for API
+      const startDate = new Date(startYear, startMonth - 1, 1);
+      const endDate = new Date(endYear, endMonth, 0);
+      
+      setBooking(prev => ({
+        ...prev,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      }));
+      
+      // Clear any existing errors
+      if (bookingErrors.startDate || bookingErrors.endDate) {
+        setBookingErrors(prev => ({
+          ...prev,
+          startDate: null,
+          endDate: null
+        }));
+      }
+    }, 0);
+  };
+  
   const validateBooking = () => {
     const errors = {};
     
-    if (!booking.startDate) {
-      errors.startDate = 'Check-in date is required';
-    }
-    
-    if (!booking.endDate) {
-      errors.endDate = 'Check-out date is required';
-    }
-    
-    if (booking.startDate && booking.endDate) {
-      const start = new Date(booking.startDate);
-      const end = new Date(booking.endDate);
+    if (room.rentalType?.name === 'harian') {
+      // Validation for daily rental
+      if (!booking.startDate) {
+        errors.startDate = 'Check-in date is required';
+      }
       
-      if (start >= end) {
-        errors.endDate = 'Check-out date must be after check-in date';
+      if (!booking.endDate) {
+        errors.endDate = 'Check-out date is required';
+      }
+      
+      if (booking.startDate && booking.endDate) {
+        const start = new Date(booking.startDate);
+        const end = new Date(booking.endDate);
+        
+        if (start >= end) {
+          errors.endDate = 'Check-out date must be after check-in date';
+        }
+      }
+    } else {
+      // Validation for monthly rental
+      if (!booking.startMonth || !booking.startYear) {
+        errors.startMonth = 'Starting month and year are required';
+      }
+      
+      if (!booking.durationMonths || booking.durationMonths < 1) {
+        errors.durationMonths = 'Duration must be at least 1 month';
       }
     }
     
@@ -635,33 +724,121 @@ const RoomDetailPage = ({ initialData }) => {
               
               <form onSubmit={handleBookNow}>
                 <Stack spacing={4}>
-                  <FormControl isInvalid={!!bookingErrors.startDate}>
-                    <FormLabel>Check-in Date</FormLabel>
-                    <Input
-                      type="date"
-                      name="startDate"
-                      value={booking.startDate}
-                      onChange={handleBookingChange}
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                    {bookingErrors.startDate && (
-                      <FormErrorMessage>{bookingErrors.startDate}</FormErrorMessage>
-                    )}
-                  </FormControl>
-                  
-                  <FormControl isInvalid={!!bookingErrors.endDate}>
-                    <FormLabel>Check-out Date</FormLabel>
-                    <Input
-                      type="date"
-                      name="endDate"
-                      value={booking.endDate}
-                      onChange={handleBookingChange}
-                      min={booking.startDate}
-                    />
-                    {bookingErrors.endDate && (
-                      <FormErrorMessage>{bookingErrors.endDate}</FormErrorMessage>
-                    )}
-                  </FormControl>
+                  {room.rentalType?.name === 'harian' ? (
+                    /* Daily Rental Form */
+                    <>
+                      <FormControl isInvalid={!!bookingErrors.startDate}>
+                        <FormLabel>Check-in Date</FormLabel>
+                        <Input
+                          type="date"
+                          name="startDate"
+                          value={booking.startDate}
+                          onChange={handleBookingChange}
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                        {bookingErrors.startDate && (
+                          <FormErrorMessage>{bookingErrors.startDate}</FormErrorMessage>
+                        )}
+                      </FormControl>
+                      
+                      <FormControl isInvalid={!!bookingErrors.endDate}>
+                        <FormLabel>Check-out Date</FormLabel>
+                        <Input
+                          type="date"
+                          name="endDate"
+                          value={booking.endDate}
+                          onChange={handleBookingChange}
+                          min={booking.startDate}
+                        />
+                        {bookingErrors.endDate && (
+                          <FormErrorMessage>{bookingErrors.endDate}</FormErrorMessage>
+                        )}
+                      </FormControl>
+                    </>
+                  ) : (
+                    /* Monthly Rental Form */
+                    <>
+                      <Heading as="h4" size="sm" mb={2}>
+                        Select Rental Period
+                      </Heading>
+                      
+                      <FormControl isInvalid={!!bookingErrors.startMonth}>
+                        <FormLabel>Starting Month/Year</FormLabel>
+                        <Flex gap={2}>
+                          <Select 
+                            name="startMonth" 
+                            value={booking.startMonth}
+                            onChange={handleMonthYearChange}
+                          >
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                          </Select>
+                          
+                          <Select 
+                            name="startYear" 
+                            value={booking.startYear}
+                            onChange={handleMonthYearChange}
+                          >
+                            {Array.from({ length: 5 }).map((_, i) => {
+                              const year = new Date().getFullYear() + i;
+                              return (
+                                <option key={year} value={year}>
+                                  {year}
+                                </option>
+                              );
+                            })}
+                          </Select>
+                        </Flex>
+                        {bookingErrors.startMonth && (
+                          <FormErrorMessage>{bookingErrors.startMonth}</FormErrorMessage>
+                        )}
+                      </FormControl>
+                      
+                      <FormControl isInvalid={!!bookingErrors.durationMonths}>
+                        <FormLabel>Duration (months)</FormLabel>
+                        <Select
+                          name="durationMonths"
+                          value={booking.durationMonths}
+                          onChange={handleBookingChange}
+                        >
+                          {[1, 2, 3, 4, 5, 6, 12].map(months => (
+                            <option key={months} value={months}>
+                              {months} {months === 1 ? 'month' : 'months'}
+                            </option>
+                          ))}
+                        </Select>
+                        {bookingErrors.durationMonths && (
+                          <FormErrorMessage>{bookingErrors.durationMonths}</FormErrorMessage>
+                        )}
+                      </FormControl>
+                      
+                      <Box bg="gray.50" p={3} borderRadius="md">
+                        <Text fontSize="sm" fontWeight="medium">Rental Period Summary:</Text>
+                        <Text fontSize="sm">
+                          {new Date(booking.startDate).toLocaleDateString('en-US', { 
+                            month: 'long', 
+                            year: 'numeric' 
+                          })} — {new Date(booking.endDate).toLocaleDateString('en-US', { 
+                            month: 'long', 
+                            year: 'numeric' 
+                          })}
+                        </Text>
+                        <Text fontSize="sm" mt={1}>
+                          Total: <strong>Rp {new Intl.NumberFormat('id-ID').format((room.rate || 0) * booking.durationMonths)}</strong>
+                        </Text>
+                      </Box>
+                    </>
+                  )}
                   
                   <Button
                     type="submit"
@@ -692,7 +869,7 @@ const RoomDetailPage = ({ initialData }) => {
                   <strong>Booking Note:</strong> Your booking will be confirmed after review.
                 </Text>
                 <Text>
-                  <strong>Cancellation Policy:</strong> Free cancellation up to 24 hours before check-in.
+                  <strong>Cancellation Policy:</strong> Free cancellation up to {room.rentalType?.name === 'bulanan' ? '7 days' : '24 hours'} before check-in.
                 </Text>
               </Box>
             </Stack>
