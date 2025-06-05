@@ -67,7 +67,7 @@ const TenantProfilePage = () => {
         // Make direct API call to Golang backend
         const response = await axios({
           method: 'GET',
-          url: 'http://localhost:8001/v1/tenant/profile',
+          url: 'http://localhost:8003/v1/tenant/profile',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',

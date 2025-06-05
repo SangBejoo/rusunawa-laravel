@@ -25,7 +25,7 @@ echo "Status: " . $response['status'] . "\n";
 echo "Body: " . json_encode($response['body'], JSON_PRETTY_PRINT) . "\n";
 
 // Check the API base URL
-$apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001');
+$apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003');
 echo "\nAPI Base URL: {$apiBaseUrl}\n";
 echo "API Mock Enabled: " . (env('API_MOCK_ENABLED', false) ? 'true' : 'false') . "\n";
 

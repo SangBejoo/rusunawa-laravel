@@ -122,7 +122,7 @@ export default function LoginPage() {
       
       try {
         // First attempt: call Go backend directly
-        response = await fetch('http://localhost:8001/v1/tenant/auth/login', {
+        response = await fetch('http://localhost:8003/v1/tenant/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

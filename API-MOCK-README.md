@@ -49,7 +49,7 @@ To use the real Golang API:
 2. Disable API mock mode: `php artisan api:mock off`
 3. Set the correct API URL in your `.env` file:
    ```
-   API_BASE_URL=http://localhost:8001
+   API_BASE_URL=http://localhost:8003
    API_TIMEOUT=30
    API_MOCK_ENABLED=false
    ```

@@ -49,7 +49,7 @@ Route::post('/verify-token', function (Request $request) {
 
 // Room listing API proxy
 Route::get('/rooms', function (Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     
     try {
         Log::info('Fetching rooms from API', [
@@ -180,7 +180,7 @@ Route::get('/rooms', function (Request $request) {
 
 // Room details API proxy
 Route::get('/rooms/{id}', function ($id, Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     
     try {
         $response = Http::get("{$apiBaseUrl}/rooms/{$id}", $request->query());
@@ -199,7 +199,7 @@ Route::get('/rooms/{id}', function ($id, Request $request) {
 
 // GET bookings - Fetch user's bookings
 Route::get('/bookings', function (Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     
     try {
         // Get token from request
@@ -253,7 +253,7 @@ Route::get('/bookings', function (Request $request) {
 
 // Direct proxy to Go backend authentication API
 Route::post('/direct-login', function (Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     
     try {
         Log::info('Direct login attempt', [
@@ -298,7 +298,7 @@ Route::post('/direct-login', function (Request $request) {
 
 // POST bookings - Create a new booking with error handling for gender mismatch
 Route::post('/bookings', function (Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     
     try {
         // Get token from request - check multiple places
@@ -390,7 +390,7 @@ Route::post('/bookings', function (Request $request) {
 
 // GET booking details
 Route::get('/bookings/{id}', function ($id, Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     
     try {
         // Get token from request

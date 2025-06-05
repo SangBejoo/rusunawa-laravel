@@ -158,7 +158,7 @@ export default function RegisterPage() {
       }
       
       // Make direct API call to the backend
-      const response = await axios.post('http://localhost:8001/v1/tenant/auth/register', registerData, config);
+      const response = await axios.post('http://localhost:8003/v1/tenant/auth/register', registerData, config);
       
       if (response.data && response.data.status && response.data.status.status === 'success') {        setRegistrationSuccess(true);
         

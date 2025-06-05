@@ -15,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Configure API services
         $this->app->singleton('api.url', function ($app) {
-            return config('services.api.url', 'http://localhost:8001');
+            return config('services.api.url', 'http://localhost:8003');
         });
     }
 

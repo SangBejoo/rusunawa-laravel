@@ -121,19 +121,19 @@ Route::get('/payment/{booking_id}', [PaymentController::class, 'show'])
 
 // Add API proxy routes for React components
 Route::get('/api/rooms', function() {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     $response = Http::get("{$apiBaseUrl}/rooms");
     return $response->json();
 });
 
 Route::get('/api/rooms/{id}', function($id) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     $response = Http::get("{$apiBaseUrl}/rooms/{$id}");
     return $response->json();
 });
 
 Route::post('/api/bookings', function(Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
     
     // Get token from session or request
     $token = session('tenant_token') ?? $request->header('Authorization');
@@ -188,7 +188,7 @@ Route::fallback([LandingController::class, 'notFound']);
 Route::prefix('api')->middleware('tenant.auth')->group(function () {
     // Tenant profile API
     Route::get('/tenant/profile', function (Request $request) {
-        $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+        $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
         $token = session('tenant_token') ?? $request->header('Authorization');
         
         // Clean token if it has Bearer prefix
@@ -203,7 +203,7 @@ Route::prefix('api')->middleware('tenant.auth')->group(function () {
     
     // Update tenant profile
     Route::put('/tenant/profile', function (Request $request) {
-        $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+        $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
         $token = session('tenant_token') ?? $request->header('Authorization');
         
         // Clean token if it has Bearer prefix

@@ -69,13 +69,13 @@ export default defineConfig({
         proxy: {
             // Proxy API requests to Golang backend - update to include all v1 routes
             '^/v1/': {
-                target: 'http://localhost:8001',
+                target: 'http://localhost:8003',
                 changeOrigin: true,
                 secure: false
             },
             // Login endpoint specific proxy
             '/v1/tenant/auth/login': {
-                target: 'http://localhost:8001',
+                target: 'http://localhost:8003',
                 changeOrigin: true,
                 secure: false
             },

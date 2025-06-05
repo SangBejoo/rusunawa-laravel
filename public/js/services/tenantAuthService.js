@@ -6,7 +6,7 @@ import axios from 'axios';
 
 class TenantAuthService {  constructor() {
     this.token = localStorage.getItem('tenant_token') || sessionStorage.getItem('tenant_token');
-    this.apiBaseUrl = window.appConfig?.apiBaseUrl || 'http://localhost:8001'; // Go backend URL
+    this.apiBaseUrl = window.appConfig?.apiBaseUrl || 'http://localhost:8003'; // Go backend URL
     
     // Set up Authorization header if token exists
     if (this.token) {

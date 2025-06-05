@@ -54,7 +54,7 @@ function TenantProfile() {
             return;
         }
 
-        axios.get('http://localhost:8001/v1/tenant/profile', {
+        axios.get('http://localhost:8003/v1/tenant/profile', {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',

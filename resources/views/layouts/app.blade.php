@@ -36,7 +36,7 @@
         window.appConfig = {
             csrfToken: "{{ csrf_token() }}",
             baseUrl: "{{ url('/') }}",
-            apiBaseUrl: "{{ env('API_BASE_URL', 'http://localhost:8001') }}"
+            apiBaseUrl: "{{ env('API_BASE_URL', 'http://localhost:8003') }}"
         };
     </script>
 </head>

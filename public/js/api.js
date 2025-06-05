@@ -14,7 +14,7 @@ if (token) {
 // Get API base URL from window config, meta tag, or use default
 const API_BASE_URL = window.config?.apiBaseUrl || 
                     document.head.querySelector('meta[name="api-base-url"]')?.content ||
-                    'http://localhost:8001/v1';
+                    'http://localhost:8003/v1';
 console.log('Using API URL:', API_BASE_URL);
 
 // Create axios instance with proper configuration
