@@ -49,7 +49,7 @@ Route::post('/verify-token', function (Request $request) {
 
 // Room listing API proxy
 Route::get('/rooms', function (Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
     
     try {
         Log::info('Fetching rooms from API', [
@@ -180,7 +180,7 @@ Route::get('/rooms', function (Request $request) {
 
 // Room details API proxy
 Route::get('/rooms/{id}', function ($id, Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
     
     try {
         $response = Http::get("{$apiBaseUrl}/rooms/{$id}", $request->query());
@@ -199,7 +199,7 @@ Route::get('/rooms/{id}', function ($id, Request $request) {
 
 // GET bookings - Fetch user's bookings
 Route::get('/bookings', function (Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
     
     try {
         // Get token from request
@@ -253,7 +253,7 @@ Route::get('/bookings', function (Request $request) {
 
 // Direct proxy to Go backend authentication API
 Route::post('/direct-login', function (Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
     
     try {
         Log::info('Direct login attempt', [
@@ -298,7 +298,7 @@ Route::post('/direct-login', function (Request $request) {
 
 // POST bookings - Create a new booking with error handling for gender mismatch
 Route::post('/bookings', function (Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
     
     try {
         // Get token from request - check multiple places
@@ -390,7 +390,7 @@ Route::post('/bookings', function (Request $request) {
 
 // GET booking details
 Route::get('/bookings/{id}', function ($id, Request $request) {
-    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
     
     try {
         // Get token from request
@@ -433,6 +433,549 @@ Route::get('/bookings/{id}', function ($id, Request $request) {
                 'message' => 'API connection error',
                 'status' => 'error'
             ]
+        ], 500);
+    }
+});
+
+// Payment history and details endpoints
+Route::get('/payments/history', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get("{$apiBaseUrl}/payments", $request->query());
+        
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Exception in payment history API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to connect to API server',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::get('/payments/{id}', function ($id, Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get("{$apiBaseUrl}/payments/{$id}");
+        
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Exception in payment details API', [
+            'payment_id' => $id,
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to connect to API server',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Invoice endpoints
+Route::get('/invoices', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get("{$apiBaseUrl}/invoices", $request->query());
+        
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Exception in invoices API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to connect to API server',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::get('/invoices/{id}', function ($id, Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get("{$apiBaseUrl}/invoices/{$id}");
+        
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Exception in invoice details API', [
+            'invoice_id' => $id,
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to connect to API server',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Payment processing endpoints
+Route::post('/payments/manual', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])
+            ->post("{$apiBaseUrl}/payments/manual", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in manual payment API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to process payment',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::post('/payments/midtrans', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])
+            ->post("{$apiBaseUrl}/payments/midtrans", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in midtrans payment API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to process payment',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Documents endpoints
+Route::get('/documents', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get("{$apiBaseUrl}/tenant/documents");
+        
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Exception in documents API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to connect to API server',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::post('/documents/upload', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        // Handle file upload
+        $response = Http::withToken($token)
+            ->attach(
+                'document', 
+                $request->file('document')->get(),
+                $request->file('document')->getClientOriginalName()
+            )
+            ->post("{$apiBaseUrl}/tenant/documents", [
+                'type' => $request->input('type'),
+                'description' => $request->input('description')
+            ]);
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in document upload API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to upload document',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Issues endpoints
+Route::get('/issues', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get("{$apiBaseUrl}/issues", $request->query());
+        
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Exception in issues API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to connect to API server',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::post('/issues', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])
+            ->post("{$apiBaseUrl}/issues", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in create issue API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to create issue',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::get('/issues/{id}', function ($id, Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get("{$apiBaseUrl}/issues/{$id}");
+        
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Exception in issue details API', [
+            'issue_id' => $id,
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to connect to API server',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Check-in endpoint
+Route::post('/bookings/{id}/checkin', function ($id, Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])
+            ->post("{$apiBaseUrl}/bookings/{$id}/checkin", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in check-in API', [
+            'booking_id' => $id,
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to process check-in',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Tenant profile endpoints (moving from web.php to api.php for consistency)
+Route::get('/tenant/profile', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->get("{$apiBaseUrl}/tenant/profile");
+        
+        return $response->json();
+    } catch (\Exception $e) {
+        Log::error('Exception in tenant profile API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to connect to API server',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::put('/tenant/profile', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $token = $request->bearerToken() ?? session('tenant_token');
+        
+        if (!$token) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => 'Authentication token is required'
+            ], 401);
+        }
+        
+        $response = Http::withToken($token)
+            ->withHeaders([
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ])
+            ->put("{$apiBaseUrl}/tenant/profile", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in update tenant profile API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to update profile',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Authentication endpoints
+Route::post('/tenant/register', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
+        ])->post("{$apiBaseUrl}/tenant/auth/register", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in tenant register API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to register',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::post('/tenant/forgot-password', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
+        ])->post("{$apiBaseUrl}/tenant/auth/forgot-password", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in forgot password API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to process forgot password',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::post('/tenant/reset-password', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
+        ])->post("{$apiBaseUrl}/tenant/auth/reset-password", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in reset password API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to reset password',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+Route::post('/tenant/verify-email', function (Request $request) {
+    $apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
+    
+    try {
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
+        ])->post("{$apiBaseUrl}/tenant/auth/verify-email", $request->all());
+        
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        Log::error('Exception in email verification API', [
+            'message' => $e->getMessage()
+        ]);
+        
+        return response()->json([
+            'error' => 'Failed to verify email',
+            'message' => $e->getMessage()
         ], 500);
     }
 });

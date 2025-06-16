@@ -1,0 +1,6238 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "rusunawa.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "Base"
+    },
+    {
+      "name": "Auth"
+    },
+    {
+      "name": "TenantAuth"
+    },
+    {
+      "name": "UserService"
+    },
+    {
+      "name": "TenantService"
+    },
+    {
+      "name": "TenantDocumentService"
+    },
+    {
+      "name": "RoomService"
+    },
+    {
+      "name": "BookingService"
+    },
+    {
+      "name": "IssueService"
+    },
+    {
+      "name": "NotificationService"
+    },
+    {
+      "name": "AnalyticsService"
+    },
+    {
+      "name": "PaymentService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/analytics/booking-trends": {
+      "get": {
+        "operationId": "AnalyticsService_GetBookingTrendsAnalytics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseBookingTrendsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AnalyticsService"
+        ]
+      }
+    },
+    "/v1/analytics/dashboard-summary": {
+      "get": {
+        "operationId": "AnalyticsService_GetDashboardSummary",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseDashboardSummaryResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "timeRange",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AnalyticsService"
+        ]
+      }
+    },
+    "/v1/analytics/occupancy": {
+      "get": {
+        "operationId": "AnalyticsService_GetOccupancyAnalytics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseOccupancyAnalyticsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AnalyticsService"
+        ]
+      }
+    },
+    "/v1/analytics/popular-rooms": {
+      "get": {
+        "operationId": "AnalyticsService_GetPopularRoomsAnalytics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/basePopularRoomsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "AnalyticsService"
+        ]
+      }
+    },
+    "/v1/analytics/revenue": {
+      "get": {
+        "operationId": "AnalyticsService_GetRevenueAnalytics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseRevenueAnalyticsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "groupBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "includeUnpaid",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
+        "tags": [
+          "AnalyticsService"
+        ]
+      }
+    },
+    "/v1/analytics/revenue-forecast": {
+      "get": {
+        "operationId": "AnalyticsService_GetRevenueForecasting",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseRevenueForecastingResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "forecastMonths",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "startFrom",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "AnalyticsService"
+        ]
+      }
+    },
+    "/v1/analytics/tenant-demographics": {
+      "get": {
+        "operationId": "AnalyticsService_GetTenantDemographics",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseTenantDemographicsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "AnalyticsService"
+        ]
+      }
+    },
+    "/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "Auth_ForgotPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseForgotPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "operationId": "Auth_Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseLoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "operationId": "Auth_Register",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseRegisterResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseRegisterRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/reset-password": {
+      "post": {
+        "operationId": "Auth_ResetPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseResetPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/verify-token": {
+      "post": {
+        "operationId": "Auth_VerifyToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseVerifyTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseVerifyTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/bookings": {
+      "get": {
+        "operationId": "BookingService_GetBookings",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetBookingsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "BookingService"
+        ]
+      },
+      "post": {
+        "operationId": "BookingService_CreateBooking",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseCreateBookingResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseCreateBookingRequest"
+            }
+          }
+        ],
+        "tags": [
+          "BookingService"
+        ]
+      }
+    },
+    "/v1/bookings/{bookingId}": {
+      "get": {
+        "operationId": "BookingService_GetBooking",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetBookingResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "BookingService"
+        ]
+      }
+    },
+    "/v1/bookings/{bookingId}/approve": {
+      "post": {
+        "operationId": "BookingService_ApproveBooking",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseApproveBookingResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BookingServiceApproveBookingBody"
+            }
+          }
+        ],
+        "tags": [
+          "BookingService"
+        ]
+      }
+    },
+    "/v1/bookings/{bookingId}/generate-invoice": {
+      "post": {
+        "operationId": "PaymentService_GenerateInvoiceWithPaymentLink",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGenerateInvoiceWithPaymentLinkResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaymentServiceGenerateInvoiceWithPaymentLinkBody"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/bookings/{bookingId}/status": {
+      "put": {
+        "operationId": "BookingService_UpdateBookingStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateBookingStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "bookingId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BookingServiceUpdateBookingStatusBody"
+            }
+          }
+        ],
+        "tags": [
+          "BookingService"
+        ]
+      }
+    },
+    "/v1/documents/batch-approve": {
+      "post": {
+        "operationId": "TenantDocumentService_BatchApproveDocuments",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseBatchApproveDocumentsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/documents/by-status/{status}": {
+      "get": {
+        "operationId": "TenantDocumentService_GetDocumentsByStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetDocumentsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/documents/pending": {
+      "get": {
+        "summary": "Admin document approval endpoints",
+        "operationId": "TenantDocumentService_GetPendingDocuments",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetDocumentsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/documents/{documentId}": {
+      "get": {
+        "operationId": "TenantDocumentService_GetDocument",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetDocumentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      },
+      "delete": {
+        "operationId": "TenantDocumentService_DeleteDocument",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "tenantId",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      },
+      "put": {
+        "operationId": "TenantDocumentService_UpdateDocument",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateDocumentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantDocumentServiceUpdateDocumentBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/documents/{documentId}/image": {
+      "get": {
+        "summary": "Document image rendering endpoints",
+        "operationId": "TenantDocumentService_GetDocumentImage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseDocumentImageResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/documents/{documentId}/review": {
+      "post": {
+        "operationId": "TenantDocumentService_ReviewDocument",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseReviewDocumentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantDocumentServiceReviewDocumentBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/documents/{documentId}/thumbnail": {
+      "get": {
+        "operationId": "TenantDocumentService_GetDocumentThumbnail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseDocumentImageResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "size",
+            "description": "Optional desired size for thumbnail",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/documents/{documentId}/verify": {
+      "get": {
+        "operationId": "TenantDocumentService_VerifyDocumentStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseVerifyDocumentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "operationId": "Base_HealthCheck",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "Base"
+        ]
+      }
+    },
+    "/v1/invoices": {
+      "get": {
+        "operationId": "PaymentService_GetInvoices",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetInvoicesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "status",
+            "description": "e.g., \"paid\", \"pending\", \"overdue\"",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      },
+      "post": {
+        "summary": "Existing invoice methods",
+        "operationId": "PaymentService_CreateInvoice",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseCreateInvoiceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseCreateInvoiceRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/invoices/{invoiceId}": {
+      "get": {
+        "operationId": "PaymentService_GetInvoice",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetInvoiceResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/invoices/{invoiceId}/receipt": {
+      "post": {
+        "operationId": "PaymentService_UploadPaymentReceipt",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUploadPaymentReceiptResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaymentServiceUploadPaymentReceiptBody"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/invoices/{invoiceId}/status": {
+      "put": {
+        "operationId": "PaymentService_UpdateInvoiceStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateInvoiceStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "invoiceId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaymentServiceUpdateInvoiceStatusBody"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/issues": {
+      "get": {
+        "operationId": "IssueService_GetIssues",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetIssuesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "IssueService"
+        ]
+      },
+      "post": {
+        "operationId": "IssueService_ReportIssue",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseReportIssueResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseReportIssueRequest"
+            }
+          }
+        ],
+        "tags": [
+          "IssueService"
+        ]
+      }
+    },
+    "/v1/issues/{issueId}": {
+      "get": {
+        "operationId": "IssueService_GetIssue",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetIssueResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "issueId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "IssueService"
+        ]
+      }
+    },
+    "/v1/issues/{issueId}/status": {
+      "put": {
+        "operationId": "IssueService_UpdateIssueStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateIssueStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "issueId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/IssueServiceUpdateIssueStatusBody"
+            }
+          }
+        ],
+        "tags": [
+          "IssueService"
+        ]
+      }
+    },
+    "/v1/notifications": {
+      "get": {
+        "operationId": "NotificationService_GetNotifications",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetNotificationsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "NotificationService"
+        ]
+      },
+      "post": {
+        "operationId": "NotificationService_CreateNotification",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseCreateNotificationResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseCreateNotificationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "NotificationService"
+        ]
+      }
+    },
+    "/v1/notifications/{notificationId}": {
+      "delete": {
+        "operationId": "NotificationService_DeleteNotification",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "NotificationService"
+        ]
+      }
+    },
+    "/v1/notifications/{notificationId}/read": {
+      "put": {
+        "operationId": "NotificationService_MarkNotificationAsRead",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMarkNotificationAsReadResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NotificationServiceMarkNotificationAsReadBody"
+            }
+          }
+        ],
+        "tags": [
+          "NotificationService"
+        ]
+      }
+    },
+    "/v1/payment-methods": {
+      "get": {
+        "summary": "Get available payment methods",
+        "operationId": "PaymentService_GetPaymentMethods",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetPaymentMethodsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "empty",
+            "in": "query",
+            "required": false,
+            "type": "object"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/payments/callback": {
+      "post": {
+        "summary": "Midtrans callback handler",
+        "operationId": "PaymentService_HandlePaymentCallback",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/basePaymentCallbackRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/payments/{paymentId}/approve": {
+      "post": {
+        "operationId": "PaymentService_ApproveManualPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseApproveManualPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "description": "ID for the payment to be approved, typically linked to an invoice.",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaymentServiceApproveManualPaymentBody"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/payments/{paymentId}/receipt-image": {
+      "get": {
+        "summary": "Image handling endpoints",
+        "operationId": "PaymentService_GetPaymentReceiptImage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/basePaymentReceiptImageResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "description": "Changed from invoice_id to payment_id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/payments/{paymentId}/reject": {
+      "post": {
+        "operationId": "PaymentService_RejectManualPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseRejectManualPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaymentServiceRejectManualPaymentBody"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/payments/{paymentId}/thumbnail": {
+      "post": {
+        "operationId": "PaymentService_GeneratePaymentReceiptThumbnail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseReceiptThumbnailResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "paymentId",
+            "description": "Changed from invoice_id to payment_id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaymentServiceGeneratePaymentReceiptThumbnailBody"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/room-rates": {
+      "get": {
+        "operationId": "RoomService_GetRoomRates",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetRoomRatesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "classificationId",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "rentalTypeId",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      }
+    },
+    "/v1/rooms": {
+      "get": {
+        "operationId": "RoomService_GetRooms",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetRoomsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "classification",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rentalType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      },
+      "post": {
+        "operationId": "RoomService_CreateRoom",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseCreateRoomResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseCreateRoomRequest"
+            }
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      }
+    },
+    "/v1/rooms/by-gender/{gender}": {
+      "get": {
+        "operationId": "RoomService_GetRoomsByGender",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetRoomsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "gender",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "classification",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "rentalType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      }
+    },
+    "/v1/rooms/by-student-type/{tenantType}": {
+      "get": {
+        "operationId": "RoomService_GetRoomsByStudentType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetRoomsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantType",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "rentalType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      }
+    },
+    "/v1/rooms/{roomId}": {
+      "get": {
+        "operationId": "RoomService_GetRoom",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetRoomResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      },
+      "delete": {
+        "operationId": "RoomService_DeleteRoom",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      },
+      "put": {
+        "operationId": "RoomService_UpdateRoom",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateRoomResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RoomServiceUpdateRoomBody"
+            }
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      }
+    },
+    "/v1/rooms/{roomId}/amenities": {
+      "get": {
+        "operationId": "RoomService_GetRoomAmenities",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetRoomAmenitiesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      },
+      "post": {
+        "operationId": "RoomService_AddRoomAmenities",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseAddRoomAmenitiesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RoomServiceAddRoomAmenitiesBody"
+            }
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      }
+    },
+    "/v1/rooms/{roomId}/amenities/{featureId}": {
+      "delete": {
+        "operationId": "RoomService_RemoveRoomAmenity",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "featureId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      },
+      "put": {
+        "operationId": "RoomService_UpdateRoomAmenity",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateRoomAmenityResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "featureId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RoomServiceUpdateRoomAmenityBody"
+            }
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      }
+    },
+    "/v1/rooms/{roomId}/availability": {
+      "get": {
+        "operationId": "RoomService_GetRoomAvailability",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetRoomAvailabilityResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      },
+      "put": {
+        "operationId": "RoomService_UpdateRoomAvailability",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateRoomAvailabilityResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RoomServiceUpdateRoomAvailabilityBody"
+            }
+          }
+        ],
+        "tags": [
+          "RoomService"
+        ]
+      }
+    },
+    "/v1/rooms/{roomId}/payment-link": {
+      "get": {
+        "summary": "New methods for Midtrans payment links",
+        "operationId": "PaymentService_GetPaymentLinkByRoom",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetPaymentLinkResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/tenant/auth/forgot-password": {
+      "post": {
+        "operationId": "TenantAuth_TenantForgotPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseTenantForgotPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TenantAuth"
+        ]
+      }
+    },
+    "/v1/tenant/auth/login": {
+      "post": {
+        "operationId": "TenantAuth_TenantLogin",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseTenantLoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseTenantLoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TenantAuth"
+        ]
+      }
+    },
+    "/v1/tenant/auth/register": {
+      "post": {
+        "operationId": "TenantAuth_TenantRegister",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseTenantRegisterResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseTenantRegisterRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TenantAuth"
+        ]
+      }
+    },
+    "/v1/tenant/auth/resend-verification": {
+      "post": {
+        "operationId": "TenantAuth_ResendVerificationEmail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseResendVerificationEmailRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TenantAuth"
+        ]
+      }
+    },
+    "/v1/tenant/auth/reset-password": {
+      "post": {
+        "operationId": "TenantAuth_TenantResetPassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseTenantResetPasswordRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TenantAuth"
+        ]
+      }
+    },
+    "/v1/tenant/auth/verify-email": {
+      "get": {
+        "operationId": "TenantAuth_VerifyEmail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantAuth"
+        ]
+      }
+    },
+    "/v1/tenant/auth/verify-token": {
+      "post": {
+        "operationId": "TenantAuth_TenantVerifyToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseTenantVerifyTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/baseTenantVerifyTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TenantAuth"
+        ]
+      }
+    },
+    "/v1/tenants": {
+      "get": {
+        "operationId": "TenantService_GetTenants",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetTenantsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/tenants/by-type/{tenantType}": {
+      "get": {
+        "operationId": "TenantService_GetTenantsByType",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetTenantsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantType",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}": {
+      "get": {
+        "operationId": "TenantService_GetTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetTenantResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      },
+      "delete": {
+        "operationId": "TenantService_DeleteTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      },
+      "put": {
+        "operationId": "TenantService_UpdateTenant",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateTenantResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantServiceUpdateTenantBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/bookings": {
+      "get": {
+        "operationId": "BookingService_GetTenantBookings",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetBookingsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "BookingService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/documents": {
+      "get": {
+        "operationId": "TenantDocumentService_GetTenantDocuments",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetTenantDocumentsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "documentType",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      },
+      "post": {
+        "operationId": "TenantDocumentService_UploadApprovalDocument",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUploadDocumentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantDocumentServiceUploadApprovalDocumentBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/invoices": {
+      "get": {
+        "operationId": "PaymentService_GetTenantInvoices",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetInvoicesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/location": {
+      "put": {
+        "operationId": "TenantService_UpdateTenantLocation",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateTenantResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantServiceUpdateTenantLocationBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/nim": {
+      "put": {
+        "operationId": "TenantService_UpdateTenantNIM",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateTenantResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantServiceUpdateTenantNIMBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/policies/sign": {
+      "post": {
+        "operationId": "TenantDocumentService_SignPolicyAgreement",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseSignPolicyResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantDocumentServiceSignPolicyAgreementBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantDocumentService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/recalculate-distance": {
+      "post": {
+        "operationId": "TenantService_RecalculateDistanceToCampus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateTenantResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantServiceRecalculateDistanceToCampusBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/validate-student": {
+      "post": {
+        "operationId": "TenantService_ValidateStudentInfo",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseValidateStudentInfoResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantServiceValidateStudentInfoBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/tenants/{tenantId}/waiting-list": {
+      "get": {
+        "operationId": "TenantService_GetWaitingListStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseWaitingListResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      },
+      "post": {
+        "operationId": "TenantService_AddToWaitingList",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseWaitingListResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TenantServiceAddToWaitingListBody"
+            }
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "operationId": "UserService_GetUsers",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetUsersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/v1/users/{userId}": {
+      "get": {
+        "operationId": "UserService_GetUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      },
+      "delete": {
+        "operationId": "UserService_DeleteUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      },
+      "put": {
+        "operationId": "UserService_UpdateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseUpdateUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserServiceUpdateUserBody"
+            }
+          }
+        ],
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/v1/users/{userId}/notifications": {
+      "get": {
+        "operationId": "NotificationService_GetUserNotifications",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetNotificationsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "includeRead",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "NotificationService"
+        ]
+      }
+    },
+    "/v1/users/{userId}/notifications/read-all": {
+      "put": {
+        "operationId": "NotificationService_MarkAllNotificationsAsRead",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NotificationServiceMarkAllNotificationsAsReadBody"
+            }
+          }
+        ],
+        "tags": [
+          "NotificationService"
+        ]
+      }
+    },
+    "/v1/waiting-list": {
+      "get": {
+        "operationId": "TenantService_GetWaitingList",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseGetWaitingListResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    },
+    "/v1/waiting-list/{waitingId}": {
+      "delete": {
+        "operationId": "TenantService_RemoveFromWaitingList",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/baseMessageStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "waitingId",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TenantService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "BookingServiceApproveBookingBody": {
+      "type": "object",
+      "properties": {
+        "approverId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "comments": {
+          "type": "string"
+        }
+      }
+    },
+    "BookingServiceUpdateBookingStatusBody": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "IssueServiceUpdateIssueStatusBody": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "NotificationServiceMarkAllNotificationsAsReadBody": {
+      "type": "object"
+    },
+    "NotificationServiceMarkNotificationAsReadBody": {
+      "type": "object"
+    },
+    "PaymentServiceApproveManualPaymentBody": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "PaymentServiceGenerateInvoiceWithPaymentLinkBody": {
+      "type": "object",
+      "properties": {
+        "methodId": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "PaymentServiceGeneratePaymentReceiptThumbnailBody": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "height": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "PaymentServiceRejectManualPaymentBody": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "PaymentServiceUpdateInvoiceStatusBody": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "title": "e.g., \"paid\", \"cancelled\""
+        },
+        "midtransPaymentId": {
+          "type": "string"
+        },
+        "paidAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "PaymentServiceUploadPaymentReceiptBody": {
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string"
+        },
+        "fileType": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "format": "byte"
+        },
+        "uploadedById": {
+          "type": "string",
+          "title": "User ID of the uploader"
+        },
+        "notes": {
+          "type": "string",
+          "title": "Added for payment notes"
+        }
+      }
+    },
+    "RoomServiceAddRoomAmenitiesBody": {
+      "type": "object",
+      "properties": {
+        "amenities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomAmenityInput"
+          }
+        }
+      }
+    },
+    "RoomServiceUpdateRoomAmenityBody": {
+      "type": "object",
+      "properties": {
+        "quantity": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "RoomServiceUpdateRoomAvailabilityBody": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isAvailable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RoomServiceUpdateRoomBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "classificationId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rentalTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "capacity": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amenities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomAmenityInput"
+          }
+        }
+      }
+    },
+    "TenantDocumentServiceReviewDocumentBody": {
+      "type": "object",
+      "properties": {
+        "reviewerId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "reviewedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "TenantDocumentServiceSignPolicyAgreementBody": {
+      "type": "object",
+      "properties": {
+        "policyId": {
+          "type": "string"
+        },
+        "policyVersion": {
+          "type": "string"
+        },
+        "agreed": {
+          "type": "boolean"
+        },
+        "signedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "TenantDocumentServiceUpdateDocumentBody": {
+      "type": "object",
+      "properties": {
+        "tenantId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "docTypeId": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Changed from DocumentTypeEnum"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "format": "byte"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "TenantDocumentServiceUploadApprovalDocumentBody": {
+      "type": "object",
+      "properties": {
+        "docTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "fileType": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string",
+          "format": "byte"
+        },
+        "description": {
+          "type": "string"
+        },
+        "isImage": {
+          "type": "boolean"
+        }
+      },
+      "title": "Document Service Messages"
+    },
+    "TenantServiceAddToWaitingListBody": {
+      "type": "object",
+      "properties": {
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "TenantServiceRecalculateDistanceToCampusBody": {
+      "type": "object"
+    },
+    "TenantServiceUpdateTenantBody": {
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "typeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "gender": {
+          "type": "string"
+        }
+      }
+    },
+    "TenantServiceUpdateTenantLocationBody": {
+      "type": "object",
+      "properties": {
+        "homeLatitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "homeLongitude": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "TenantServiceUpdateTenantNIMBody": {
+      "type": "object",
+      "properties": {
+        "nim": {
+          "type": "string"
+        }
+      }
+    },
+    "TenantServiceValidateStudentInfoBody": {
+      "type": "object",
+      "properties": {
+        "nim": {
+          "type": "string"
+        },
+        "schoolName": {
+          "type": "string"
+        }
+      }
+    },
+    "UserServiceUpdateUserBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "baseAddRoomAmenitiesResponse": {
+      "type": "object",
+      "properties": {
+        "room": {
+          "$ref": "#/definitions/baseRoom"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseApproveBookingResponse": {
+      "type": "object",
+      "properties": {
+        "approval": {
+          "$ref": "#/definitions/baseBookingApproval"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseApproveManualPaymentResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/baseInvoice",
+          "title": "Or a specific Payment message"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseBatchApproveDocumentsRequest": {
+      "type": "object",
+      "properties": {
+        "documentIds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "reviewerId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "baseBooking": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "tenantId": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Changed from string"
+        },
+        "roomId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "checkInDate": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Renamed from start_date"
+        },
+        "checkOutDate": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Renamed from end_date"
+        },
+        "totalAmount": {
+          "type": "number",
+          "format": "double"
+        },
+        "status": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "room": {
+          "$ref": "#/definitions/baseRoom"
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseBookingApproval"
+          }
+        },
+        "tenant": {
+          "$ref": "#/definitions/baseTenant"
+        }
+      }
+    },
+    "baseBookingApproval": {
+      "type": "object",
+      "properties": {
+        "approvalId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "bookingId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "approverId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "approved": {
+          "type": "boolean"
+        },
+        "comments": {
+          "type": "string"
+        },
+        "actedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approver": {
+          "$ref": "#/definitions/baseUser"
+        }
+      }
+    },
+    "baseBookingTrendData": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "type": "string"
+        },
+        "newBookings": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "completedBookings": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "cancelledBookings": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "averageStayDuration": {
+          "type": "number",
+          "format": "double"
+        },
+        "category": {
+          "type": "string"
+        }
+      }
+    },
+    "baseBookingTrendsResponse": {
+      "type": "object",
+      "properties": {
+        "bookingData": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseBookingTrendData"
+          }
+        },
+        "totalBookings": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "averageStayDuration": {
+          "type": "number",
+          "format": "double"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseCreateBookingRequest": {
+      "type": "object",
+      "properties": {
+        "tenantId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "roomId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "checkInDate": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Renamed from start_date"
+        },
+        "checkOutDate": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Renamed from end_date"
+        }
+      },
+      "title": "Booking Service Messages"
+    },
+    "baseCreateBookingResponse": {
+      "type": "object",
+      "properties": {
+        "booking": {
+          "$ref": "#/definitions/baseBooking"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseCreateInvoiceRequest": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "paymentMethod": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "title": "Payment Service Messages"
+    },
+    "baseCreateInvoiceResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/baseInvoice"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseCreateNotificationRequest": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "typeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "content": {
+          "type": "string"
+        }
+      },
+      "title": "Notification Service Messages"
+    },
+    "baseCreateNotificationResponse": {
+      "type": "object",
+      "properties": {
+        "notification": {
+          "$ref": "#/definitions/baseNotification"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseCreateRoomRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "classificationId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rentalTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "capacity": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": {
+          "type": "string"
+        },
+        "amenities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomAmenityInput"
+          }
+        }
+      }
+    },
+    "baseCreateRoomResponse": {
+      "type": "object",
+      "properties": {
+        "room": {
+          "$ref": "#/definitions/baseRoom"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseCreateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseDashboardSummaryResponse": {
+      "type": "object",
+      "properties": {
+        "totalRevenue": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalBookings": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "activeTenants": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "occupancyRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "pendingApprovals": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "revenueChange": {
+          "type": "number",
+          "format": "double"
+        },
+        "occupancyChange": {
+          "type": "number",
+          "format": "double"
+        },
+        "bookingsChange": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseDemographicData": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "percentage": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "baseDocument": {
+      "type": "object",
+      "properties": {
+        "docId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "tenantId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "docTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "fileUrl": {
+          "type": "string"
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "fileType": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "uploadedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "documentType": {
+          "$ref": "#/definitions/baseDocumentType"
+        },
+        "content": {
+          "type": "string",
+          "format": "byte"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approvedByUserId": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Changed from string approved_by"
+        },
+        "approvedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "approver": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "isImage": {
+          "type": "boolean"
+        },
+        "imageWidth": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "imageHeight": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "thumbnailUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "baseDocumentImageResponse": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "format": "byte"
+        },
+        "fileType": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseDocumentType": {
+      "type": "object",
+      "properties": {
+        "docTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "type": {
+          "$ref": "#/definitions/baseDocumentTypeEnum"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "baseDocumentTypeEnum": {
+      "type": "string",
+      "enum": [
+        "DOCUMENT_TYPE_UNSPECIFIED",
+        "KTP",
+        "SURAT_PERJANJIAN"
+      ],
+      "default": "DOCUMENT_TYPE_UNSPECIFIED",
+      "title": "===================================================================\nEnumerations\n==================================================================="
+    },
+    "baseForecastData": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "type": "string"
+        },
+        "forecastedRevenue": {
+          "type": "number",
+          "format": "double"
+        },
+        "confidenceLow": {
+          "type": "number",
+          "format": "double"
+        },
+        "confidenceHigh": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "baseForgotPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "baseGenerateInvoiceWithPaymentLinkResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/baseInvoice"
+        },
+        "paymentLink": {
+          "$ref": "#/definitions/basePaymentLink"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetAvailableFeaturesResponse": {
+      "type": "object",
+      "properties": {
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomFeature"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetBookingResponse": {
+      "type": "object",
+      "properties": {
+        "booking": {
+          "$ref": "#/definitions/baseBooking"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetBookingsResponse": {
+      "type": "object",
+      "properties": {
+        "bookings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseBooking"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetDocumentResponse": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "$ref": "#/definitions/baseDocument"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetDocumentsResponse": {
+      "type": "object",
+      "properties": {
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseDocument"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetInvoiceResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/baseInvoice"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetInvoicesResponse": {
+      "type": "object",
+      "properties": {
+        "invoices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseInvoice"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetIssueResponse": {
+      "type": "object",
+      "properties": {
+        "issue": {
+          "$ref": "#/definitions/baseIssue"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetIssuesResponse": {
+      "type": "object",
+      "properties": {
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseIssue"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetNotificationsResponse": {
+      "type": "object",
+      "properties": {
+        "notifications": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseNotification"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetPaymentLinkResponse": {
+      "type": "object",
+      "properties": {
+        "paymentLink": {
+          "$ref": "#/definitions/basePaymentLink"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetPaymentMethodsResponse": {
+      "type": "object",
+      "properties": {
+        "methods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/basePaymentMethod"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetRoomAmenitiesResponse": {
+      "type": "object",
+      "properties": {
+        "amenities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomAmenity"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetRoomAvailabilityResponse": {
+      "type": "object",
+      "properties": {
+        "availability": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomAvailability"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetRoomRatesResponse": {
+      "type": "object",
+      "properties": {
+        "rates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomRate"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetRoomResponse": {
+      "type": "object",
+      "properties": {
+        "room": {
+          "$ref": "#/definitions/baseRoom"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetRoomsResponse": {
+      "type": "object",
+      "properties": {
+        "rooms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoom"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetTenantDocumentsResponse": {
+      "type": "object",
+      "properties": {
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseDocument"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetTenantResponse": {
+      "type": "object",
+      "properties": {
+        "tenant": {
+          "$ref": "#/definitions/baseTenant"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetTenantsResponse": {
+      "type": "object",
+      "properties": {
+        "tenants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseTenant"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetUsersResponse": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseUser"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseGetWaitingListResponse": {
+      "type": "object",
+      "properties": {
+        "waitingList": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseWaitingListEntry"
+          }
+        },
+        "totalCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseInvoice": {
+      "type": "object",
+      "properties": {
+        "invoiceId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "bookingId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "paymentMethod": {
+          "type": "string"
+        },
+        "invoiceNo": {
+          "type": "string"
+        },
+        "issuedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dueDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "status": {
+          "type": "string"
+        },
+        "midtransPaymentId": {
+          "type": "string"
+        },
+        "receiptUrl": {
+          "type": "string"
+        },
+        "paidAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "paymentLinkUrl": {
+          "type": "string"
+        },
+        "methodId": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Added to map to invoices.method_id"
+        },
+        "lastPaymentId": {
+          "type": "integer",
+          "format": "int32",
+          "title": "Added to map to invoices.last_payment_id"
+        }
+      }
+    },
+    "baseIssue": {
+      "type": "object",
+      "properties": {
+        "issueId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "bookingId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "reportedBy": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "reportedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reporter": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "imageFileUrl": {
+          "type": "string",
+          "title": "URL/path if stored externally"
+        },
+        "imageFileType": {
+          "type": "string",
+          "title": "Mime type of the image"
+        },
+        "imageThumbnailUrl": {
+          "type": "string",
+          "title": "URL/path for thumbnail"
+        },
+        "hasImageAttachment": {
+          "type": "boolean",
+          "title": "Flag if an image is attached"
+        }
+      }
+    },
+    "baseIssueImageResponse": {
+      "type": "object",
+      "properties": {
+        "imageContent": {
+          "type": "string",
+          "format": "byte"
+        },
+        "fileType": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseLoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "title": "Auth Service Messages"
+    },
+    "baseLoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "user": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseMarkNotificationAsReadResponse": {
+      "type": "object",
+      "properties": {
+        "notification": {
+          "$ref": "#/definitions/baseNotification"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseMessageStatusResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "title": "===================================================================\nCommon Messages\n==================================================================="
+    },
+    "baseNotification": {
+      "type": "object",
+      "properties": {
+        "notificationId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "userId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "typeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "content": {
+          "type": "string"
+        },
+        "isRead": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "readAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "notificationType": {
+          "$ref": "#/definitions/baseNotificationType"
+        },
+        "user": {
+          "$ref": "#/definitions/baseUser"
+        }
+      }
+    },
+    "baseNotificationType": {
+      "type": "object",
+      "properties": {
+        "typeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "name": {
+          "type": "string"
+        },
+        "template": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        }
+      }
+    },
+    "baseOccupancyAnalyticsResponse": {
+      "type": "object",
+      "properties": {
+        "occupancyData": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseOccupancyData"
+          }
+        },
+        "averageOccupancyRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseOccupancyData": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "type": "string"
+        },
+        "occupancyRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "totalRooms": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "occupiedRooms": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "category": {
+          "type": "string"
+        }
+      }
+    },
+    "basePayment": {
+      "type": "object",
+      "properties": {
+        "paymentId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "invoiceId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "paymentMethodType": {
+          "type": "string",
+          "title": "e.g. \"credit_card\", \"bank_transfer\" from payments.payment_method"
+        },
+        "paymentChannel": {
+          "type": "string",
+          "title": "e.g. \"bca\", \"gopay\" from payments.payment_channel"
+        },
+        "paymentUrl": {
+          "type": "string",
+          "title": "e.g. Midtrans redirect URL from payments.payment_url"
+        },
+        "virtualAccount": {
+          "type": "string"
+        },
+        "qrCodeUrl": {
+          "type": "string"
+        },
+        "expiryTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "provider": {
+          "type": "string",
+          "title": "e.g. \"midtrans\", \"manual\" from payments.provider"
+        },
+        "transactionId": {
+          "type": "string",
+          "title": "External transaction ID from payments.transaction_id"
+        },
+        "status": {
+          "type": "string",
+          "title": "Payment status ENUM from payments.status"
+        },
+        "paymentDate": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When payment attempt was made"
+        },
+        "paidAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "When payment was confirmed"
+        },
+        "metadata": {
+          "type": "string",
+          "title": "JSONB as string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "receiptUrl": {
+          "type": "string"
+        },
+        "receiptFileType": {
+          "type": "string"
+        },
+        "receiptImage": {
+          "type": "string",
+          "format": "byte"
+        },
+        "imageWidth": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "imageHeight": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "thumbnail": {
+          "type": "string",
+          "format": "byte"
+        },
+        "receiptId": {
+          "type": "string",
+          "title": "from payments.receipt_id"
+        },
+        "notes": {
+          "type": "string",
+          "title": "from payments.notes"
+        }
+      }
+    },
+    "basePaymentCallbackRequest": {
+      "type": "object",
+      "properties": {
+        "transactionStatus": {
+          "type": "string"
+        },
+        "orderId": {
+          "type": "string"
+        },
+        "paymentType": {
+          "type": "string"
+        },
+        "fraudStatus": {
+          "type": "string"
+        },
+        "statusCode": {
+          "type": "string"
+        },
+        "grossAmount": {
+          "type": "string",
+          "title": "You can add more fields from the Midtrans callback payload as needed\n For simplicity, you might also choose to receive the raw JSON string\n string raw_payload = 7;"
+        }
+      }
+    },
+    "basePaymentLink": {
+      "type": "object",
+      "properties": {
+        "linkId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "classificationId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rentalTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "orderId": {
+          "type": "string"
+        },
+        "paymentLinkId": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      }
+    },
+    "basePaymentMethod": {
+      "type": "object",
+      "properties": {
+        "methodId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "basePaymentReceiptImageResponse": {
+      "type": "object",
+      "properties": {
+        "imageContent": {
+          "type": "string",
+          "format": "byte"
+        },
+        "fileType": {
+          "type": "string",
+          "title": "e.g., \"image/jpeg\", \"image/png\""
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "basePolicyAgreement": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "tenantId": {
+          "type": "string"
+        },
+        "policyId": {
+          "type": "string"
+        },
+        "policyName": {
+          "type": "string"
+        },
+        "policyVersion": {
+          "type": "string"
+        },
+        "signed": {
+          "type": "boolean"
+        },
+        "signedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "basePopularRoomsResponse": {
+      "type": "object",
+      "properties": {
+        "popularRooms": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomPopularityData"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseReceiptThumbnailResponse": {
+      "type": "object",
+      "properties": {
+        "thumbnailContent": {
+          "type": "string",
+          "format": "byte"
+        },
+        "fileType": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseRegisterRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "baseRegisterResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseRejectManualPaymentResponse": {
+      "type": "object",
+      "properties": {
+        "payment": {
+          "$ref": "#/definitions/basePayment"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseRentalType": {
+      "type": "object",
+      "properties": {
+        "rentalTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "baseReportIssueRequest": {
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "reportedByUserId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": {
+          "type": "string"
+        },
+        "fileName": {
+          "type": "string",
+          "title": "Added for image upload"
+        },
+        "fileType": {
+          "type": "string",
+          "title": "Added for image upload"
+        },
+        "content": {
+          "type": "string",
+          "format": "byte",
+          "title": "Added for image upload"
+        }
+      },
+      "title": "Issue Service Messages"
+    },
+    "baseReportIssueResponse": {
+      "type": "object",
+      "properties": {
+        "issue": {
+          "$ref": "#/definitions/baseIssue"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseResendVerificationEmailRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "baseResetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "newPassword": {
+          "type": "string"
+        }
+      }
+    },
+    "baseRevenueAnalyticsResponse": {
+      "type": "object",
+      "properties": {
+        "revenueData": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRevenueData"
+          }
+        },
+        "totalRevenue": {
+          "type": "number",
+          "format": "double"
+        },
+        "averageRevenue": {
+          "type": "number",
+          "format": "double"
+        },
+        "growthRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseRevenueData": {
+      "type": "object",
+      "properties": {
+        "period": {
+          "type": "string"
+        },
+        "totalRevenue": {
+          "type": "number",
+          "format": "double"
+        },
+        "paidRevenue": {
+          "type": "number",
+          "format": "double"
+        },
+        "pendingRevenue": {
+          "type": "number",
+          "format": "double"
+        },
+        "transactionCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "category": {
+          "type": "string"
+        }
+      }
+    },
+    "baseRevenueForecastingResponse": {
+      "type": "object",
+      "properties": {
+        "forecast": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseForecastData"
+          }
+        },
+        "modelType": {
+          "type": "string"
+        },
+        "accuracyScore": {
+          "type": "number",
+          "format": "double"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseReviewDocumentResponse": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "$ref": "#/definitions/baseDocument"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseRole": {
+      "type": "object",
+      "properties": {
+        "roleId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "title": "===================================================================\nSupporting Entity \u0026 Component Messages\n==================================================================="
+    },
+    "baseRoom": {
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "name": {
+          "type": "string"
+        },
+        "classificationId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rentalTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rateId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rate": {
+          "type": "number",
+          "format": "double"
+        },
+        "capacity": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "description": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "classification": {
+          "$ref": "#/definitions/baseRoomClassification"
+        },
+        "rentalType": {
+          "$ref": "#/definitions/baseRentalType"
+        },
+        "amenities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseRoomAmenity"
+          }
+        }
+      }
+    },
+    "baseRoomAmenity": {
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "featureId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "quantity": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "feature": {
+          "$ref": "#/definitions/baseRoomFeature"
+        }
+      }
+    },
+    "baseRoomAmenityInput": {
+      "type": "object",
+      "properties": {
+        "featureId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "quantity": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "description": "Placeholder for RoomAmenityInput, used in CreateRoomRequest and UpdateRoomRequest.\nDefine its structure if it's different from RoomAmenity, e.g., for input-specific fields."
+    },
+    "baseRoomAvailability": {
+      "type": "object",
+      "properties": {
+        "availabilityId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "roomId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isAvailable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "baseRoomClassification": {
+      "type": "object",
+      "properties": {
+        "classificationId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "baseRoomFeature": {
+      "type": "object",
+      "properties": {
+        "featureId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "baseRoomPopularityData": {
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "roomName": {
+          "type": "string"
+        },
+        "classification": {
+          "type": "string"
+        },
+        "bookingCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "occupancyRate": {
+          "type": "number",
+          "format": "double"
+        },
+        "revenue": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "baseRoomRate": {
+      "type": "object",
+      "properties": {
+        "rateId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "classificationId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rentalTypeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rate": {
+          "type": "number",
+          "format": "double"
+        },
+        "classification": {
+          "$ref": "#/definitions/baseRoomClassification"
+        },
+        "rentalType": {
+          "$ref": "#/definitions/baseRentalType"
+        }
+      }
+    },
+    "baseSignPolicyResponse": {
+      "type": "object",
+      "properties": {
+        "agreement": {
+          "$ref": "#/definitions/basePolicyAgreement"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseTenant": {
+      "type": "object",
+      "properties": {
+        "tenantId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "userId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "typeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "nim": {
+          "type": "string"
+        },
+        "homeLatitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "homeLongitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "distanceToCampus": {
+          "type": "number",
+          "format": "double"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "user": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "tenantType": {
+          "$ref": "#/definitions/baseTenantType"
+        }
+      }
+    },
+    "baseTenantDemographicsResponse": {
+      "type": "object",
+      "properties": {
+        "demographics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/baseDemographicData"
+          }
+        },
+        "totalTenants": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseTenantForgotPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      }
+    },
+    "baseTenantLoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      },
+      "title": "Tenant Auth Service Messages"
+    },
+    "baseTenantLoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "tenant": {
+          "$ref": "#/definitions/baseTenant"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseTenantRegisterRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "homeLatitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "homeLongitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "nim": {
+          "type": "string"
+        },
+        "typeId": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "baseTenantRegisterResponse": {
+      "type": "object",
+      "properties": {
+        "tenant": {
+          "$ref": "#/definitions/baseTenant"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseTenantResetPasswordRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        },
+        "newPassword": {
+          "type": "string"
+        }
+      }
+    },
+    "baseTenantType": {
+      "type": "object",
+      "properties": {
+        "typeId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "baseTenantVerifyTokenRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
+    "baseTenantVerifyTokenResponse": {
+      "type": "object",
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "tenant": {
+          "$ref": "#/definitions/baseTenant"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateBookingStatusResponse": {
+      "type": "object",
+      "properties": {
+        "booking": {
+          "$ref": "#/definitions/baseBooking"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateDocumentResponse": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "$ref": "#/definitions/baseDocument"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateInvoiceStatusResponse": {
+      "type": "object",
+      "properties": {
+        "invoice": {
+          "$ref": "#/definitions/baseInvoice"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateIssueStatusResponse": {
+      "type": "object",
+      "properties": {
+        "issue": {
+          "$ref": "#/definitions/baseIssue"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateRoomAmenityResponse": {
+      "type": "object",
+      "properties": {
+        "amenity": {
+          "$ref": "#/definitions/baseRoomAmenity"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateRoomAvailabilityResponse": {
+      "type": "object",
+      "properties": {
+        "availability": {
+          "$ref": "#/definitions/baseRoomAvailability"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateRoomResponse": {
+      "type": "object",
+      "properties": {
+        "room": {
+          "$ref": "#/definitions/baseRoom"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateTenantResponse": {
+      "type": "object",
+      "properties": {
+        "tenant": {
+          "$ref": "#/definitions/baseTenant"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUpdateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUploadDocumentResponse": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "$ref": "#/definitions/baseDocument"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUploadPaymentReceiptResponse": {
+      "type": "object",
+      "properties": {
+        "payment": {
+          "$ref": "#/definitions/basePayment",
+          "title": "Changed from Invoice to Payment"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseUser": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "roleId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "fullName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "passwordHash": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "role": {
+          "$ref": "#/definitions/baseRole"
+        }
+      },
+      "title": "===================================================================\nCore Entity Messages\n==================================================================="
+    },
+    "baseValidateStudentInfoResponse": {
+      "type": "object",
+      "properties": {
+        "isValid": {
+          "type": "boolean"
+        },
+        "errorMessage": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseVerifyDocumentResponse": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "$ref": "#/definitions/baseDocument"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseVerifyTokenRequest": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string"
+        }
+      }
+    },
+    "baseVerifyTokenResponse": {
+      "type": "object",
+      "properties": {
+        "valid": {
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/baseUser"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "baseWaitingListEntry": {
+      "type": "object",
+      "properties": {
+        "waitingId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "tenantId": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "rank": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "status": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "requestedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolvedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "tenant": {
+          "$ref": "#/definitions/baseTenant"
+        }
+      }
+    },
+    "baseWaitingListResponse": {
+      "type": "object",
+      "properties": {
+        "waitingEntry": {
+          "$ref": "#/definitions/baseWaitingListEntry"
+        },
+        "status": {
+          "$ref": "#/definitions/baseMessageStatusResponse"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

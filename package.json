@@ -7,22 +7,28 @@
     },
     "devDependencies": {
         "@vitejs/plugin-react": "^4.0.0",
-        "axios": "^1.4.0",
+        "axios": "^1.9.0",
         "laravel-mix": "^6.0.49",
         "laravel-vite-plugin": "^0.7.8",
         "vite": "^4.3.9"
     },
     "dependencies": {
         "@chakra-ui/icons": "^2.2.4",
-        "@chakra-ui/react": "^2.8.1",
-        "@emotion/react": "^11.11.1",
-        "@emotion/styled": "^11.11.0",
-        "framer-motion": "^10.16.4",
+        "@chakra-ui/react": "^2.10.9",
+        "@chakra-ui/theme-tools": "^2.2.6",
+        "@emotion/react": "^11.14.0",
+        "@emotion/styled": "^11.14.0",
+        "@hookform/resolvers": "^5.1.0",
+        "@tanstack/react-query": "^5.80.6",
+        "@tanstack/react-query-devtools": "^5.80.6",
+        "framer-motion": "^10.18.0",
         "leaflet": "^1.9.4",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
+        "react-hook-form": "^7.57.0",
         "react-icons": "^5.5.0",
         "react-leaflet": "^4.2.1",
-        "react-router-dom": "^6.16.0"
+        "react-router-dom": "^6.30.1",
+        "yup": "^1.6.1"
     }
 }

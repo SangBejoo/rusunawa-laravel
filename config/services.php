@@ -32,7 +32,7 @@ return [
     ],
 
     'api' => [
-        'url' => env('API_BASE_URL', 'http://localhost:8003'),
+        'url' => env('API_BASE_URL', 'http://localhost:8001'),
         'timeout' => env('API_TIMEOUT', 30),
     ],
     

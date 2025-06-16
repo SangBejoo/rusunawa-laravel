@@ -1,88 +1,38 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
+import path from 'path';
 
 export default defineConfig({
     plugins: [
         laravel({
-            input: [
-                // CSS
-                'public/css/app.css',
-                
-                // Main entry points
-                'public/js/register-app.jsx',
-                'public/js/login-app.jsx',
-                'public/js/landing-app.jsx',
-                'public/js/rooms-list-app.jsx',
-                'public/js/room-detail-app.jsx',
-               
-                // Pages
-                'public/js/LoginPage.jsx',
-                'public/js/RegisterPage.jsx',
-                'public/js/LandingPage.jsx',
-                'public/js/RoomDetailPage.jsx',
-                'public/js/NotFoundPage.jsx',
-                'public/js/UnderDevelopmentPage.jsx',
-                
-                // Components
-                'public/js/components/Navbar.jsx',
-                'public/js/components/Footer.jsx',
-                'public/js/components/HeroSection.jsx',
-                'public/js/components/SearchPanel.jsx',
-                'public/js/components/RoomList.jsx',
-                'public/js/components/FeaturesSection.jsx',
-                'public/js/components/ApiStatusAlert.jsx',
-                'public/js/components/map/LocationPicker.jsx',
-                
-                // Utils
-                'public/js/api.js',
-                'public/js/app.js',
-                'public/js/auth-sync.js',
-      
-            ],
+            input: ['resources/js/app.jsx', 'resources/css/app.css'],
             refresh: true,
         }),
         react(),
     ],
-    build: {
-        outDir: 'public/build',
-        assetsDir: 'assets',
-        manifest: true,
-        rollupOptions: {
-            output: {
-                manualChunks: {
-                    vendor: ['react', 'react-dom', '@chakra-ui/react', 'axios', 'react-icons'],
-                    map: ['leaflet', 'react-leaflet'],
-                },
-            },
-        },
-    },
     resolve: {
         alias: {
-            '@': resolve(__dirname, 'public/js'),
-            '@components': resolve(__dirname, 'public/js/components'),
-            '@pages': resolve(__dirname, 'public/js/pages'),
+            '@': path.resolve(__dirname, './resources'),
+            '@components': path.resolve(__dirname, './resources/components'),
+            '@pages': path.resolve(__dirname, './resources/pages'),
+            '@hooks': path.resolve(__dirname, './resources/hooks'),
+            '@services': path.resolve(__dirname, './resources/services'),
+            '@utils': path.resolve(__dirname, './resources/utils'),
+            '@assets': path.resolve(__dirname, './resources/assets'),
+            '@context': path.resolve(__dirname, './resources/context'),
         }
     },
     server: {
-        proxy: {
-            // Proxy API requests to Golang backend - update to include all v1 routes
-            '^/v1/': {
-                target: 'http://localhost:8003',
-                changeOrigin: true,
-                secure: false
-            },
-            // Login endpoint specific proxy
-            '/v1/tenant/auth/login': {
-                target: 'http://localhost:8003',
-                changeOrigin: true,
-                secure: false
-            },
-            // Keep existing proxies
-            '/login': 'http://localhost:8000',
-            '/register': 'http://localhost:8000'
+        hmr: {
+            host: 'localhost',
         },
-        cors: true // Enable CORS for development
+        proxy: {
+            '/api': {
+                target: process.env.VITE_API_BASE_URL || 'http://localhost:8001/v1',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api/, '')
+            }
+        }
     }
 });

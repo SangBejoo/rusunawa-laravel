@@ -15,7 +15,7 @@ class RoomsController extends Controller
 
     public function __construct()
     {
-        $this->apiBaseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
+        $this->apiBaseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
         $this->cacheEnabled = env('ENABLE_API_CACHE', true);
         $this->cacheTTL = env('API_CACHE_TTL', 60); // Cache for 60 minutes by default
     }

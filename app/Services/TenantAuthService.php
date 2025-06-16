@@ -13,7 +13,7 @@ class TenantAuthService
 
     public function __construct(ApiClient $apiClient = null)
     {
-        $this->baseUrl = env('API_BASE_URL', 'http://localhost:8003/v1');
+        $this->baseUrl = env('API_BASE_URL', 'http://localhost:8001/v1');
         $this->apiClient = $apiClient ?? app(ApiClient::class);
     }
 
