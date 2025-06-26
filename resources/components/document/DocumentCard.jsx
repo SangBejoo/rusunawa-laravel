@@ -1,19 +1,35 @@
 import React from 'react';
 import {
   Box, Flex, Text, Badge, Icon, Button, Image,
-  useColorModeValue, VStack, HStack, Tooltip
+  useColorModeValue, VStack, HStack, Tooltip,
+  Modal, ModalOverlay, ModalContent, ModalHeader,
+  ModalBody, ModalCloseButton, useDisclosure
 } from '@chakra-ui/react';
 import { 
   FaFileAlt, FaFilePdf, FaFileImage, FaCheckCircle,
   FaTimesCircle, FaClock, FaEye, FaDownload, FaTrash
 } from 'react-icons/fa';
-import { Link as RouterLink } from 'react-router-dom';
 import documentService from '../../services/documentService';
+import DocumentViewer from './DocumentViewer';
 
 const DocumentCard = ({ document, onDelete, showStatus = true, isSelected = false, onView }) => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
   const boxBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const selectedBg = useColorModeValue('brand.50', 'brand.900');
+
+  // Handle delete with modal closure
+  const handleDelete = async (documentId) => {
+    try {
+      if (onDelete) {
+        await onDelete(documentId);
+        onClose(); // Close modal after successful deletion
+      }
+    } catch (error) {
+      // Error is already handled by the onDelete function and DocumentViewer
+      throw error;
+    }
+  };
   
   // Get file icon based on file type
   const getFileIcon = () => {
@@ -91,19 +107,18 @@ const DocumentCard = ({ document, onDelete, showStatus = true, isSelected = fals
       onView(document);
     }
   };
-  
-  const handleDownload = (e) => {
+    const handleDownload = (e) => {
     e.stopPropagation();
     
     if (document.content) {
       // Create download from base64 content
       const blobUrl = documentService.createBlobUrl(document.content, document.fileType);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = blobUrl;
       a.download = document.fileName || 'document';
-      document.body.appendChild(a);
+      window.document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } else if (document.fileUrl) {
       window.open(document.fileUrl, '_blank');
@@ -112,12 +127,12 @@ const DocumentCard = ({ document, onDelete, showStatus = true, isSelected = fals
       documentService.downloadDocument(document.docId)
         .then(blob => {
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
+          const a = window.document.createElement('a');
           a.href = url;
           a.download = document.fileName || 'document';
-          document.body.appendChild(a);
+          window.document.body.appendChild(a);
           a.click();
-          document.body.removeChild(a);
+          window.document.body.removeChild(a);
           URL.revokeObjectURL(url);
         })
         .catch(error => {
@@ -215,14 +230,14 @@ const DocumentCard = ({ document, onDelete, showStatus = true, isSelected = fals
             Delete
           </Button>
         )}
-        
-        <Button
-          as={RouterLink}
-          to={`/tenant/documents/${document.docId}`}
+          <Button
           size="sm"
           leftIcon={<FaEye />}
           variant="outline"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
         >
           View
         </Button>
@@ -233,10 +248,26 @@ const DocumentCard = ({ document, onDelete, showStatus = true, isSelected = fals
           variant="solid"
           colorScheme="brand"
           onClick={handleDownload}
-        >
-          Download
+        >          Download
         </Button>
       </HStack>
+
+      {/* Document Preview Modal */}
+      <Modal isOpen={isOpen} onClose={onClose} size="6xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            Document Details - {document.docType || 'Document'}
+          </ModalHeader>
+          <ModalCloseButton />          <ModalBody pb={6}>
+            <DocumentViewer 
+              document={document} 
+              onDelete={handleDelete}
+              onReplace={null} // Disable replace in modal view
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

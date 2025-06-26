@@ -73,21 +73,32 @@ const TenantInvoiceDetails = () => {
       setLoading(false);
     }
   };
-
   const viewPaymentProof = async (paymentId) => {
     try {
-      const imageData = await paymentService.getPaymentProofImage(paymentId, {
-        format: 'jpeg',
-        encoding: 'base64',
-        maxWidth: 800,
-        maxHeight: 600,
-      });
+      // Find the payment in the invoice payments array
+      const payment = invoice.payments?.find(p => p.id === paymentId);
+      if (!payment || !payment.paymentProof) {
+        toast({
+          title: 'Error',
+          description: 'Payment proof not found',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
 
-      setSelectedPaymentProof({
-        src: `data:${imageData.fileType};base64,${imageData.base64Content}`,
-        paymentId: paymentId,
-      });
-      onProofOpen();
+      // Use embedded base64 content from payment proof
+      const proof = payment.paymentProof;
+      if (proof.base64Content) {
+        setSelectedPaymentProof({
+          src: `data:${proof.fileType || 'image/jpeg'};base64,${proof.base64Content}`,
+          paymentId: paymentId,
+        });
+        onProofOpen();
+      } else {
+        throw new Error('No image content available');
+      }
     } catch (error) {
       toast({
         title: 'Error',

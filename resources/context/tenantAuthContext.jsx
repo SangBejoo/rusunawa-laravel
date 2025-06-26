@@ -24,19 +24,23 @@ export const TenantAuthProvider = ({ children }) => {
           setTenant(null);
           setIsLoading(false);
           return;
-        }
-          // Verify token with backend
+        }        // Verify token with backend
         const response = await tenantAuthService.verifyToken({ token });
+        
+        console.log('TenantAuth - Token verification response:', response);
         
         if (response.valid && response.tenant) {
           setIsAuthenticated(true);
-          setTenant(response.tenant);        } else {
+          setTenant(response.tenant);
+          console.log('TenantAuth - User authenticated:', response.tenant);
+        } else {
           // Invalid token - clean up all auth-related localStorage
           setIsAuthenticated(false);
           setTenant(null);
           localStorage.removeItem('tenant_token');
           localStorage.removeItem('email_verified');
-        }      } catch (error) {
+          console.log('TenantAuth - Invalid token, user logged out');
+        }} catch (error) {
         console.error('Authentication error:', error);
         setError('Authentication failed. Please try again.');
         setIsAuthenticated(false);
@@ -61,14 +65,15 @@ export const TenantAuthProvider = ({ children }) => {
       
       // Call the tenant auth service with credentials object
       const response = await tenantAuthService.login({ email, password });
-      
-      if (response.token && response.tenant) {
+        if (response.token && response.tenant) {
         localStorage.setItem('tenant_token', response.token);
         setIsAuthenticated(true);
         setTenant(response.tenant);
+        console.log('TenantAuth - Login successful, user authenticated:', response.tenant);
         return { success: true, tenant: response.tenant };
       } else {
         setError('Login failed. Please check your credentials.');
+        console.log('TenantAuth - Login failed, no token or tenant in response');
         return { success: false, error: 'Login failed' };
       }
     } catch (error) {

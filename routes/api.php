@@ -979,3 +979,5 @@ Route::post('/tenant/verify-email', function (Request $request) {
         ], 500);
     }
 });
+
+// Pastikan semua endpoint API mengarah ke backend service, tidak perlu fallback SPA di sini

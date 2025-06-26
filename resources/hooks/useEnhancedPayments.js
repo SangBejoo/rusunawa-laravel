@@ -3,7 +3,7 @@ import { useToast } from '@chakra-ui/react';
 import paymentService from '../services/paymentService';
 import paymentAnalyticsService from '../services/paymentAnalyticsService';
 import paymentNotificationService from '../services/paymentNotificationService';
-import { handlePaymentError } from '../utils/paymentErrorHandler';
+import { handlePaymentError } from '../../utils/paymentErrorHandler';
 
 /**
  * Enhanced hook for payment management with analytics and notifications

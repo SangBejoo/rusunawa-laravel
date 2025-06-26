@@ -931,6 +931,202 @@ const paymentService = {
     }
   },
 
+  /**
+   * Create payment for booking with dynamic rate calculation
+   * @param {number} bookingId - The booking ID
+   * @param {number} paymentMethodId - The payment method ID
+   * @param {Object} paymentData - Additional payment data
+   * @returns {Promise<Object>} The payment creation response
+   */
+  createDynamicPayment: async (bookingId, paymentMethodId, paymentData = {}) => {
+    try {
+      const config = getConfig();
+      
+      const requestData = {
+        booking_id: parseInt(bookingId),
+        payment_method_id: parseInt(paymentMethodId),
+        ...paymentData
+      };
+
+      console.log('Creating dynamic payment with data:', requestData);
+      const response = await axios.post(`${API_URL}/bookings/${bookingId}/payments`, requestData, config);
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No payment data received");
+    } catch (error) {
+      console.error('Error creating dynamic payment:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to create payment',
+        details: error.toString()
+      };
+    }
+  },
+
+  /**
+   * Get invoice with dynamic rate breakdown
+   * @param {number} invoiceId - The invoice ID
+   * @returns {Promise<Object>} The invoice with rate breakdown
+   */
+  getInvoiceWithBreakdown: async (invoiceId) => {
+    try {
+      const config = getConfig();
+      
+      console.log(`Getting invoice breakdown for invoice ${invoiceId}`);
+      const response = await axios.get(`${API_URL}/invoices/${invoiceId}/breakdown`, config);
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No invoice breakdown data received");
+    } catch (error) {
+      console.error('Error getting invoice breakdown:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to get invoice breakdown',
+        details: error.toString()
+      };
+    }
+  },
+
+  /**
+   * Process Midtrans payment with dynamic amount
+   * @param {number} invoiceId - The invoice ID
+   * @param {Object} customerDetails - Customer information
+   * @returns {Promise<Object>} The Midtrans payment response
+   */
+  processMidtransPayment: async (invoiceId, customerDetails) => {
+    try {
+      const config = getConfig();
+      
+      const requestData = {
+        invoice_id: parseInt(invoiceId),
+        customer_details: customerDetails
+      };
+
+      console.log('Processing Midtrans payment with data:', requestData);
+      const response = await axios.post(`${API_URL}/payments/midtrans/create`, requestData, config);
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No Midtrans payment data received");
+    } catch (error) {
+      console.error('Error processing Midtrans payment:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to process Midtrans payment',
+        details: error.toString()
+      };
+    }
+  },
+
+  /**
+   * Upload manual payment proof
+   * @param {number} invoiceId - The invoice ID
+   * @param {File} proofFile - The payment proof file
+   * @param {Object} paymentData - Additional payment information
+   * @returns {Promise<Object>} The manual payment response
+   */
+  uploadManualPaymentProof: async (invoiceId, proofFile, paymentData) => {
+    try {
+      const token = tenantAuthService.getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const formData = new FormData();
+      formData.append('invoice_id', invoiceId);
+      formData.append('payment_proof', proofFile);
+      formData.append('bank_name', paymentData.bankName || '');
+      formData.append('account_name', paymentData.accountName || '');
+      formData.append('transfer_date', paymentData.transferDate || '');
+      formData.append('amount', paymentData.amount || '');
+      formData.append('notes', paymentData.notes || '');
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      };
+
+      console.log('Uploading manual payment proof for invoice:', invoiceId);
+      const response = await axios.post(`${API_URL}/payments/manual/upload`, formData, config);
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No manual payment response received");
+    } catch (error) {
+      console.error('Error uploading manual payment proof:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to upload payment proof',
+        details: error.toString()
+      };
+    }
+  },
+
+  /**
+   * Get payment methods available for tenant
+   * @returns {Promise<Object>} The available payment methods
+   */
+  getPaymentMethods: async () => {
+    try {
+      const config = getConfig();
+      
+      console.log('Getting available payment methods');
+      const response = await axios.get(`${API_URL}/payment-methods`, config);
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No payment methods data received");
+    } catch (error) {
+      console.error('Error getting payment methods:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to get payment methods',
+        details: error.toString()
+      };
+    }
+  },
+
+  /**
+   * Get tenant's payment history with filtering
+   * @param {number} tenantId - The tenant ID
+   * @param {Object} filters - Payment filters (status, date range, etc.)
+   * @returns {Promise<Object>} The payment history
+   */
+  getPaymentHistory: async (tenantId, filters = {}) => {
+    try {
+      const config = getConfig();
+      
+      const params = {
+        tenant_id: tenantId,
+        ...filters
+      };
+
+      console.log('Getting payment history with filters:', params);
+      const response = await axios.get(`${API_URL}/tenants/${tenantId}/payments`, { ...config, params });
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No payment history data received");
+    } catch (error) {
+      console.error('Error getting payment history:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to get payment history',
+        details: error.toString()
+      };
+    }
+  },
+
 };
 
 export default paymentService;

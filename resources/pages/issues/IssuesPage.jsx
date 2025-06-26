@@ -48,24 +48,35 @@ const IssuesPage = () => {
 
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  // Fetch issues from API
+  const borderColor = useColorModeValue('gray.200', 'gray.600');  // Fetch tenant-specific issues from API
   useEffect(() => {
     const fetchIssues = async () => {
+      if (!tenant?.tenantId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
         
-        // Call the real API
-        const response = await issueService.getIssues();
-        setIssues(response.issues || response || []);
+        // Call the tenant-specific API endpoint
+        const response = await issueService.getTenantIssues(tenant.tenantId);
+        let issuesData = response.issues || response || [];
+        
+        // Deduplicate issues by issueId (in case API returns duplicates)
+        const uniqueIssues = issuesData.filter((issue, index, arr) => 
+          arr.findIndex(i => i.issueId === issue.issueId) === index
+        );
+        
+        setIssues(uniqueIssues);
         
       } catch (err) {
-        setError(err.message || 'Failed to load issues');
-        console.error('Error fetching issues:', err);
+        setError(err.message || 'Failed to load your issues');
+        console.error('Error fetching tenant issues:', err);
         toast({
           title: 'Error Loading Issues',
-          description: err.message || 'Failed to load issues',
+          description: err.message || 'Failed to load your issues',
           status: 'error',
           duration: 5000,
           isClosable: true,
@@ -76,7 +87,7 @@ const IssuesPage = () => {
     };
 
     fetchIssues();
-  }, []);
+  }, [tenant?.tenantId, toast]);
 
   // Status color mapping
   const getStatusColor = (status) => {
@@ -168,7 +179,6 @@ const IssuesPage = () => {
       </CardBody>
     </Card>
   );
-
   if (loading) {
     return (
       <TenantLayout>
@@ -189,6 +199,19 @@ const IssuesPage = () => {
           <Alert status="error" borderRadius="md">
             <AlertIcon />
             {error}
+          </Alert>
+        </Container>
+      </TenantLayout>
+    );
+  }
+
+  if (!tenant?.tenantId) {
+    return (
+      <TenantLayout>
+        <Container maxW="container.xl" py={8}>
+          <Alert status="warning" borderRadius="md">
+            <AlertIcon />
+            Please log in to view your issues.
           </Alert>
         </Container>
       </TenantLayout>

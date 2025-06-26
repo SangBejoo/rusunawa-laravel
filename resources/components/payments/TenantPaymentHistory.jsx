@@ -81,10 +81,9 @@ const TenantPaymentHistory = ({ tenantId }) => {
       setLoading(false);
     }
   };
-
   const viewPaymentProof = async (payment) => {
     try {
-      if (!payment.hasImageProof) {
+      if (!payment.hasImageProof || !payment.payment.paymentProof) {
         toast({
           title: 'No Image',
           description: 'This payment has no proof image',
@@ -95,18 +94,17 @@ const TenantPaymentHistory = ({ tenantId }) => {
         return;
       }
 
-      const imageData = await paymentService.getPaymentProofImage(payment.payment.id, {
-        format: 'jpeg',
-        encoding: 'base64',
-        maxWidth: 800,
-        maxHeight: 600,
-      });
-
-      setImagePreview({
-        src: `data:${imageData.fileType};base64,${imageData.base64Content}`,
-        payment: payment,
-      });
-      onImageOpen();
+      // Use embedded base64 content from payment proof
+      const proof = payment.payment.paymentProof;
+      if (proof.base64Content) {
+        setImagePreview({
+          src: `data:${proof.fileType || 'image/jpeg'};base64,${proof.base64Content}`,
+          payment: payment,
+        });
+        onImageOpen();
+      } else {
+        throw new Error('No image content available');
+      }
     } catch (error) {
       toast({
         title: 'Error',
@@ -117,24 +115,69 @@ const TenantPaymentHistory = ({ tenantId }) => {
       });
     }
   };
-
   const downloadPaymentProof = async (payment) => {
     try {
-      const imageData = await paymentService.getPaymentProofImage(payment.payment.id, {
-        format: 'jpeg',
-        encoding: 'binary',
-      });
+      if (!payment.hasImageProof || !payment.payment.paymentProof) {
+        toast({
+          title: 'No Image',
+          description: 'This payment has no proof image to download',
+          status: 'info',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
 
-      // Create download link
-      const blob = new Blob([imageData.imageContent], { type: imageData.fileType });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `payment_proof_${payment.payment.id}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Use embedded image content from payment proof
+      const proof = payment.payment.paymentProof;
+      if (proof.imageContent) {
+        // Create download link using embedded binary data
+        const blob = new Blob([new Uint8Array(proof.imageContent)], { 
+          type: proof.fileType || 'image/jpeg' 
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = proof.fileName || `payment_proof_${payment.payment.id}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({
+          title: 'Success',
+          description: 'Payment proof downloaded successfully',
+          status: 'success',
+          duration: 2000,
+        });
+      } else if (proof.base64Content) {
+        // Fallback: convert base64 to blob
+        const byteCharacters = atob(proof.base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: proof.fileType || 'image/jpeg' });
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = proof.fileName || `payment_proof_${payment.payment.id}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({
+          title: 'Success',
+          description: 'Payment proof downloaded successfully',
+          status: 'success',
+          duration: 2000,
+        });
+      } else {
+        throw new Error('No image content available for download');
+      }
     } catch (error) {
       toast({
         title: 'Error',

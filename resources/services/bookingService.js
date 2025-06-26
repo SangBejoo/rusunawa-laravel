@@ -1,7 +1,9 @@
 import axios from 'axios';
-import { API_BASE_URL, API_ENDPOINTS } from '../../config/apiConfig';
+import { API_BASE_URL } from '../utils/apiConfig';
 import tenantAuthService from './tenantAuthService';
 import { validateId } from '../utils/apiUtils';
+
+const API_URL = `${API_BASE_URL}/v1/bookings`;
 
 /**
  * Service for handling booking-related operations
@@ -11,8 +13,7 @@ const bookingService = {
    * Create a new booking
    * @param {Object} bookingData - The booking data
    * @returns {Promise<Object>} The booking creation response
-   */  
-  createBooking: async (bookingData) => {
+   */  createBooking: async (bookingData) => {
     try {
       // Add authorization header if logged in
       const token = tenantAuthService.getToken();
@@ -26,27 +27,26 @@ const bookingService = {
           'Content-Type': 'application/json'
         } 
       };
-      
-      // Ensure date format matches API expectations (ISO string)
+        // Ensure date format matches API expectations (ISO string)
       const processedBookingData = {
         tenantId: parseInt(bookingData.tenantId),
         roomId: parseInt(bookingData.roomId),
         checkInDate: new Date(bookingData.checkInDate).toISOString(),
         checkOutDate: new Date(bookingData.checkOutDate).toISOString()
       };
-      
-      // Add optional fields if they exist
+        // Add optional fields if they exist
       if (bookingData.rentalTypeId) {
         processedBookingData.rentalTypeId = parseInt(bookingData.rentalTypeId);
       }
       if (bookingData.totalAmount) {
         processedBookingData.totalAmount = parseFloat(bookingData.totalAmount);
       }
-        console.log("Sending booking request with data:", processedBookingData);
-      console.log("Using Go API URL:", `${API_BASE_URL}${API_ENDPOINTS.BOOKINGS}`);
+      
+      console.log("Sending booking request with data:", processedBookingData);
+      console.log("Using API URL:", API_URL);
       console.log("Authorization header present:", !!config.headers.Authorization);
       
-      const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.BOOKINGS}`, processedBookingData, config);
+      const response = await axios.post(API_URL, processedBookingData, config);
       console.log("Booking response received:", response.data);
       console.log("Response status:", response.status);
         // Handle different response formats
@@ -76,8 +76,9 @@ const bookingService = {
           
           // If no booking object but status is success, try to fetch the booking
           try {
-            console.log("Attempting to fetch booking after creation...");            const bookingsResponse = await axios.get(
-              `${API_BASE_URL}/tenants/${bookingData.tenantId}/bookings`, 
+            console.log("Attempting to fetch booking after creation...");
+            const bookingsResponse = await axios.get(
+              `${API_BASE_URL}/v1/tenants/${bookingData.tenantId}/bookings`, 
               { ...config, params: { page: 1, limit: 1 } }
             );
             
@@ -169,9 +170,10 @@ const bookingService = {
       
       console.log(`Fetching bookings for tenant ${tenantId}...`);
       console.log('Request config:', config);
-        // Fix the URL construction - use the correct endpoint
+      
+      // Fix the URL construction - use the correct endpoint
       const response = await axios.get(
-        `${API_BASE_URL}/tenants/${tenantId}/bookings`, 
+        `${API_BASE_URL}/v1/tenants/${tenantId}/bookings`, 
         config
       );
       
@@ -332,7 +334,242 @@ const bookingService = {
       console.error(`Error submitting feedback for booking ${bookingId}:`, error);
       throw error.response?.data || { message: 'Failed to submit feedback' };
     }
-  }
+  },
+
+  /**
+   * Get dynamic rate for specific tenant, room, and rental type
+   * @param {number} tenantId - The tenant ID
+   * @param {number} roomId - The room ID
+   * @param {number} rentalTypeId - The rental type ID (1=harian, 2=bulanan)
+   * @returns {Promise<Object>} The dynamic rate response
+   */
+  getDynamicRate: async (tenantId, roomId, rentalTypeId) => {
+    try {
+      const token = tenantAuthService.getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
+      const config = { 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } 
+      };
+
+      const requestData = {
+        tenant_id: parseInt(tenantId),
+        room_id: parseInt(roomId),
+        rental_type_id: parseInt(rentalTypeId)
+      };
+
+      console.log("Getting dynamic rate with data:", requestData);
+      const response = await axios.post(`${API_BASE_URL}/v1/rooms/dynamic-rate`, requestData, config);
+      
+      console.log("Dynamic rate response:", response.data);
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No dynamic rate data received");
+    } catch (error) {
+      console.error('Error getting dynamic rate:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to get dynamic rate',
+        details: error.toString()
+      };
+    }
+  },
+
+  /**
+   * Get all available rates for tenant (showing different room types and rental periods)
+   * @param {number} tenantId - The tenant ID
+   * @returns {Promise<Object>} The available rates response
+   */
+  getAvailableRates: async (tenantId) => {
+    try {
+      const token = tenantAuthService.getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
+      const config = { 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } 
+      };
+
+      const requestData = {
+        tenant_id: parseInt(tenantId)
+      };
+
+      console.log("Getting available rates for tenant:", tenantId);
+      const response = await axios.post(`${API_BASE_URL}/v1/rooms/available-rates`, requestData, config);
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No available rates data received");
+    } catch (error) {
+      console.error('Error getting available rates:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to get available rates',
+        details: error.toString()
+      };
+    }
+  },
+
+  /**
+   * Calculate booking cost with detailed breakdown
+   * @param {number} tenantId - The tenant ID
+   * @param {number} roomId - The room ID
+   * @param {number} rentalTypeId - The rental type ID
+   * @param {string} checkInDate - Check-in date (YYYY-MM-DD format)
+   * @param {string} checkOutDate - Check-out date (YYYY-MM-DD format)
+   * @returns {Promise<Object>} The booking cost calculation
+   */
+  calculateBookingCost: async (tenantId, roomId, rentalTypeId, checkInDate, checkOutDate) => {
+    try {
+      const token = tenantAuthService.getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
+      const config = { 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } 
+      };
+
+      const requestData = {
+        tenant_id: parseInt(tenantId),
+        room_id: parseInt(roomId),
+        rental_type_id: parseInt(rentalTypeId),
+        check_in_date: checkInDate, // Keep as YYYY-MM-DD format
+        check_out_date: checkOutDate
+      };
+
+      console.log("Calculating booking cost with data:", requestData);
+      const response = await axios.post(`${API_BASE_URL}/v1/bookings/calculate-cost`, requestData, config);
+      
+      console.log("Booking cost response:", response.data);
+      
+      if (response.data) {
+        return response.data;
+      }
+      
+      throw new Error("No booking cost data received");
+    } catch (error) {
+      console.error('Error calculating booking cost:', error);
+      throw error.response?.data || { 
+        message: error.message || 'Failed to calculate booking cost',
+        details: error.toString()
+      };
+    }
+  },
+
+  /**
+   * Check room availability based on capacity and existing bookings
+   * @param {number} roomId - The room ID
+   * @param {string} checkInDate - Check-in date (YYYY-MM-DD format)
+   * @param {string} checkOutDate - Check-out date (YYYY-MM-DD format)
+   * @returns {Promise<Object>} The room availability data
+   */
+  checkRoomAvailability: async (roomId, checkInDate, checkOutDate) => {
+    try {
+      const token = tenantAuthService.getToken();
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+      
+      const config = { 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      console.log("Checking room availability for room:", roomId, "dates:", checkInDate, "to", checkOutDate);
+      
+      // First, get room details to know the capacity
+      const roomResponse = await axios.get(`${API_BASE_URL}/v1/rooms/${roomId}`, config);
+      const room = roomResponse.data.room;
+      
+      if (!room) {
+        throw new Error("Room not found");
+      }
+
+      // Then, get bookings for this room in the date range to check occupancy
+      const bookingsResponse = await axios.get(`${API_BASE_URL}/v1/rooms/${roomId}/bookings`, {
+        ...config,
+        params: {
+          start_date: new Date(checkInDate).toISOString(),
+          end_date: new Date(checkOutDate).toISOString(),
+          status: 'confirmed,checked_in' // Only count active bookings
+        }
+      });
+
+      // Calculate availability based on capacity
+      const activeBookings = bookingsResponse.data.bookings || [];
+      const occupiedSlots = activeBookings.length;
+      const availableSlots = room.capacity - occupiedSlots;
+      const isAvailable = availableSlots > 0;
+
+      const availabilityData = {
+        available: isAvailable,
+        room_capacity: room.capacity,
+        occupied_slots: occupiedSlots,
+        available_capacity: availableSlots,
+        total_bookings: activeBookings.length,
+        room_id: roomId,
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate
+      };
+
+      console.log("Room availability calculated:", availabilityData);
+      return availabilityData;
+
+    } catch (error) {
+      console.error('Error checking room availability:', error);
+      
+      // If the backend endpoint doesn't exist or fails, 
+      // fallback to assuming the room is available with full capacity
+      if (error.response?.status === 404 || error.response?.status === 501) {
+        console.warn("Availability endpoint not found, assuming room is available");
+        
+        try {
+          // Just get room details and assume it's available
+          const roomResponse = await axios.get(`${API_BASE_URL}/v1/rooms/${roomId}`, {
+            headers: { Authorization: `Bearer ${tenantAuthService.getToken()}` }
+          });
+          const room = roomResponse.data.room;
+          
+          return {
+            available: true,
+            room_capacity: room.capacity || 4,
+            occupied_slots: 0,
+            available_capacity: room.capacity || 4,
+            total_bookings: 0,
+            room_id: roomId,
+            check_in_date: checkInDate,
+            check_out_date: checkOutDate,
+            fallback: true
+          };
+        } catch (roomError) {
+          console.error('Error getting room details for fallback:', roomError);
+        }
+      }
+      
+      throw error.response?.data || { 
+        message: error.message || 'Failed to check room availability',
+        details: error.toString()  
+      };
+    }
+  },
 };
 
 export default bookingService;

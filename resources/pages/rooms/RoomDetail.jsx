@@ -19,26 +19,17 @@ import {
   TabList,
   Tab,
   TabPanels,
-  TabPanel,
-  Alert,
+  TabPanel,  Alert,
   AlertIcon,
   Spinner,
   Divider,
   Badge,
   Progress,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  ModalCloseButton,
   useColorModeValue,
   useToast,
   Flex,
   Tooltip,
-  SimpleGrid,
-  useDisclosure
+  SimpleGrid
 } from '@chakra-ui/react';
 import { 
   MdArrowBack, 
@@ -50,11 +41,14 @@ import {
 } from 'react-icons/md';
 import TenantLayout from '../../components/layout/TenantLayout';
 import roomService from '../../services/roomService';
+import bookingService from '../../services/bookingService';
 import tenantAuthService from '../../services/tenantAuthService';
+import { useTenantAuth } from '../../context/tenantAuthContext';
 import { getFormattedRoomPrice, getRoomCapacityText, isRoomAvailable, validateDateSelectionByRentalType, calculateRoomOccupancy } from '../../utils/roomUtils';
 import { formatCurrency } from '../../components/helpers/typeConverters';
 import { defaultImages } from '../../utils/imageUtils';
 import { getRoomImage } from '../../../utils/roomImageUtils';
+import TenantRoomImageGallery from '../../components/room/TenantRoomImageGallery';
 
 // Helper to get default room image
 const getDefaultRoomImage = (room) => {
@@ -69,7 +63,7 @@ const getClassificationDisplay = (classification) => {
 };
 
 // Helper to check authentication
-const isAuthenticated = tenantAuthService.isAuthenticated();
+// const isAuthenticated = tenantAuthService.isAuthenticated(); // Moved inside component
 
 // Helper to calculate total price
 const calculateTotalPrice = (startDate, endDate, rate) => {
@@ -91,80 +85,263 @@ const calculateTotalPrice = (startDate, endDate, rate) => {
 const RoomDetail = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
-
+  const toast = useToast();  
+  const { isAuthenticated, tenant } = useTenantAuth(); // Get auth state and tenant from context
+  
+  // Debug: Log the authentication state
+  console.log('RoomDetail - isAuthenticated:', isAuthenticated);
+  
   // State management
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [isAvailable, setIsAvailable] = useState(true);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
-  const [roomAvailability, setRoomAvailability] = useState([]);
-  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-  
   // New state for occupancy information
   const [occupancyInfo, setOccupancyInfo] = useState(null);
   const [loadingOccupancy, setLoadingOccupancy] = useState(false);
+  // Dynamic rates state
+  const [dynamicRates, setDynamicRates] = useState({ daily: 0, monthly: 0 });
+  const [loadingRates, setLoadingRates] = useState(false);
+  
+  // State for primary room image
+  const [primaryImage, setPrimaryImage] = useState(null);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  // Add missing states for booking
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   
   const bgColor = useColorModeValue('white', 'gray.800'); 
   const cardBg = useColorModeValue('white', 'gray.700');
   const textColor = useColorModeValue('gray.600', 'gray.400');
   const headingColor = useColorModeValue('gray.800', 'white');
 
-  const handleBookNow = () => { onOpen(); };  const proceedToBooking = async () => { 
-    onClose(); 
-    
-    // Use the primary state variables (startDate and endDate) for validation
-    if (!startDate || !endDate) {
-      toast({
-        title: 'Invalid dates',
-        description: 'Please select valid check-in and check-out dates.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
+  const handleBookNow = () => {
+    if (!isAuthenticated) {
+      navigate('/tenant/login');
       return;
-    }
-    
-    // Convert to Date objects and validate
-    const startDateObj = new Date(startDate);
-    const endDateObj = new Date(endDate);
-    
-    // Check if dates are valid
-    if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
-      toast({
-        title: 'Invalid dates',
-        description: 'Please select valid check-in and check-out dates.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
-      return;
-    }
-    
-    // Check if end date is after start date
-    if (endDateObj <= startDateObj) {
-      toast({
-        title: 'Invalid date range',
-        description: 'Check-out date must be after check-in date.',
-        status: 'error',
-        duration: 3000,
-        isClosable: true
-      });
-      return;
-    }
-    
-    // Proceed directly to booking without availability check
-    navigate(`/tenant/rooms/${roomId}/book?startDate=${startDate}&endDate=${endDate}`);
+    }    
+    // Navigate directly to booking page where date selection will happen
+    navigate(`/tenant/rooms/${roomId}/book`);
   };
-  
-  const renderRoomFeatures = () => <Text>Room features go here...</Text>;
-  const renderRoomLocation = () => <Text>Room location details go here...</Text>;
-  const renderRoomPolicies = () => <Text>Room policies go here...</Text>;
+
+  const renderRoomFeatures = () => (
+    <VStack spacing={4} align="stretch">
+      <Text fontSize="lg" fontWeight="semibold">Room Features & Amenities</Text>
+      {room.amenities && room.amenities.length > 0 ? (
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          {room.amenities.map((amenity, index) => {
+            // Handle different amenity data structures
+            const amenityName = typeof amenity === 'object' 
+              ? (amenity.custom_feature_name || amenity.customFeatureName || amenity.name || 'Unknown Feature')
+              : String(amenity);
+            
+            const amenityDescription = typeof amenity === 'object' 
+              ? (amenity.description || '') 
+              : '';
+            
+            const amenityQuantity = typeof amenity === 'object' && amenity.quantity > 1 
+              ? amenity.quantity 
+              : null;
+
+            return (
+              <Box key={index} p={3} bg="gray.50" borderRadius="md">
+                <HStack justify="space-between">
+                  <Text fontWeight="medium">
+                    {amenityName}
+                  </Text>
+                  {amenityQuantity && (
+                    <Badge colorScheme="blue" fontSize="xs">
+                      {amenityQuantity}x
+                    </Badge>
+                  )}
+                </HStack>
+                {amenityDescription && (
+                  <Text fontSize="sm" color="gray.600" mt={1}>
+                    {amenityDescription}
+                  </Text>
+                )}
+              </Box>
+            );
+          })}
+        </SimpleGrid>
+      ) : (
+        <Text color="gray.500">No specific amenities listed for this room.</Text>
+      )}
+    </VStack>
+  );  const renderRoomLocation = () => (
+    <VStack spacing={4} align="stretch">
+      <Text fontSize="lg" fontWeight="semibold">Room Location & Details</Text>
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+        <Box p={4} bg="gray.50" borderRadius="md">
+          <Text fontWeight="medium" mb={2}>Room Information</Text>
+          <VStack spacing={2} align="start">
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="medium">Room Name: </Text>
+              {room.name || 'N/A'}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="medium">Classification: </Text>
+              {getClassificationDisplay(room.classification) || 'N/A'}
+            </Text>            <Text fontSize="sm">
+              <Icon as={MdGroup} color="blue.500" mr={1} />
+              <Text as="span" fontWeight="medium">Capacity: </Text>
+              {room.capacity ? `${room.capacity} ${room.capacity === 1 ? 'person' : 'people'}` : 'N/A'}
+              {room.capacity && room?.occupants && (
+                <Text as="span" color="gray.500" ml={2}>
+                  ({room.occupants.filter(occupant => 
+                    occupant.status === 'approved' || occupant.status === 'checked_in'
+                  ).length} currently occupied)
+                </Text>
+              )}
+            </Text>
+            <Text fontSize="sm">
+              <Text as="span" fontWeight="medium">Rental Type: </Text>
+              {room.rentalType?.name || room.rental_type || 'N/A'}
+            </Text>
+          </VStack>
+        </Box>
+        <Box p={4} bg="gray.50" borderRadius="md">
+          <Text fontWeight="medium" mb={2}>Building Information</Text>
+          <VStack spacing={2} align="start">
+            <Text fontSize="sm" color="gray.600">
+              Located within the Rusunawa (Rumah Susun Sederhana Sewa) complex
+            </Text>
+            <Text fontSize="sm" color="gray.600">
+              Affordable public housing facility managed by local government
+            </Text>
+            <Text fontSize="sm" color="gray.600">
+              Accessible by public transportation and main roads
+            </Text>
+          </VStack>
+        </Box>
+      </SimpleGrid>
+    </VStack>
+  );
+
+  const renderRoomPolicies = () => (
+    <VStack spacing={4} align="stretch">
+      <Text fontSize="lg" fontWeight="semibold">Room Policies & Rules</Text>
+      <SimpleGrid columns={{ base: 1 }} spacing={4}>
+        <Box p={4} bg="gray.50" borderRadius="md">
+          <Text fontWeight="medium" mb={3}>General Policies</Text>
+          <VStack spacing={2} align="start">
+            <Text fontSize="sm">• Check-in time: As per booking schedule</Text>
+            <Text fontSize="sm">• Check-out time: As per booking schedule</Text>
+            <Text fontSize="sm">• Maximum occupancy: {room.capacity || 'As specified'} person(s)</Text>
+            {room.capacity && room?.occupants && (
+              <Text fontSize="sm" color={
+                room.occupants.filter(occupant => 
+                  occupant.status === 'approved' || occupant.status === 'checked_in'
+                ).length >= room.capacity ? 'red.500' : 'green.500'
+              }>
+                • Current availability: {Math.max(0, room.capacity - room.occupants.filter(occupant => 
+                  occupant.status === 'approved' || occupant.status === 'checked_in'
+                ).length)} space(s) remaining
+              </Text>
+            )}
+            <Text fontSize="sm">• Payment must be completed before check-in</Text>
+            <Text fontSize="sm">• ID verification required during check-in</Text>
+          </VStack>
+        </Box>
+        
+        {room.classification?.name === 'ruang_rapat' ? (
+          <Box p={4} bg="blue.50" borderRadius="md">
+            <Text fontWeight="medium" mb={3}>Meeting Room Specific Rules</Text>
+            <VStack spacing={2} align="start">
+              <Text fontSize="sm">• Professional use only</Text>
+              <Text fontSize="sm">• Clean up after use</Text>
+              <Text fontSize="sm">• No food or drinks without permission</Text>
+              <Text fontSize="sm">• Equipment must be returned in original condition</Text>
+            </VStack>
+          </Box>
+        ) : (
+          <Box p={4} bg="green.50" borderRadius="md">
+            <Text fontWeight="medium" mb={3}>Residential Room Rules</Text>
+            <VStack spacing={2} align="start">
+              <Text fontSize="sm">• Quiet hours: 10 PM - 6 AM</Text>
+              <Text fontSize="sm">• No smoking inside the room</Text>
+              <Text fontSize="sm">• Visitors must be registered</Text>
+              <Text fontSize="sm">• Keep common areas clean</Text>
+              <Text fontSize="sm">• Report any damages immediately</Text>
+            </VStack>
+          </Box>
+        )}
+        
+        <Box p={4} bg="red.50" borderRadius="md">
+          <Text fontWeight="medium" mb={3}>Important Notes</Text>
+          <VStack spacing={2} align="start">
+            <Text fontSize="sm">• Cancellation policy varies by rental type</Text>
+            <Text fontSize="sm">• Security deposit may be required</Text>
+            <Text fontSize="sm">• Management reserves the right to inspect rooms</Text>
+            <Text fontSize="sm">• Violation of rules may result in booking termination</Text>
+          </VStack>
+        </Box>
+      </SimpleGrid>
+    </VStack>
+  );
   const isMeetingRoom = () => room?.classification?.name === 'ruang_rapat'; // Example
+  // Function to fetch primary image
+  const fetchPrimaryImage = async (roomId) => {
+    try {
+      setImageLoading(true);
+      
+      if (!roomId || roomId === 'undefined') {
+        console.warn('Missing or invalid room ID for image fetch:', roomId);
+        return;
+      }
+      
+      const image = await roomService.getPrimaryRoomImage(roomId);
+      if (image) {
+        console.log(`✅ [RoomDetail] Got primary image for room ${roomId}:`, image.imageName);
+        setPrimaryImage(image);
+      } else {
+        console.log(`ℹ️ [RoomDetail] No primary image found for room ${roomId}`);
+      }
+    } catch (error) {
+      console.error(`❌ [RoomDetail] Error fetching primary image for room ${roomId}:`, error);
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const fetchDynamicRates = async () => {
+    if (!tenant?.tenantId || !roomId) return;
+    
+    try {
+      setLoadingRates(true);
+      
+      // Get daily rate
+      const dailyRateResponse = await bookingService.getDynamicRate(
+        tenant.tenantId,
+        roomId,
+        1 // Daily rental type
+      );
+      
+      // Get monthly rate (only if not ruang_rapat)
+      let monthlyRate = 0;
+      if (room?.classification?.name !== 'ruang_rapat') {
+        const monthlyRateResponse = await bookingService.getDynamicRate(
+          tenant.tenantId,
+          roomId,
+          2 // Monthly rental type
+        );
+        monthlyRate = monthlyRateResponse?.rate || 0;
+      }
+
+      setDynamicRates({
+        daily: dailyRateResponse?.rate || 0,
+        monthly: monthlyRate
+      });
+
+    } catch (err) {
+      console.error('Error loading dynamic rates for room detail:', roomId, err);
+    } finally {
+      setLoadingRates(false);
+    }
+  };
 
   useEffect(() => {
     const fetchRoomDetails = async () => {
@@ -174,13 +351,18 @@ const RoomDetail = () => {
         setLoading(false);
         return;
       }      try {
-        setLoading(true);
-        const response = await roomService.getRoom(roomId);
-        
+        setLoading(true);        const response = await roomService.getRoom(roomId);
         if (response && response.room) {
           setRoom(response.room);
           // Fetch occupancy information after room details are loaded
           fetchOccupancyInfo();
+          // Fetch primary image - use roomId or room_id
+          const roomIdToUse = response.room.room_id || response.room.roomId || roomId;
+          if (roomIdToUse && roomIdToUse !== 'undefined') {
+            fetchPrimaryImage(roomIdToUse);
+          } else {
+            console.warn('No valid room ID available for image fetch:', response.room);
+          }
         } else {
           setError('Room not found');
         }
@@ -194,6 +376,13 @@ const RoomDetail = () => {
 
     fetchRoomDetails();
   }, [roomId]);
+
+  // Load dynamic rates when room and tenant are available
+  useEffect(() => {
+    if (room && tenant?.tenantId) {
+      fetchDynamicRates();
+    }
+  }, [room, tenant?.tenantId]);
 
   const handleStartDateChange = (e) => {
     const newStartDate = e.target.value;
@@ -453,28 +642,199 @@ const RoomDetail = () => {
             </Text>
           </HStack>
         </Box>
+          {/* Room Capacity Information - Enhanced */}
+        <Box>
+          <Text fontSize="md" fontWeight="semibold" mb={3} color="blue.600">
+            <Icon as={MdGroup} mr={2} />
+            Room Capacity Information
+          </Text>
+          
+          {/* Capacity Overview */}
+          <Box p={4} bg="blue.50" borderRadius="md" mb={4}>
+            <HStack justify="space-between" mb={3}>
+              <VStack align="start" spacing={1}>
+                <Text fontSize="lg" fontWeight="bold" color="blue.800">
+                  {room.capacity || 'N/A'} {room.capacity === 1 ? 'Person' : 'People'}
+                </Text>
+                <Text fontSize="sm" color="blue.600">Maximum Capacity</Text>
+              </VStack>
+              <VStack align="end" spacing={1}>
+                <Text fontSize="lg" fontWeight="bold" color="green.600">
+                  {room?.occupants ? 
+                    room.occupants.filter(occupant => 
+                      occupant.status === 'approved' || occupant.status === 'checked_in'
+                    ).length : 0
+                  }
+                </Text>
+                <Text fontSize="sm" color="gray.600">Current Occupancy</Text>
+              </VStack>
+            </HStack>
+            
+            {/* Occupancy Progress Bar */}
+            {room.capacity && (
+              <Box>
+                <HStack justify="space-between" mb={2}>
+                  <Text fontSize="sm" color="gray.600">Occupancy Rate</Text>
+                  <Text fontSize="sm" fontWeight="medium">
+                    {room?.occupants ? 
+                      room.occupants.filter(occupant => 
+                        occupant.status === 'approved' || occupant.status === 'checked_in'
+                      ).length : 0
+                    } / {room.capacity}
+                  </Text>
+                </HStack>
+                <Progress 
+                  value={room?.occupants ? 
+                    (room.occupants.filter(occupant => 
+                      occupant.status === 'approved' || occupant.status === 'checked_in'
+                    ).length / room.capacity) * 100 : 0
+                  }
+                  colorScheme={
+                    room?.occupants && room.occupants.filter(occupant => 
+                      occupant.status === 'approved' || occupant.status === 'checked_in'
+                    ).length >= room.capacity ? 'red' : 'blue'
+                  }
+                  size="md"
+                  borderRadius="md"
+                />
+              </Box>
+            )}
+          </Box>
+
+          {/* Room Details */}
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+            <Box p={4} bg="gray.50" borderRadius="md">
+              <Text fontWeight="medium" mb={3}>Room Details</Text>
+              <VStack spacing={2} align="start">
+                <HStack>
+                  <Icon as={MdGroup} color="blue.500" />
+                  <Text fontSize="sm">
+                    <Text as="span" fontWeight="medium">Maximum Capacity: </Text>
+                    {room.capacity ? `${room.capacity} ${room.capacity === 1 ? 'person' : 'people'}` : 'N/A'}
+                  </Text>
+                </HStack>
+                <HStack>
+                  <Icon as={MdPerson} color="green.500" />
+                  <Text fontSize="sm">
+                    <Text as="span" fontWeight="medium">Current Occupancy: </Text>
+                    {room?.occupants ? 
+                      room.occupants.filter(occupant => 
+                        occupant.status === 'approved' || occupant.status === 'checked_in'
+                      ).length : 0
+                    } {room?.occupants && room.occupants.filter(occupant => 
+                      occupant.status === 'approved' || occupant.status === 'checked_in'
+                    ).length === 1 ? 'person' : 'people'}
+                  </Text>
+                </HStack>
+                <HStack>
+                  <Icon as={MdEventAvailable} color="purple.500" />
+                  <Text fontSize="sm">
+                    <Text as="span" fontWeight="medium">Available Spaces: </Text>
+                    {room.capacity ? 
+                      Math.max(0, room.capacity - (room?.occupants ? 
+                        room.occupants.filter(occupant => 
+                          occupant.status === 'approved' || occupant.status === 'checked_in'
+                        ).length : 0
+                      )) : 'N/A'
+                    } {room.capacity && Math.max(0, room.capacity - (room?.occupants ? 
+                      room.occupants.filter(occupant => 
+                        occupant.status === 'approved' || occupant.status === 'checked_in'
+                      ).length : 0
+                    )) === 1 ? 'space' : 'spaces'}
+                  </Text>
+                </HStack>
+              </VStack>
+            </Box>
+            
+            <Box p={4} bg="gray.50" borderRadius="md">
+              <Text fontWeight="medium" mb={3}>Room Type Information</Text>
+              <VStack spacing={2} align="start">
+                <HStack>
+                  <Icon as={MdHotel} color="orange.500" />
+                  <Text fontSize="sm">
+                    <Text as="span" fontWeight="medium">Room Type: </Text>
+                    {getClassificationDisplay(room.classification) || 'N/A'}
+                  </Text>
+                </HStack>
+                <HStack>
+                  <Icon as={MdAttachMoney} color="teal.500" />
+                  <Text fontSize="sm">
+                    <Text as="span" fontWeight="medium">Rental Period: </Text>
+                    {room.rentalType?.name || room.rental_type || 'N/A'}
+                  </Text>
+                </HStack>
+                <Text fontSize="xs" color="gray.500" mt={2}>
+                  {room.capacity && room?.occupants && 
+                   room.occupants.filter(occupant => 
+                     occupant.status === 'approved' || occupant.status === 'checked_in'
+                   ).length === 0 
+                    ? `This room can accommodate up to ${room.capacity} ${room.capacity === 1 ? 'person' : 'people'}. Currently available for booking.`
+                    : room.capacity && room?.occupants && 
+                      room.occupants.filter(occupant => 
+                        occupant.status === 'approved' || occupant.status === 'checked_in'
+                      ).length >= room.capacity
+                    ? 'This room is currently at full capacity.'
+                    : `This room has ${Math.max(0, room.capacity - (room?.occupants ? 
+                        room.occupants.filter(occupant => 
+                          occupant.status === 'approved' || occupant.status === 'checked_in'
+                        ).length : 0
+                      ))} available ${Math.max(0, room.capacity - (room?.occupants ? 
+                        room.occupants.filter(occupant => 
+                          occupant.status === 'approved' || occupant.status === 'checked_in'
+                        ).length : 0
+                      )) === 1 ? 'space' : 'spaces'} remaining.`
+                  }
+                </Text>
+              </VStack>
+            </Box>
+          </SimpleGrid>
+        </Box>
         
         {/* Current Occupants Info */}
-        {room?.occupants && room.occupants.length > 0 && (
-          <Box mt={4}>
-            <Text fontSize="sm" fontWeight="medium" mb={2}>Current Occupants:</Text>
+        {room?.occupants && room.occupants.length > 0 ? (
+          <Box>
+            <Text fontSize="md" fontWeight="semibold" mb={3} color="green.600">
+              <Icon as={MdPerson} mr={2} />
+              Current Occupants ({room.occupants.filter(occupant => 
+                occupant.status === 'approved' || occupant.status === 'checked_in'
+              ).length})
+            </Text>
             <VStack spacing={2} align="stretch">
               {room.occupants
                 .filter(occupant => occupant.status === 'approved' || occupant.status === 'checked_in')
                 .map((occupant, index) => (
-                <HStack key={index} justify="space-between" p={2} bg="gray.50" borderRadius="md">
-                  <VStack align="start" spacing={0}>
-                    <Text fontSize="sm" fontWeight="medium">{occupant.name}</Text>
-                    <Text fontSize="xs" color="gray.500">
-                      {new Date(occupant.checkIn).toLocaleDateString()} - {new Date(occupant.checkOut).toLocaleDateString()}
-                    </Text>
-                  </VStack>
-                  <Badge colorScheme={occupant.status === 'checked_in' ? 'green' : 'blue'}>
-                    {occupant.status}
+                <HStack key={index} justify="space-between" p={3} bg="green.50" borderRadius="md" border="1px solid" borderColor="green.200">
+                  <HStack>
+                    <Icon as={MdPerson} color="green.500" />
+                    <VStack align="start" spacing={0}>
+                      <Text fontSize="sm" fontWeight="medium">{occupant.name}</Text>
+                      <Text fontSize="xs" color="gray.500">
+                        {new Date(occupant.checkIn).toLocaleDateString()} - {new Date(occupant.checkOut).toLocaleDateString()}
+                      </Text>
+                    </VStack>
+                  </HStack>
+                  <Badge colorScheme={occupant.status === 'checked_in' ? 'green' : 'blue'} variant="solid">
+                    {occupant.status === 'checked_in' ? 'Checked In' : 'Approved'}
                   </Badge>
                 </HStack>
               ))}
             </VStack>
+          </Box>
+        ) : (
+          <Box>
+            <Text fontSize="md" fontWeight="semibold" mb={3} color="gray.600">
+              <Icon as={MdPerson} mr={2} />
+              Current Occupants (0)
+            </Text>
+            <Box p={4} bg="gray.50" borderRadius="md" textAlign="center">
+              <Icon as={MdEventAvailable} boxSize={8} color="gray.400" mb={2} />
+              <Text fontSize="sm" color="gray.500" mb={2}>
+                No current occupants in this room
+              </Text>
+              <Text fontSize="xs" color="gray.400">
+                This room is available for booking and can accommodate up to {room.capacity || 'specified'} {room.capacity === 1 ? 'person' : 'people'}.
+              </Text>
+            </Box>
           </Box>
         )}
       </Box>
@@ -512,24 +872,54 @@ const RoomDetail = () => {
     );
   }
   
-  const roomImage = room?.imageUrl || getDefaultRoomImage(room);
+  // Image URL priority: database primary image > room.imageUrl > default image
+  const roomImage = primaryImage?.imageUrl || room?.imageUrl || getDefaultRoomImage(room);
 
   return (
     <TenantLayout>
       <Container maxW="container.xl" py={8}>
         <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={8}>
-          <GridItem>
-            <Box bg={cardBg} p={6} borderRadius="lg" boxShadow="lg">
-              <Image
-                src={roomImage}
-                alt={room.name}
-                borderRadius="md"
-                mb={6}
-                objectFit="cover"
-                w="100%"
-                h={{ base: '250px', md: '400px' }}
-                fallbackSrc={defaultImages.default}
-              />
+          <GridItem>            <Box bg={cardBg} p={6} borderRadius="lg" boxShadow="lg">
+              <Box position="relative">
+                <Image
+                  src={roomImage}
+                  alt={room.name}
+                  borderRadius="md"
+                  mb={6}
+                  objectFit="cover"
+                  w="100%"
+                  h={{ base: '250px', md: '400px' }}
+                  fallbackSrc={defaultImages.default}
+                />
+                {/* Loading overlay for image */}
+                {imageLoading && (
+                  <Flex
+                    position="absolute"
+                    top={0}
+                    left={0}
+                    right={0}
+                    bottom={0}
+                    bg="blackAlpha.300"
+                    align="center"
+                    justify="center"
+                    borderRadius="md"
+                  >
+                    <Spinner size="lg" color="white" />
+                  </Flex>
+                )}
+                {/* Database image badge */}
+                {primaryImage && (
+                  <Badge
+                    position="absolute"
+                    top={4}
+                    left={4}
+                    colorScheme="blue"
+                    variant="solid"
+                  >
+                    Room Photo
+                  </Badge>
+                )}
+              </Box>
               <Heading size="lg" color={headingColor} mb={2}>{room.name}</Heading>
               <Text color={textColor} fontSize="md" mb={4}>
                 Classification: {getClassificationDisplay(room.classification)}
@@ -557,17 +947,18 @@ const RoomDetail = () => {
               </Box>
             </Box>
             
-            <Tabs variant="soft-rounded" colorScheme="brand" mt={6} bg={bgColor}>
-              <TabList>
+            <Tabs variant="soft-rounded" colorScheme="brand" mt={6} bg={bgColor}>              <TabList>
+                <Tab>Images</Tab>
                 <Tab>Features</Tab>
                 <Tab>Location</Tab>
                 <Tab>Policies</Tab>
                 {!isMeetingRoom() && <Tab>Occupancy</Tab>}
-              </TabList>
-              <TabPanels>
+              </TabList>              <TabPanels>                <TabPanel>
+                  <TenantRoomImageGallery roomId={room?.room_id || room?.roomId || roomId} />
+                </TabPanel>
                 <TabPanel>{renderRoomFeatures()}</TabPanel>
                 <TabPanel>{renderRoomLocation()}</TabPanel>
-                <TabPanel>{renderRoomPolicies()}</TabPanel>                {!isMeetingRoom() && (
+                <TabPanel>{renderRoomPolicies()}</TabPanel>{!isMeetingRoom() && (
                   <TabPanel>
                     <VStack spacing={4} align="stretch">
                       {loadingOccupancy ? (
@@ -621,9 +1012,38 @@ const RoomDetail = () => {
                               {occupancyInfo.available_slots} bed{occupancyInfo.available_slots > 1 ? 's' : ''} available for booking.
                             </Alert>
                           )}
-                        </>
-                      ) : (
-                        <Text>Occupancy information unavailable.</Text>
+                        </>                      ) : (
+                        <VStack spacing={4} align="stretch">
+                          <Alert status="info" borderRadius="md">
+                            <AlertIcon />
+                            <VStack align="start" spacing={1}>
+                              <Text fontWeight="medium">Room Capacity Information</Text>
+                              <Text fontSize="sm">
+                                This room can accommodate up to {room.capacity || 'N/A'} {room.capacity === 1 ? 'person' : 'people'}.
+                                {room.classification?.name === 'ruang_rapat' 
+                                  ? ' Meeting room booking is subject to availability.'
+                                  : ' Current occupancy details are not available at this time.'}
+                              </Text>
+                            </VStack>
+                          </Alert>
+                          <Box p={4} bg="gray.50" borderRadius="md">
+                            <Text fontWeight="medium" mb={2}>Room Details</Text>
+                            <VStack spacing={2} align="start">
+                              <Text fontSize="sm">
+                                <Text as="span" fontWeight="medium">Maximum Capacity: </Text>
+                                {room.capacity || 'Not specified'} {room.capacity === 1 ? 'person' : 'people'}
+                              </Text>
+                              <Text fontSize="sm">
+                                <Text as="span" fontWeight="medium">Room Type: </Text>
+                                {getClassificationDisplay(room.classification)}
+                              </Text>
+                              <Text fontSize="sm">
+                                <Text as="span" fontWeight="medium">Rental Period: </Text>
+                                {room.rentalType?.name || room.rental_type || 'Not specified'}
+                              </Text>
+                            </VStack>
+                          </Box>
+                        </VStack>
                       )}
                     </VStack>
                   </TabPanel>
@@ -633,109 +1053,108 @@ const RoomDetail = () => {
           </GridItem>          <GridItem>
             {/* Room occupancy status */}
             {renderOccupancyStatus()}
-            
-            <Box bg={cardBg} p={6} borderRadius="lg" boxShadow="lg" position="sticky" top="80px">
+              <Box bg={cardBg} p={6} borderRadius="lg" boxShadow="lg" position="sticky" top="80px">
               <Heading size="md" color={headingColor} mb={4}>Book This Room</Heading>
-              <Text mb={4} fontSize="sm" color={textColor}>
-                {room.rentalType?.name === 'bulanan' 
-                  ? 'Monthly rental requires booking in full month increments'
-                  : 'Daily rental allows flexible date selection'}
-              </Text>
-              <FormControl isInvalid={!!error && !startDate}>
-                <FormLabel htmlFor="start-date">
-                  {room.rentalType?.name === 'bulanan' ? 'Start of Month' : 'Check-in Date'}
-                </FormLabel>
-                <Input
-                  id="start-date"
-                  type="date"
-                  value={startDate}
-                  onChange={handleStartDateChange}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </FormControl>
-              <FormControl mt={4} isInvalid={!!error && !endDate}>
-                <FormLabel htmlFor="end-date">
-                  {room.rentalType?.name === 'bulanan' ? 'End of Month' : 'Check-out Date'}
-                </FormLabel>
-                <Input
-                  id="end-date"
-                  type="date"
-                  value={endDate}
-                  onChange={handleEndDateChange}
-                  min={startDate || new Date().toISOString().split('T')[0]}
-                  disabled={room.rentalType?.name === 'bulanan'} // Disable manual end date selection for monthly rentals
-                />
-                {room.rentalType?.name === 'bulanan' && startDate && endDate && (
-                  <Text fontSize="sm" color="gray.500" mt={1}>
-                    Rental period: {calculateDurationMonths(startDate, endDate)} month(s)
+              
+              {/* Room booking info */}
+              <VStack spacing={4} align="stretch">
+                <Box p={4} bg="blue.50" borderRadius="md">
+                  <Text fontSize="sm" fontWeight="medium" color="blue.700" mb={2}>
+                    {room.rentalType?.name === 'bulanan' ? 'Monthly Rental' : 'Daily Rental'}
                   </Text>
-                )}
-              </FormControl>                {checkingAvailability && (
-                  <HStack spacing={2} mt={4}>
-                    <Spinner size="sm" />
-                    <Text>Checking availability...</Text>
+                  <Text fontSize="xs" color="blue.600">
+                    {room.rentalType?.name === 'bulanan' 
+                      ? 'Full month booking with flexible start date'
+                      : 'Flexible daily booking available'}
+                  </Text>
+                </Box>
+
+                {/* Price display */}
+                <Box textAlign="center" p={4} bg="green.50" borderRadius="md">
+                  {loadingRates ? (
+                    <Spinner size="sm" color="green.500" />
+                  ) : (
+                    <>
+                      {room?.classification?.name === 'ruang_rapat' ? (
+                        <>
+                          <Text fontSize="2xl" fontWeight="bold" color="green.700">
+                            {formatCurrency(dynamicRates.daily) || 'N/A'}
+                          </Text>
+                          <Text fontSize="sm" color="green.600">
+                            per day
+                          </Text>
+                        </>
+                      ) : (
+                        <>
+                          <Text fontSize="lg" fontWeight="bold" color="green.700">
+                            {formatCurrency(dynamicRates.daily) || 'N/A'} / day
+                          </Text>
+                          <Text fontSize="lg" fontWeight="bold" color="green.700">
+                            {formatCurrency(dynamicRates.monthly) || 'N/A'} / month
+                          </Text>
+                          <Text fontSize="xs" color="green.600">
+                            per person
+                          </Text>
+                        </>
+                      )}
+                    </>
+                  )}
+                </Box>
+
+                {/* Capacity info */}
+                <Box p={3} bg="gray.50" borderRadius="md" textAlign="center">
+                  <HStack justify="center" spacing={2}>
+                    <Icon as={MdGroup} color="gray.600" />
+                    <Text fontSize="sm" color="gray.600">
+                      Capacity: {room.capacity || 'N/A'} {room.capacity === 1 ? 'person' : 'people'}
+                    </Text>
                   </HStack>
-                )}
-                
-                {/* Removed availability status display since we're not checking availability */}
-                
+                  {room.capacity && room?.occupants && (
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      {Math.max(0, room.capacity - room.occupants.filter(occupant => 
+                        occupant.status === 'approved' || occupant.status === 'checked_in'
+                      ).length)} space(s) available
+                    </Text>
+                  )}
+                </Box>
+
                 {error && (
-                  <Alert status="error" mt={4} borderRadius="md">
+                  <Alert status="error" borderRadius="md">
                     <AlertIcon />
                     {error}
                   </Alert>
                 )}
 
+                {/* Main booking button */}
                 <Button
-                  colorScheme="brand"
-                  mt={6}
+                  colorScheme="blue"
+                  size="lg"
                   w="full"
                   onClick={handleBookNow}
-                  isDisabled={!startDate || !endDate || checkingAvailability}
                   isLoading={checkingAvailability}
+                  leftIcon={<Icon as={MdEventAvailable} />}
                 >
-                  {isAuthenticated ? 'Book Now' : 'Login to Book'}
+                  {isAuthenticated ? 'Book This Room' : 'Login to Book'}
                 </Button>
-              {!isAuthenticated && (
-                <Text mt={2} textAlign="center" fontSize="sm">
-                  <RouterLink to="/tenant/login">Login</RouterLink> or <RouterLink to="/tenant/register">Register</RouterLink> to book.
-                </Text>
-              )}
+
+                {!isAuthenticated && (
+                  <Text textAlign="center" fontSize="sm" color="gray.500">
+                    <RouterLink to="/tenant/login" style={{ color: 'blue' }}>Login</RouterLink> or {' '}
+                    <RouterLink to="/tenant/register" style={{ color: 'blue' }}>Register</RouterLink> to book this room
+                  </Text>
+                )}
+                
+                {/* Additional info */}
+                <Box p={3} bg="yellow.50" borderRadius="md">
+                  <Text fontSize="xs" color="yellow.700" textAlign="center">
+                    <Icon as={MdAttachMoney} mr={1} />
+                    Date selection and payment will be handled in the next step
+                  </Text>
+                </Box>
+              </VStack>
             </Box>
           </GridItem>
-        </Grid>
-      </Container>
-
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Confirm Your Booking Dates</ModalHeader>
-          <ModalCloseButton />          <ModalBody>
-            <Text mb={4}>Room: {room?.name}</Text>
-            <Text>Selected Check-in: {startDate}</Text>
-            <Text>Selected Check-out: {endDate}</Text>
-
-            {startDate && endDate && room?.rate && (
-              <Box mt={4}>
-                <Text fontWeight="bold">
-                  Total Price: {formatCurrency(calculateTotalPrice(startDate, endDate, room.rate))}
-                </Text>
-              </Box>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>
-              Cancel
-            </Button>            <Button
-              colorScheme="brand"
-              onClick={proceedToBooking}
-              isDisabled={!startDate || !endDate}
-            >
-              Proceed to Payment
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+        </Grid>      </Container>
     </TenantLayout>
   );
 };

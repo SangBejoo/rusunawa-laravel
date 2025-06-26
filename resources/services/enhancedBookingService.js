@@ -1,12 +1,12 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../utils/apiConfig';
+import { API_BASE_URL } from '../../utils/apiConfig';
 import tenantAuthService from './tenantAuthService';
 import paymentService from './paymentService';
 import paymentNotificationService from './paymentNotificationService';
 import paymentAnalyticsService from './paymentAnalyticsService';
-import { validateId } from '../utils/apiUtils';
+import { validateId } from '../../utils/apiUtils';
 
-const API_URL = `${API_BASE_URL}/bookings`;
+const API_URL = `${API_BASE_URL}/v1/bookings`;
 
 /**
  * Enhanced booking service with integrated payment system capabilities
@@ -289,7 +289,7 @@ const enhancedBookingService = {
       console.log('Fetching bookings for tenant:', currentTenant.tenantId);
       
       // Use the correct endpoint for tenant bookings
-      const tenantBookingsURL = `${API_BASE_URL}/tenants/${currentTenant.tenantId}/bookings`;
+      const tenantBookingsURL = `${API_BASE_URL}/v1/tenants/${currentTenant.tenantId}/bookings`;
       
       // Get bookings using the tenant-specific endpoint
       const response = await axios.get(tenantBookingsURL, { ...config, params: filters });

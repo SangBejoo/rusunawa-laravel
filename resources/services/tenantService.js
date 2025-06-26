@@ -1,8 +1,8 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../../config/apiConfig';
+import { API_BASE_URL } from '../config/apiConfig';
 import tenantAuthService from './tenantAuthService';
 
-const API_URL = `${API_BASE_URL}/tenants`;
+const API_URL = `${API_BASE_URL}/v1/tenants`;
 
 /**
  * Service for handling tenant profile operations

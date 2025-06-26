@@ -32,7 +32,7 @@ import {
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaFileInvoice, FaUpload, FaDownload, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import TenantLayout from '../../components/layout/TenantLayout';
-import invoiceService from '../../../services/invoiceService';
+import invoiceService from '../../services/invoiceService';
 import bookingService from '../../services/bookingService';
 import { useTenantAuth } from '../../context/tenantAuthContext';
 import { useEnhancedPayments } from '../../hooks/useEnhancedPayments';

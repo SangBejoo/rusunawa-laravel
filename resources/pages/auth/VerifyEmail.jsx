@@ -18,7 +18,7 @@ import {
 } from '@chakra-ui/react';
 import { FaCheckCircle, FaTimesCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { useTenantAuth } from '../../context/tenantAuthContext';
-import placeholderImages from '../../../utils/placeholderImages';
+import placeholderImages from '../../utils/placeholderImages';
 
 const VerifyEmail = () => {
   const [status, setStatus] = useState('checking');

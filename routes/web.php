@@ -293,8 +293,7 @@ Route::prefix('api')->group(function () {
     });
 });
 
-// Catch-all route untuk aplikasi React Anda
-// Pastikan ini adalah rute terakhir dalam file ini jika ada rute web Laravel lainnya.
-Route::get('/{any?}', function () {
-    return view('app'); // 'app' adalah nama file app.blade.php Anda
+// SPA fallback route for React (must be last!)
+Route::get('/{any}', function () {
+    return view('app');
 })->where('any', '.*');

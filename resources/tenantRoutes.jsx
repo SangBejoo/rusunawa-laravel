@@ -19,6 +19,7 @@ import RoomsList from './pages/rooms/RoomsList';
 import RoomListing from './pages/rooms/RoomListing';
 import RoomDetail from './pages/rooms/RoomDetail';
 import BookRoom from './pages/rooms/BookRoom';
+import DynamicRoomBooking from './pages/rooms/DynamicRoomBooking';
 
 // Booking pages
 import BookingHistory from './pages/bookings/BookingsList';
@@ -43,7 +44,7 @@ import CreateManualPayment from './pages/payments/CreateManualPayment';
 // Issues pages
 import IssuesPage from './pages/issues/IssuesPage';
 import ReportIssuePage from './pages/issues/ReportIssuePage';
-import IssueDetail from './pages/issues/IssueDetail';
+import IssueDetailPage from './pages/issues/IssueDetailPage';
 
 // Home page
 import TenantHome from './pages/home/TenantHome';
@@ -65,28 +66,27 @@ const TenantRoutes = () => {
   };
 
   return (
-    <Routes>      {/* Public Routes - accessible without authentication */}
+    <Routes>
+      {/* Public Routes */}
       <Route path="/" element={<TenantHome />} />
       <Route path="/rooms" element={<RoomsList />} />
       <Route path="/rooms/listing" element={<RoomListing />} />
       <Route path="/rooms/:roomId" element={<RoomDetail />} />
 
-      {/* Auth Routes - accessible without authentication */}
+      {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/email-verification" element={<EmailVerification />} />
-      <Route path="/verification-prompt" element={<VerificationPrompt />} />      {/* Protected Routes - require authentication */}
-      
-      {/* Dashboard */}
-      <Route path="/dashboard" element={
+      <Route path="/verification-prompt" element={<VerificationPrompt />} />
+
+      {/* Protected Routes */}      <Route path="/dashboard" element={
         <ProtectedRoute>
           <TenantDashboard />
         </ProtectedRoute>
       } />
 
-      {/* Profile and Documents */}
       <Route path="/profile" element={
         <ProtectedRoute>
           <Profile />
@@ -97,15 +97,12 @@ const TenantRoutes = () => {
         <ProtectedRoute>
           <Documents />
         </ProtectedRoute>
-      } />
-      
-      <Route path="/documents/upload" element={
+      } />      <Route path="/documents/upload" element={
         <ProtectedRoute>
           <UploadDocument />
         </ProtectedRoute>
       } />
 
-      {/* Bookings */}
       <Route path="/bookings" element={
         <ProtectedRoute>
           <EnhancedBookingsList />
@@ -124,14 +121,6 @@ const TenantRoutes = () => {
         </ProtectedRoute>
       } />
 
-      {/* Room Booking (Protected) */}
-      <Route path="/rooms/:roomId/book" element={
-        <ProtectedRoute>
-          <BookRoom />
-        </ProtectedRoute>
-      } />
-
-      {/* Payment Routes for Bookings */}
       <Route path="/bookings/:bookingId/payment" element={
         <ProtectedRoute>
           <PaymentProcess />
@@ -156,13 +145,6 @@ const TenantRoutes = () => {
         </ProtectedRoute>
       } />
 
-      <Route path="/bookings/:bookingId/payments/create/manual" element={
-        <ProtectedRoute>
-          <CreateManualPayment />
-        </ProtectedRoute>
-      } />
-
-      {/* Payment Routes for Invoices */}
       <Route path="/invoices/:invoiceId/manual-payment" element={
         <ProtectedRoute>
           <ManualPayment />
@@ -175,19 +157,18 @@ const TenantRoutes = () => {
         </ProtectedRoute>
       } />
 
-      <Route path="/invoices/:invoiceId/payments/create/manual" element={
+      <Route path="/rooms/:roomId/book" element={
         <ProtectedRoute>
-          <CreateManualPayment />
+          <DynamicRoomBooking />
         </ProtectedRoute>
       } />
 
-      <Route path="/invoices/:invoiceId/payment-method" element={
+      <Route path="/rooms/:roomId/book-legacy" element={
         <ProtectedRoute>
-          <PaymentMethodSelection />
+          <BookRoom />
         </ProtectedRoute>
       } />
 
-      {/* General Payment Routes */}
       <Route path="/payments/history" element={
         <ProtectedRoute>
           <PaymentHistory />
@@ -200,15 +181,22 @@ const TenantRoutes = () => {
         </ProtectedRoute>
       } />
 
+      {/* New manual payment creation routes */}
       <Route path="/payments/create/manual" element={
         <ProtectedRoute>
           <CreateManualPayment />
         </ProtectedRoute>
       } />
 
-      <Route path="/payments/process/:invoiceId" element={
+      <Route path="/bookings/:bookingId/payments/create/manual" element={
         <ProtectedRoute>
-          <PaymentProcess />
+          <CreateManualPayment />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/invoices/:invoiceId/payments/create/manual" element={
+        <ProtectedRoute>
+          <CreateManualPayment />
         </ProtectedRoute>
       } />
 
@@ -217,28 +205,20 @@ const TenantRoutes = () => {
         <ProtectedRoute>
           <MidtransCallback />
         </ProtectedRoute>
-      } />
-
-      {/* Issues */}
-      <Route path="/issues" element={
+      } />      <Route path="/issues" element={
         <ProtectedRoute>
           <IssuesPage />
         </ProtectedRoute>
-      } />
-
-      <Route path="/issues/report" element={
+      } />      <Route path="/issues/report" element={
         <ProtectedRoute>
           <ReportIssuePage />
         </ProtectedRoute>
-      } />
-
-      <Route path="/issues/:issueId" element={
+      } />      <Route path="/issues/:issueId" element={
         <ProtectedRoute>
-          <IssueDetail />
+          <IssueDetailPage />
         </ProtectedRoute>
       } />
 
-      {/* Invoices */}
       <Route path="/invoices" element={
         <ProtectedRoute>
           <InvoicesList />
@@ -254,6 +234,18 @@ const TenantRoutes = () => {
       <Route path="/invoices/:invoiceId" element={
         <ProtectedRoute>
           <InvoiceDetail />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/invoices/:invoiceId/payment-method" element={
+        <ProtectedRoute>
+          <PaymentMethodSelection />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/payments/process/:invoiceId" element={
+        <ProtectedRoute>
+          <PaymentProcess />
         </ProtectedRoute>
       } />
 

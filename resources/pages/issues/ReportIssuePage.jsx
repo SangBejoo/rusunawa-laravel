@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -29,7 +29,10 @@ import {
   Image,
   Flex,
   Progress,
-  Badge
+  Badge,
+  Spinner,
+  Switch,
+  Center
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -44,13 +47,18 @@ import {
   FaUpload,
   FaImage,
   FaTimes,
-  FaCamera
+  FaCamera,
+  FaBed,
+  FaInfoCircle,
+  FaCheckCircle
 } from 'react-icons/fa';
 import TenantLayout from '../../components/layout/TenantLayout';
 import { useTenantAuth } from '../../context/tenantAuthContext';
 import axios from 'axios';
 import { API_URL, getAuthHeader } from '../../utils/apiConfig';
-import issueService from '../../services/issueService'; // Make sure this path is correct
+import issueService from '../../services/issueService';
+import bookingService from '../../services/bookingService';
+import MultiImageUpload from '../../shared/components/MultiImageUpload';
 
 const ReportIssuePage = () => {
   const { tenant } = useTenantAuth();
@@ -63,7 +71,13 @@ const ReportIssuePage = () => {
   // Color mode values
   const cardBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
-
+  
+  // Booking-related state
+  const [activeBookings, setActiveBookings] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+  const [allowWithoutBooking, setAllowWithoutBooking] = useState(false);
+  
   // Form state
   const [formData, setFormData] = useState({
     title: '',
@@ -73,9 +87,9 @@ const ReportIssuePage = () => {
     location: '',
     contactPhone: ''
   });
-  // Image state
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  
+  // Multi-image state
+  const [selectedImages, setSelectedImages] = useState([]);
 
   // Form validation
   const [errors, setErrors] = useState({});
@@ -89,13 +103,110 @@ const ReportIssuePage = () => {
     { value: 'furniture', label: 'Furniture', icon: FaHome, color: 'purple' },
     { value: 'other', label: 'Other', icon: FaExclamationTriangle, color: 'gray' }
   ];
-
   const priorities = [
     { value: 'low', label: 'Low Priority', description: 'Can wait a few days', color: 'green' },
     { value: 'medium', label: 'Medium Priority', description: 'Should be fixed soon', color: 'yellow' },
     { value: 'high', label: 'High Priority', description: 'Needs immediate attention', color: 'red' }
   ];
 
+  // Load tenant's active bookings on component mount
+  useEffect(() => {
+    loadActiveBookings();
+  }, [tenant]);
+
+  const loadActiveBookings = async () => {
+    if (!tenant?.tenantId && !tenant?.id) {
+      setLoadingBookings(false);
+      return;
+    }
+
+    try {
+      setLoadingBookings(true);
+      const tenantId = tenant?.tenantId || tenant?.id;
+      
+      // Get tenant's bookings
+      const response = await bookingService.getTenantBookings(tenantId);
+      
+      if (response?.bookings) {        // Filter for active bookings (checked-in, confirmed, or approved bookings within date range)
+        const now = new Date();
+        const activeBookings = response.bookings.filter(booking => {
+          const checkIn = new Date(booking.checkInDate || booking.check_in);
+          const checkOut = new Date(booking.checkOutDate || booking.check_out);
+          
+          // Consider a booking active if:
+          // 1. It's checked-in status, OR
+          // 2. It's confirmed and current date is within the booking period, OR
+          // 3. It's approved and check-in date is today or in the near future (within 7 days)
+          return (
+            (booking.status === 'checked_in') ||
+            (booking.status === 'confirmed' && now >= checkIn && now <= checkOut) ||
+            (booking.status === 'approved' && checkIn <= new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)) // Within 7 days
+          );
+        });        console.log('Active bookings found:', activeBookings);
+        console.log('Raw bookings response:', response.bookings);
+        console.log('Booking structure sample:', activeBookings[0]);
+        console.log('Current date for filtering:', now);
+        console.log('Booking status filtering results:', response.bookings.map(b => ({
+          id: b.bookingId,
+          status: b.status,
+          checkIn: b.checkInDate,
+          checkOut: b.checkOutDate,
+          isActive: (
+            (b.status === 'checked_in') ||
+            (b.status === 'confirmed' && now >= new Date(b.checkInDate) && now <= new Date(b.checkOutDate)) ||
+            (b.status === 'approved' && new Date(b.checkInDate) <= new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000))
+          )
+        })));
+        setActiveBookings(activeBookings);
+        
+        // Auto-select the first active booking if available
+        if (activeBookings.length > 0) {
+          const primaryBooking = activeBookings[0];
+          setSelectedBooking(primaryBooking);
+          
+          // Auto-fill location if available
+          if (primaryBooking.roomNumber || primaryBooking.room_number) {
+            setFormData(prev => ({
+              ...prev,
+              location: `Room ${primaryBooking.roomNumber || primaryBooking.room_number}${
+                primaryBooking.buildingName ? ` - ${primaryBooking.buildingName}` : ''
+              }`
+            }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading active bookings:', error);
+      // Don't show error toast, just log it - tenant can still report issues
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+  const handleBookingSelection = (booking) => {
+    console.log('🔄 Booking selection changed:', {
+      selectedBooking: booking,
+      bookingId: booking?.bookingId,
+      booking_id: booking?.booking_id,
+      id: booking?.id
+    });
+    setSelectedBooking(booking);
+    
+    // Auto-fill location based on selected booking
+    if (booking) {
+      setFormData(prev => ({
+        ...prev,
+        location: `Room ${booking.roomNumber || booking.room_number}${
+          booking.buildingName ? ` - ${booking.buildingName}` : ''
+        }`
+      }));
+    } else {
+      // Clear location if no booking selected
+      setFormData(prev => ({
+        ...prev,
+        location: ''
+      }));
+    }
+  };
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -112,49 +223,8 @@ const ReportIssuePage = () => {
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: 'File too large',
-        description: 'Maximum file size is 10MB',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Only JPG, PNG, and WEBP formats are supported',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }    // Set file data
-    setSelectedImage(file);
-    
-    // Create image preview
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-  };
-  const removeImage = () => {
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const handleImagesChange = (images) => {
+    setSelectedImages(images);
   };
 
   const validateForm = () => {
@@ -179,7 +249,6 @@ const ReportIssuePage = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
       if (!validateForm()) {
@@ -205,25 +274,66 @@ const ReportIssuePage = () => {
     }
 
     setIsSubmitting(true);
-    setUploadProgress(0);    try {      // Log tenant object for debugging
+    setUploadProgress(0);
+
+    try {
+      // Log tenant object for debugging
       console.log('Tenant object structure:', tenant);
-      console.log('Tenant ID:', tenant?.tenantId || tenant?.id);
-      
-      // Prepare issue data according to API specification
+      console.log('Tenant ID:', tenant?.tenantId || tenant?.id);      // Prepare issue data according to API specification
       const issueData = {
         tenantId: tenant?.tenantId || tenant?.id || 0,
         reportedByUserId: tenant?.userId || tenant?.id || 0,
-        description: formData.description
-      };
+        // Include booking ID if a booking is selected
+        bookingId: selectedBooking ? (
+          selectedBooking.bookingId || 
+          selectedBooking.booking_id || 
+          selectedBooking.id ||
+          null
+        ) : null,
+        // Combine title and description with location info
+        description: `${formData.title}\n\n${formData.description}\n\nLocation: ${formData.location}${formData.contactPhone ? `\nContact: ${formData.contactPhone}` : ''}`,
+        category: formData.category || 'general',
+        priority: formData.priority || 'medium',
+        estimatedResolutionHours: 0 // Default estimation
+      };      // Enhanced debugging for booking linkage
+      console.log('=== ISSUE SUBMISSION DEBUG ===');
+      console.log('Selected booking object:', selectedBooking);
+      console.log('Selected booking fields check:', {
+        bookingId: selectedBooking?.bookingId,
+        booking_id: selectedBooking?.booking_id,
+        id: selectedBooking?.id,
+        fullObject: selectedBooking
+      });
+      console.log('Extracted booking ID:', issueData.bookingId);
+      console.log('Final issue data:', issueData);
+      console.log('Active bookings state:', activeBookings);
+      console.log('===============================');
 
-      // Make API request using issueService with file upload
+      // Prepare attachments if images are selected
+      if (selectedImages.length > 0) {
+        const initialAttachments = [];
+        
+        selectedImages.forEach((image, index) => {
+          initialAttachments.push({
+            fileName: image.fileName,
+            fileType: image.fileType,
+            content: image.base64, // base64 content without data:image prefix
+            attachmentType: 'evidence', // Default type for initial report
+            contextDescription: image.contextDescription || `Initial report evidence ${index + 1}`,
+            isPrimary: image.isPrimary || index === 0 // First image is primary by default
+          });
+        });
+        
+        issueData.initialAttachments = initialAttachments;
+      }
+
+      // Make API request using the updated issueService
       console.log('Sending issue data:', issueData);
-      console.log('Selected image file:', selectedImage);
-      const response = await issueService.reportIssue(issueData, selectedImage);
+      console.log('Selected images count:', selectedImages.length);
       
-      toast({
+      const response = await issueService.reportIssue(issueData);        toast({
         title: 'Issue Reported Successfully',
-        description: 'Your maintenance request has been submitted. We will respond within 24 hours.',
+        description: `Your maintenance request "${formData.title}" has been submitted with ${selectedImages.length} image${selectedImages.length !== 1 ? 's' : ''}. Issue ID: ${response.issue?.issueId || 'Unknown'}${selectedBooking ? ` (Linked to Booking #${selectedBooking.bookingId || selectedBooking.booking_id})` : ''}. We will respond within 24 hours.`,
         status: 'success',
         duration: 5000,
         isClosable: true,
@@ -238,12 +348,13 @@ const ReportIssuePage = () => {
         location: '',
         contactPhone: ''
       });
-      removeImage();
+      setSelectedImages([]);
 
       // Navigate back to issues page
       setTimeout(() => {
         navigate('/tenant/issues');
-      }, 2000);} catch (error) {
+      }, 2000);
+    } catch (error) {
       console.error('Error submitting issue:', error);
       
       // Log detailed error information
@@ -290,9 +401,7 @@ const ReportIssuePage = () => {
               Please provide detailed information about the issue you're experiencing.
               This helps us resolve it faster.
             </Text>
-          </Box>
-
-          {/* Information Alert */}
+          </Box>          {/* Information Alert */}
           <Alert status="info" borderRadius="md">
             <AlertIcon />
             <Box>
@@ -303,6 +412,148 @@ const ReportIssuePage = () => {
               </Text>
             </Box>
           </Alert>
+
+          {/* Booking Selection Section */}
+          <Card bg={cardBg} borderWidth="1px" borderColor={borderColor}>
+            <CardHeader>
+              <HStack spacing={3}>
+                <Icon as={FaBed} color="blue.500" />
+                <VStack align="start" spacing={1}>
+                  <Heading size="md">Link to Current Booking</Heading>
+                  <Text fontSize="sm" color="gray.600">
+                    This helps us identify the specific room and context for your issue
+                  </Text>
+                </VStack>
+              </HStack>
+            </CardHeader>
+            <CardBody>
+              {loadingBookings ? (
+                <Center py={6}>
+                  <VStack spacing={3}>
+                    <Spinner />
+                    <Text fontSize="sm" color="gray.600">Loading your active bookings...</Text>
+                  </VStack>
+                </Center>
+              ) : activeBookings.length > 0 ? (
+                <VStack spacing={4} align="stretch">
+                  <Alert status="success" borderRadius="md">
+                    <FaCheckCircle />
+                    <Box ml={2}>
+                      <Text fontWeight="medium">Active Booking Found!</Text>
+                      <Text fontSize="sm">
+                        We'll automatically link this issue to your current booking for faster resolution.
+                      </Text>
+                    </Box>
+                  </Alert>
+
+                  <FormControl>
+                    <FormLabel>Select Booking (Optional)</FormLabel>
+                    <VStack spacing={3} align="stretch">
+                      {activeBookings.map((booking) => (
+                        <Box
+                          key={booking.bookingId || booking.booking_id}
+                          p={4}
+                          borderWidth="1px"
+                          borderColor={
+                            selectedBooking?.bookingId === booking.bookingId ||
+                            selectedBooking?.booking_id === booking.booking_id
+                              ? 'blue.500'
+                              : borderColor
+                          }
+                          borderRadius="md"
+                          cursor="pointer"
+                          onClick={() => handleBookingSelection(booking)}
+                          _hover={{ borderColor: 'blue.300' }}
+                          bg={
+                            selectedBooking?.bookingId === booking.bookingId ||
+                            selectedBooking?.booking_id === booking.booking_id
+                              ? 'blue.50'
+                              : 'transparent'
+                          }
+                        >
+                          <HStack justify="space-between">
+                            <VStack align="start" spacing={1}>
+                              <HStack spacing={2}>
+                                <Badge colorScheme="blue" variant="outline">
+                                  Booking #{booking.bookingId || booking.booking_id}
+                                </Badge>
+                                <Badge 
+                                  colorScheme={booking.status === 'checked_in' ? 'green' : 'yellow'}
+                                  variant="solid"
+                                >
+                                  {booking.status === 'checked_in' ? 'Checked In' : 'Confirmed'}
+                                </Badge>
+                              </HStack>
+                              <Text fontWeight="medium">
+                                Room {booking.roomNumber || booking.room_number}
+                                {booking.buildingName && ` - ${booking.buildingName}`}
+                              </Text>
+                              <Text fontSize="sm" color="gray.600">
+                                {new Date(booking.checkInDate || booking.check_in).toLocaleDateString()} - {' '}
+                                {new Date(booking.checkOutDate || booking.check_out).toLocaleDateString()}
+                              </Text>
+                            </VStack>
+                            {(selectedBooking?.bookingId === booking.bookingId ||
+                              selectedBooking?.booking_id === booking.booking_id) && (
+                              <Icon as={FaCheckCircle} color="blue.500" />
+                            )}
+                          </HStack>
+                        </Box>
+                      ))}
+                      
+                      <Box
+                        p={4}
+                        borderWidth="1px"
+                        borderColor={!selectedBooking ? 'blue.500' : borderColor}
+                        borderRadius="md"
+                        cursor="pointer"
+                        onClick={() => handleBookingSelection(null)}
+                        _hover={{ borderColor: 'blue.300' }}
+                        bg={!selectedBooking ? 'blue.50' : 'transparent'}
+                      >
+                        <HStack justify="space-between">
+                          <VStack align="start" spacing={1}>
+                            <Text fontWeight="medium">Report without booking link</Text>
+                            <Text fontSize="sm" color="gray.600">
+                              For general issues or when the problem isn't related to your current booking
+                            </Text>
+                          </VStack>
+                          {!selectedBooking && (
+                            <Icon as={FaCheckCircle} color="blue.500" />
+                          )}
+                        </HStack>
+                      </Box>
+                    </VStack>
+                  </FormControl>
+                </VStack>
+              ) : (
+                <VStack spacing={4} align="stretch">
+                  <Alert status="info" borderRadius="md">
+                    <FaInfoCircle />
+                    <Box ml={2}>
+                      <Text fontWeight="medium">No Active Booking Found</Text>
+                      <Text fontSize="sm">
+                        You don't have any current bookings, but you can still report maintenance issues.
+                        This is perfect for reporting problems in common areas or general facility issues.
+                      </Text>
+                    </Box>
+                  </Alert>
+                  
+                  <Box p={4} bg="gray.50" borderRadius="md">
+                    <VStack align="start" spacing={2}>
+                      <Text fontWeight="medium">✅ You can still report issues for:</Text>
+                      <VStack align="start" spacing={1} pl={4}>
+                        <Text fontSize="sm">• Common areas (lobby, hallways, parking)</Text>
+                        <Text fontSize="sm">• General facility problems</Text>
+                        <Text fontSize="sm">• Urgent safety concerns</Text>
+                        <Text fontSize="sm">• Issues from previous bookings</Text>
+                      </VStack>
+                    </VStack>
+                  </Box>
+                </VStack>
+              )}
+            </CardBody>
+          </Card>
 
           {/* Main Form */}
           <form onSubmit={handleSubmit}>
@@ -368,56 +619,22 @@ const ReportIssuePage = () => {
                           placeholder="Alternative contact number"
                         />
                       </FormControl>
-                      
-                      {/* Image Upload */}
+                        {/* Multi-Image Upload */}
                       <FormControl>
-                        <FormLabel>Upload Image (Optional)</FormLabel>
-                        <VStack spacing={4} align="stretch">
-                          <HStack>
-                            <Input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageChange}
-                              display="none"
-                              ref={fileInputRef}
-                            />
-                            <Button 
-                              leftIcon={<FaUpload />}
-                              onClick={() => fileInputRef.current.click()}
-                              colorScheme="blue"
-                              variant="outline"
-                            >
-                              Choose Image
-                            </Button>
-                            <Text fontSize="sm" color="gray.500">
-                              Max size: 10MB (JPG, PNG, WEBP)
-                            </Text>
-                          </HStack>
-                          
-                          {imagePreview && (
-                            <Box position="relative" mt={4}>
-                              <Flex justifyContent="center">
-                                <Box maxW="300px" borderWidth="1px" borderRadius="lg" overflow="hidden">
-                                  <Image src={imagePreview} alt="Issue image" />
-                                  <Button
-                                    position="absolute"
-                                    top={2}
-                                    right={2}
-                                    size="sm"
-                                    colorScheme="red"
-                                    onClick={removeImage}
-                                    leftIcon={<FaTimes />}
-                                  >
-                                    Remove
-                                  </Button>
-                                  <Text p={2} fontSize="sm" color="gray.500">
-                                    {selectedImage ? selectedImage.name : ''}
-                                  </Text>
-                                </Box>
-                              </Flex>
-                            </Box>
-                          )}
-                        </VStack>
+                        <FormLabel>Upload Evidence Images</FormLabel>
+                        <MultiImageUpload
+                          images={selectedImages}
+                          onImagesChange={handleImagesChange}
+                          maxImages={5}                          title="Upload Evidence Images"
+                          description="Drag and drop images here, or click to select files"
+                          contextDescription="Issue evidence photo"
+                          required={false}
+                          showPreview={true}
+                          allowReorder={true}
+                        />
+                        <Text fontSize="xs" color="gray.500" mt={2}>
+                          Upload up to 5 images to help us understand the issue better. The first image will be used as the primary evidence.
+                        </Text>
                       </FormControl>
                     </VStack>
                   </CardBody>

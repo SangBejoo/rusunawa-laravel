@@ -53,7 +53,7 @@ import paymentService from '../../services/paymentService';
 import invoiceService from '../../services/invoiceService';
 import bookingService from '../../services/bookingService';
 import { useTenantAuth } from '../../context/tenantAuthContext';
-import { API_BASE_URL } from '../../../config/apiConfig';
+import { API_BASE_URL } from '../../config/apiConfig';
 
 const PaymentProcess = () => {
   const { paymentId, invoiceId, bookingId } = useParams();

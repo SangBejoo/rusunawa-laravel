@@ -62,7 +62,10 @@ const BookRoom = () => {
   const [roomAvailability, setRoomAvailability] = useState([]);  const [bookingDates, setBookingDates] = useState({
     startDate: '',
     endDate: ''
-  });  const [selectedRentalType, setSelectedRentalType] = useState(null); // Store rental type object
+  });
+    // Add state for monthly rental logic
+  const [monthsToRent, setMonthsToRent] = useState(1); // Default to 1 month
+  const [selectedRentalType, setSelectedRentalType] = useState(null); // Store rental type object
   const [availableRentalTypes, setAvailableRentalTypes] = useState([]);
   const [calculatedAmount, setCalculatedAmount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,13 +164,12 @@ const BookRoom = () => {
     };
     
     fetchRoomDetails();
-  }, [roomId, toast]);
-  // Calculate amount when dates or rental type change
+  }, [roomId, toast]);  // Calculate amount when dates, rental type, or months change
   useEffect(() => {
     if (room && bookingDates.startDate && bookingDates.endDate) {
       calculateAmount();
     }
-  }, [room, bookingDates, selectedRentalType]);
+  }, [room, bookingDates, selectedRentalType, monthsToRent]);
 
   const calculateTotalPrice = (room, startDate, endDate) => {
     if (!room || !startDate || !endDate) return 0;
@@ -189,7 +191,7 @@ const BookRoom = () => {
     const startDate = new Date(bookingDates.startDate);
     const endDate = new Date(bookingDates.endDate);
     
-    // Calculate the difference in days or months depending on selected rental type
+    // Calculate the amount based on rental type
     let amount = 0;
     let duration = 0;
     
@@ -205,18 +207,14 @@ const BookRoom = () => {
       duration = diffDays;
       amount = room.rate * diffDays;
     } else {
-      // For monthly rentals, calculate months difference
-      // If less than a month, still charge for 1 month minimum
-      const diffTime = Math.abs(endDate - startDate);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const diffMonths = Math.max(1, Math.ceil(diffDays / 30)); // Minimum 1 month
-      duration = diffMonths;
-      amount = room.rate * diffMonths;
+      // For monthly rentals, use the monthsToRent directly
+      duration = monthsToRent;
+      amount = room.rate * monthsToRent;
     }
     
     console.log(`Rental type: ${selectedRentalType.name} (ID: ${selectedRentalType.rentalTypeId}), Duration: ${duration}, Amount: ${amount}`);
     setCalculatedAmount(amount);
-  };  const handleRentalTypeChange = (newRentalType) => {
+  };const handleRentalTypeChange = (newRentalType) => {
     setSelectedRentalType(newRentalType);
     
     // Reset dates when changing rental type
@@ -225,9 +223,11 @@ const BookRoom = () => {
       endDate: ''
     });
     
+    // Reset months to 1 for monthly rentals
+    setMonthsToRent(1);
+    
     setCalculatedAmount(0);
-  };
-  const handleDateChange = (name, date) => {
+  };const handleDateChange = (name, date) => {
     setBookingDates(prev => {
       const newDates = {
         ...prev,
@@ -241,9 +241,10 @@ const BookRoom = () => {
                          selectedRentalType.name.toLowerCase().includes('monthly');
         
         if (isMonthly) {
+          // Calculate end date based on start date + number of months
           const startDate = new Date(date);
           const endDate = new Date(startDate);
-          endDate.setMonth(endDate.getMonth() + 1); // Add 1 month
+          endDate.setMonth(endDate.getMonth() + monthsToRent);
           
           newDates.endDate = endDate.toISOString().split('T')[0];
         }
@@ -251,6 +252,29 @@ const BookRoom = () => {
       
       return newDates;
     });
+  };
+
+  // New function to handle months change for monthly rentals
+  const handleMonthsChange = (months) => {
+    setMonthsToRent(months);
+    
+    // Recalculate end date if start date is already set
+    if (bookingDates.startDate && selectedRentalType) {
+      const isMonthly = selectedRentalType.rentalTypeId === 2 || 
+                       selectedRentalType.name.toLowerCase().includes('bulanan') ||
+                       selectedRentalType.name.toLowerCase().includes('monthly');
+      
+      if (isMonthly) {
+        const startDate = new Date(bookingDates.startDate);
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + months);
+        
+        setBookingDates(prev => ({
+          ...prev,
+          endDate: endDate.toISOString().split('T')[0]
+        }));
+      }
+    }
   };
 
   const isDateAvailable = (date) => {
@@ -743,45 +767,121 @@ const BookRoom = () => {
                     ? 'Cocok untuk tinggal jangka panjang (minimal 1 bulan)'
                     : 'Pilih jenis sewa yang sesuai dengan kebutuhan Anda'}
                 </Text>
-              </FormControl>
-
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>                <FormControl isRequired>
-                  <FormLabel>
-                    {selectedRentalType?.name === 'harian' ? 'Check-in Date' : 'Start Date'}
-                  </FormLabel>
-                  <Input
-                    type="date"
-                    name="startDate"
-                    value={bookingDates.startDate}
-                    onChange={(e) => handleDateChange('startDate', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                  {selectedRentalType?.name === 'bulanan' && (
+              </FormControl>              {/* Date Selection - Different for Monthly vs Daily */}
+              {selectedRentalType?.name === 'bulanan' ? (
+                // Monthly Rental Interface
+                <VStack spacing={6} align="stretch">
+                  <FormControl isRequired>
+                    <FormLabel>Start Date*</FormLabel>
+                    <Input
+                      type="date"
+                      name="startDate"
+                      value={bookingDates.startDate}
+                      onChange={(e) => handleDateChange('startDate', e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
                     <Text fontSize="sm" color="gray.600" mt={1}>
                       Tanggal mulai sewa (tanggal masuk ke kamar)
                     </Text>
-                  )}
-                </FormControl>
-                
-                <FormControl isRequired>
-                  <FormLabel>
-                    {selectedRentalType?.name === 'harian' ? 'Check-out Date' : 'End Date'}
-                  </FormLabel>
-                  <Input
-                    type="date"
-                    name="endDate"
-                    value={bookingDates.endDate}
-                    onChange={(e) => handleDateChange('endDate', e.target.value)}
-                    min={bookingDates.startDate || new Date().toISOString().split('T')[0]}
-                    readOnly={selectedRentalType?.name === 'bulanan'}
-                  />
-                  {selectedRentalType?.name === 'bulanan' && (
+                  </FormControl>
+
+                  <FormControl isRequired>
+                    <FormLabel>Number of Months*</FormLabel>
+                    <Select
+                      value={monthsToRent}
+                      onChange={(e) => handleMonthsChange(parseInt(e.target.value))}
+                      placeholder="Select duration"
+                    >
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                        <option key={month} value={month}>
+                          {month} {month === 1 ? 'Month' : 'Months'} 
+                          {room?.rate && ` - ${new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0
+                          }).format(room.rate * month)}`}
+                        </option>
+                      ))}
+                    </Select>
                     <Text fontSize="sm" color="gray.600" mt={1}>
-                      Tanggal berakhir sewa (otomatis +1 bulan dari tanggal mulai)
+                      Berapa lama Anda ingin menyewa kamar ini?
                     </Text>
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel>End Date (Calculated)</FormLabel>
+                    <Input
+                      type="date"
+                      name="endDate"
+                      value={bookingDates.endDate}
+                      readOnly
+                      bg="gray.50"
+                      cursor="not-allowed"
+                    />
+                    <Text fontSize="sm" color="gray.600" mt={1}>
+                      Tanggal berakhir sewa (otomatis dihitung: {monthsToRent} bulan dari tanggal mulai)
+                    </Text>
+                  </FormControl>
+
+                  {/* Summary for Monthly Rental */}
+                  {bookingDates.startDate && (
+                    <Box p={4} bg="blue.50" borderRadius="md" borderLeft="4px solid" borderColor="blue.500">
+                      <VStack align="start" spacing={2}>
+                        <Text fontWeight="bold" color="blue.700">Rental Summary</Text>
+                        <Text fontSize="sm">
+                          <Text as="span" fontWeight="medium">Duration:</Text> {monthsToRent} {monthsToRent === 1 ? 'Month' : 'Months'}
+                        </Text>
+                        <Text fontSize="sm">
+                          <Text as="span" fontWeight="medium">From:</Text> {new Date(bookingDates.startDate).toLocaleDateString('id-ID')}
+                        </Text>
+                        {bookingDates.endDate && (
+                          <Text fontSize="sm">
+                            <Text as="span" fontWeight="medium">Until:</Text> {new Date(bookingDates.endDate).toLocaleDateString('id-ID')}
+                          </Text>
+                        )}
+                        <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                          Total: {new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            minimumFractionDigits: 0
+                          }).format(calculatedAmount)}
+                        </Text>
+                      </VStack>
+                    </Box>
                   )}
-                </FormControl>
-              </SimpleGrid>
+                </VStack>
+              ) : (
+                // Daily Rental Interface (existing)
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                  <FormControl isRequired>
+                    <FormLabel>Check-in Date*</FormLabel>
+                    <Input
+                      type="date"
+                      name="startDate"
+                      value={bookingDates.startDate}
+                      onChange={(e) => handleDateChange('startDate', e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                    <Text fontSize="sm" color="gray.600" mt={1}>
+                      Tanggal check-in ke kamar
+                    </Text>
+                  </FormControl>
+                  
+                  <FormControl isRequired>
+                    <FormLabel>Check-out Date*</FormLabel>
+                    <Input
+                      type="date"
+                      name="endDate"
+                      value={bookingDates.endDate}
+                      onChange={(e) => handleDateChange('endDate', e.target.value)}
+                      min={bookingDates.startDate || new Date().toISOString().split('T')[0]}
+                    />
+                    <Text fontSize="sm" color="gray.600" mt={1}>
+                      Tanggal check-out dari kamar
+                    </Text>
+                  </FormControl>
+                </SimpleGrid>
+              )}
                 {roomAvailability.length === 0 && (
                 <Alert status="warning" mt={4}>
                   <AlertIcon />

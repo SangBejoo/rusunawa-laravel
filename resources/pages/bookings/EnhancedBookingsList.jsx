@@ -65,9 +65,11 @@ import {
   FaKey,
   FaSignOutAlt,
   FaDownload,
-  FaHistory,  FaEllipsisV,
+  FaHistory,
+  FaEllipsisV,
   FaPlus,
   FaHotel,
+  FaChartLine,
   FaReceipt,
   FaChevronDown
 } from 'react-icons/fa';
@@ -785,9 +787,20 @@ const EnhancedBookingsList = () => {
               </Heading>
               <Text color="gray.500">
                 Manage your bookings with integrated payment tracking
-              </Text>            </Box>
+              </Text>
+            </Box>
             
             <VStack spacing={2}>
+              <Button
+                leftIcon={<FaChartLine />}
+                variant="solid"
+                colorScheme="brand"
+                size="sm"
+                onClick={() => navigate('/tenant/analytics')}
+              >
+                View Analytics
+              </Button>
+              
               <Button
                 leftIcon={<FaReceipt />}
                 variant="outline"

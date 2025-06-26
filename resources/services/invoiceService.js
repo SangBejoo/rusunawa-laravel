@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../../config/apiConfig';
 import tenantAuthService from './tenantAuthService';
 
 // Update API URL to match the correct backend endpoint
-const API_URL = API_BASE_URL || 'http://localhost:8001/v1';
+const API_URL = `${API_BASE_URL || 'http://localhost:8001'}/v1`;
 
 /**
  * Service for handling invoice-related operations

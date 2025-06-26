@@ -21,6 +21,7 @@ export default defineConfig({
             '@utils': path.resolve(__dirname, './resources/utils'),
             '@assets': path.resolve(__dirname, './resources/assets'),
             '@context': path.resolve(__dirname, './resources/context'),
+            '@config': path.resolve(__dirname, './src/config'),
         }
     },
     server: {
@@ -28,8 +29,9 @@ export default defineConfig({
             host: 'localhost',
         },
         proxy: {
+            // Always use your dev tunnel for backend API
             '/api': {
-                target: process.env.VITE_API_BASE_URL || 'http://localhost:8001/v1',
+                target: 'https://qtd9x9cp-8001.asse.devtunnels.ms/v1',
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, '')
             }

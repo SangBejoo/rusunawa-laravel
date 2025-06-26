@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { API_URL } from './env';
+import { API_CONFIG } from './config';
 
-// Create axios instance with base URL from environment
+// Create axios instance with base URL dari config baru
 const api = axios.create({
-  baseURL: `${API_URL}/v1`,
+  baseURL: `${API_CONFIG.BASE_URL}/v1`,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

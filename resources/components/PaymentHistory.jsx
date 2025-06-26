@@ -116,36 +116,94 @@ const PaymentHistory = ({ tenantId }) => {
       setLoading(false);
     }
   };
-
   const openImageModal = (payment) => {
     setSelectedPayment(payment);
+    
+    // Check if payment has embedded proof data
+    if (payment.payment_proof && payment.payment_proof.base64_content) {
+      setZoomLevel(100);
+      setImageModalOpen(true);
+    } else {
+      toast({
+        title: 'No Image',
+        description: 'This payment has no proof image available',
+        status: 'info',
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
     setZoomLevel(100);
     setImageModalOpen(true);
   };
-
   const downloadPaymentProof = async (paymentId, fileName) => {
     try {
       setImageLoading(true);
-      const response = await fetch(`/v1/payments/${paymentId}/proof/image?format=original&encoding=binary`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      
+      // Find payment in current payments list
+      const payment = payments.find(p => p.payment?.payment_id === paymentId);
+      if (payment?.payment_proof) {
+        const proof = payment.payment_proof;
+        
+        if (proof.image_content) {
+          // Use embedded binary data
+          const blob = new Blob([new Uint8Array(proof.image_content)], { 
+            type: proof.file_type || 'image/jpeg' 
+          });
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = fileName || proof.file_name || 'payment-proof.jpg';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else if (proof.base64_content) {
+          // Convert base64 to blob
+          const byteCharacters = atob(proof.base64_content);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: proof.file_type || 'image/jpeg' });
+          
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = fileName || proof.file_name || 'payment-proof.jpg';
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } else {
+          throw new Error('No image content available');
         }
-      });
+      } else {
+        // Fallback: try API endpoint (legacy)
+        const response = await fetch(`/v1/payments/${paymentId}/proof/image?format=original&encoding=binary`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to download image');
+        if (!response.ok) {
+          throw new Error('Failed to download image');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = fileName || 'payment-proof.jpg';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = fileName || 'payment-proof.jpg';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
 
       toast({
         title: 'Success',
@@ -250,10 +308,12 @@ const PaymentHistory = ({ tenantId }) => {
             justifyContent="center"
             alignItems="center"
             bg="gray.50"
-          >
-            {selectedPayment && (
+          >            {selectedPayment && (
               <Image
-                src={`/v1/payments/${selectedPayment.payment.payment_id}/proof/image?format=jpeg&quality=high&zoom_level=${zoomLevel}%`}
+                src={selectedPayment.payment_proof?.base64_content ? 
+                  `data:${selectedPayment.payment_proof.file_type || 'image/jpeg'};base64,${selectedPayment.payment_proof.base64_content}` :
+                  `/v1/payments/${selectedPayment.payment.payment_id}/proof/image?format=jpeg&quality=high&zoom_level=${zoomLevel}%`
+                }
                 alt="Payment Proof"
                 maxW="none"
                 w={`${zoomLevel}%`}

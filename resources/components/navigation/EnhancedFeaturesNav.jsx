@@ -59,8 +59,8 @@ const EnhancedFeaturesNav = ({ compact = false }) => {
       routes: {
         list: '/tenant/issues/enhanced',
         report: '/tenant/issues/report/enhanced'
-      },
-      features: ['Photo Upload', 'Real-time Tracking', 'Status Updates', 'Progress Monitoring']    },
+      },      features: ['Photo Upload', 'Real-time Tracking', 'Status Updates', 'Progress Monitoring']
+    },
     {
       id: 'bookings',
       title: 'Enhanced Bookings',

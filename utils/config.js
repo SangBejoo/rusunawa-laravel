@@ -4,8 +4,8 @@
 
 // API configuration
 export const API_CONFIG = {
-  // Provide multiple fallbacks to ensure we always have a base URL
-  BASE_URL: process.env.REACT_APP_API_URL || window.REACT_APP_API_URL || 'http://localhost:8001',
+  // Selalu gunakan base URL baru
+  BASE_URL: 'https://qtd9x9cp-8001.asse.devtunnels.ms',
   TIMEOUT: 15000,
   VERSION: 'v1'
 };
@@ -40,10 +40,8 @@ export function getConfig(key, fallback = null) {
       value = value[part];
       if (value === undefined) return fallback;
     }
-    
     return value;
   } catch (err) {
-    console.warn(`Failed to get config for key: ${key}`, err);
     return fallback;
   }
 }

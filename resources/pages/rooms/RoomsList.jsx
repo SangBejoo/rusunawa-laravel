@@ -5,17 +5,21 @@ import {
   Button, useColorModeValue, Spinner, Alert, AlertIcon,
   Flex, RangeSlider, RangeSliderTrack, RangeSliderFilledTrack, 
   RangeSliderThumb, Stack, useDisclosure, Drawer, DrawerBody, 
-  DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton
+  DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton,
+  Badge
 } from '@chakra-ui/react';
 import { FaSearch, FaFilter, FaTimesCircle } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import TenantLayout from '../../components/layout/TenantLayout';
+import { useTenantAuth } from '../../context/tenantAuthContext';
 import roomService from '../../services/roomService';
 import RoomCard from '../../components/room/RoomCard';
 import { calculateRoomOccupancy } from '../../utils/roomUtils';
 
 const RoomsList = () => {
+  const { tenant } = useTenantAuth();
   const [rooms, setRooms] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
@@ -24,6 +28,7 @@ const RoomsList = () => {
     minRate: 0,
     maxRate: 10000000,
     search: '',
+    showAvailableOnly: false,
   });
   
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -39,6 +44,56 @@ const RoomsList = () => {
   useEffect(() => {
     fetchRooms();
   }, []);
+  
+  // Filter rooms based on tenant gender and other criteria
+  useEffect(() => {
+    if (rooms.length > 0) {
+      let filtered = rooms;
+      
+      // Filter by tenant gender compatibility
+      if (tenant) {
+        filtered = filtered.filter(room => {
+          const roomGender = room.classification?.name;
+          const tenantGender = tenant.gender;
+          
+          // VIP and ruang_rapat rooms are available to all genders
+          if (roomGender === 'VIP' || roomGender === 'ruang_rapat') {
+            return true;
+          }
+          
+          // Gender-specific rooms
+          if (roomGender === 'perempuan' && tenantGender === 'P') {
+            return true;
+          }
+          if (roomGender === 'laki_laki' && tenantGender === 'L') {
+            return true;
+          }
+          
+          return false;
+        });
+      }
+      
+      // Apply other filters
+      if (filters.classification) {
+        filtered = filtered.filter(room => 
+          room.classification?.name === filters.classification
+        );
+      }
+      
+      if (filters.search) {
+        filtered = filtered.filter(room =>
+          room.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+          room.description?.toLowerCase().includes(filters.search.toLowerCase())
+        );
+      }
+      
+      if (filters.showAvailableOnly) {
+        filtered = filtered.filter(room => room.is_available);
+      }
+      
+      setFilteredRooms(filtered);
+    }
+  }, [rooms, filters, tenant]);
   
   const fetchRooms = async (params = {}) => {
     setLoading(true);
@@ -265,6 +320,26 @@ const RoomsList = () => {
           </Alert>
         )}
         
+        {/* Gender compatibility notice */}
+        {tenant && (
+          <Alert status="info" mb={6}>
+            <AlertIcon />
+            <VStack align="start" spacing={1}>
+              <Text fontWeight="medium">
+                Showing rooms compatible with your profile:
+              </Text>
+              <HStack>
+                <Badge colorScheme="blue">
+                  {tenant.tenantType?.name === 'mahasiswa' ? 'Student' : 'Non-Student'}
+                </Badge>
+                <Badge colorScheme="green">
+                  {tenant.gender === 'L' ? 'Male' : tenant.gender === 'P' ? 'Female' : 'Other'}
+                </Badge>
+              </HStack>
+            </VStack>
+          </Alert>
+        )}
+        
         <Flex gap={6}>
           {/* Filters sidebar (desktop) */}
           <Box 
@@ -286,14 +361,14 @@ const RoomsList = () => {
                 <AlertIcon />
                 {error}
               </Alert>
-            ) : rooms.length === 0 ? (
+            ) : filteredRooms.length === 0 ? (
               <Alert status="info">
                 <AlertIcon />
                 No rooms found matching your criteria. Try adjusting your filters.
               </Alert>
             ) : (
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                {rooms.map((room) => {
+                {filteredRooms.map((room) => {
                   // Ensure a valid key is used
                   const key = room.room_id || room.roomId || room.id || `room-${Math.random()}`;
                   return <RoomCard key={key} room={room} />;

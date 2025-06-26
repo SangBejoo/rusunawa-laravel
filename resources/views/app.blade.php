@@ -53,6 +53,10 @@
         </style>
           <!-- Scripts and CSS -->
         @vite(['resources/css/app.css', 'resources/js/app.jsx'])
+        <script>
+            // Polyfill for process.env to avoid 'process is not defined' error in browser
+            window.process = window.process || { env: {} };
+        </script>
     </head>
     <body class="font-sans antialiased">
         <div id="root">

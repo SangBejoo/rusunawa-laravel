@@ -1,9 +1,49 @@
 import axios from 'axios';
-import { API_BASE_URL, API_ENDPOINTS } from '../../config/apiConfig';
+import { API_BASE_URL } from '../config/apiConfig';
 import tenantAuthService from './tenantAuthService';
 
+const API_URL = `${API_BASE_URL}/v1/rooms`;
+
+// In-memory cache for room images to avoid repeated API calls
+const imageCache = new Map();
+const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
+// Cache utility functions
+const getCacheKey = (roomId) => `tenant_room_images_${roomId}`;
+
+const isCacheValid = (cacheEntry) => {
+  return cacheEntry && (Date.now() - cacheEntry.timestamp) < CACHE_EXPIRY_MS;
+};
+
+const setImageCache = (roomId, data) => {
+  const cacheKey = getCacheKey(roomId);
+  imageCache.set(cacheKey, {
+    data: data,
+    timestamp: Date.now()
+  });
+  console.log(`💾 [Tenant] Cached images for room ${roomId}`);
+};
+
+const getImageCache = (roomId) => {
+  const cacheKey = getCacheKey(roomId);
+  const cacheEntry = imageCache.get(cacheKey);
+  
+  if (isCacheValid(cacheEntry)) {
+    console.log(`⚡ [Tenant] Using cached images for room ${roomId}`);
+    return cacheEntry.data;
+  }
+  
+  if (cacheEntry) {
+    // Remove expired cache entry
+    imageCache.delete(cacheKey);
+    console.log(`🗑️ [Tenant] Removed expired cache for room ${roomId}`);
+  }
+  
+  return null;
+};
+
 /**
- * Service for handling room-related operations
+ * Service for handling room-related operations for tenants
  */
 const roomService = {
   /**
@@ -13,8 +53,8 @@ const roomService = {
    */
   getRooms: async (params = {}) => {
     try {
-      // Use the Go API endpoint with optional query parameters
-      const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.ROOMS}`, { params });
+      // Use the main rooms endpoint with optional query parameters
+      const response = await axios.get(API_URL, { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching rooms:', error);
@@ -33,7 +73,8 @@ const roomService = {
       if (!roomId || isNaN(roomId)) {
         throw new Error('Invalid room ID');
       }
-        const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.ROOM_DETAIL}/${roomId}`);
+      
+      const response = await axios.get(`${API_URL}/${roomId}`);
       return response.data;
     } catch (error) {
       console.error(`Error fetching room ${roomId}:`, error);
@@ -48,9 +89,10 @@ const roomService = {
    * @param {string} endDate - Check-out date in ISO format
    * @returns {Promise<Object>} - Availability status
    */
-  checkAvailability: async (roomId, startDate, endDate) => {    try {
+  checkAvailability: async (roomId, startDate, endDate) => {
+    try {
       const params = { startDate, endDate };
-      const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.ROOM_DETAIL}/${roomId}/availability`, { params });
+      const response = await axios.get(`${API_URL}/${roomId}/availability`, { params });
       
       // Process the availability data to return a simple status
       const availabilityData = response.data.availability || [];
@@ -256,7 +298,7 @@ const roomService = {
   getRentalTypes: async () => {
     try {
       // First try to get from dedicated rental types endpoint
-      const response = await axios.get(`${API_BASE_URL}/rental-types`);
+      const response = await axios.get(`${API_BASE_URL}/v1/rental-types`);
       return response.data;
     } catch (error) {
       console.error('Error fetching rental types from API:', error);
@@ -347,11 +389,136 @@ const roomService = {
         unit,
         totalAmount: amount,
         rentalType
-      };
-    } catch (error) {
+      };    } catch (error) {
       console.error(`Error calculating pricing for room ${roomId}:`, error);
       throw error.response?.data || { message: 'Failed to calculate pricing' };
     }
+  },
+
+  // ============================================================================
+  // ROOM IMAGE METHODS FOR TENANTS
+  // ============================================================================
+    /**
+   * Get all images for a room with binary data for preview (tenant view)
+   * @param {number} roomId - The room ID
+   * @returns {Promise<Object>} The room images response
+   */
+  getRoomImages: async (roomId) => {
+    try {
+      // Validate roomId before making request
+      if (!roomId || roomId === 'undefined' || isNaN(roomId)) {
+        console.warn(`❌ [Tenant] Invalid roomId provided: ${roomId}`);
+        throw new Error('Invalid room ID provided');
+      }
+
+      // Check cache first
+      const cachedData = getImageCache(roomId);
+      if (cachedData) {
+        return cachedData;
+      }
+
+      console.log(`🌐 [Tenant] Making API call to: /rooms/${roomId}/images`);
+      const response = await axios.get(`${API_URL}/${roomId}/images`);
+      console.log('🔄 [Tenant] Raw API response:', response);
+      
+      const data = response.data;
+      console.log('📊 [Tenant] Response data:', data);
+      
+      // Convert image data to displayable format
+      if (data.images && data.images.length > 0) {
+        console.log(`🖼️ [Tenant] Processing ${data.images.length} images`);
+        
+        data.images = data.images.map((image, index) => {
+          console.log(`[Tenant] Processing image ${index + 1}:`, {
+            imageId: image.imageId,
+            imageName: image.imageName,
+            contentType: image.contentType,
+            fileSize: image.fileSize,
+            isPrimary: image.isPrimary,
+            hasImageData: !!image.imageData
+          });
+          
+          // Use imageData as the base64 data based on API response structure
+          const imageUrl = image.imageData && typeof image.imageData === 'string' ? 
+            `data:${image.contentType || 'image/png'};base64,${image.imageData}` : null;
+          
+          return {
+            ...image,
+            // Convert base64 image data to data URL for preview
+            imageUrl: imageUrl,
+            // Keep original imageData for potential use
+            originalImageData: image.imageData
+          };
+        });
+        console.log('✅ [Tenant] Images processed successfully');
+      } else {
+        console.log('ℹ️ [Tenant] No images found in response');
+      }
+      
+      // Cache the processed data
+      setImageCache(roomId, data);
+      
+      return data;
+    } catch (error) {
+      console.error('❌ [Tenant] Error in getRoomImages:', error.response || error);
+      throw new Error(error.response?.data?.message || error.message || 'Failed to fetch room images');
+    }
+  },
+  /**
+   * Get primary room image for a room (optimized for room cards)
+   * @param {number} roomId - The room ID  
+   * @returns {Promise<Object|null>} The primary room image or null
+   */
+  getPrimaryRoomImage: async (roomId) => {
+    try {
+      // Validate roomId before making request
+      if (!roomId || roomId === 'undefined' || isNaN(roomId)) {
+        console.warn(`❌ [Tenant] Invalid roomId provided to getPrimaryRoomImage: ${roomId}`);
+        return null;
+      }
+
+      const imagesResponse = await roomService.getRoomImages(roomId);
+      
+      if (imagesResponse.images && imagesResponse.images.length > 0) {
+        // Find primary image or use first one
+        const primaryImage = imagesResponse.images.find(img => img.isPrimary) || imagesResponse.images[0];
+        console.log(`🎯 [Tenant] Found primary image for room ${roomId}:`, primaryImage.imageName);
+        return primaryImage;
+      }
+      
+      console.log(`ℹ️ [Tenant] No images found for room ${roomId}`);
+      return null;
+    } catch (error) {
+      console.error(`❌ [Tenant] Error getting primary image for room ${roomId}:`, error);
+      return null; // Return null instead of throwing to allow graceful fallback
+    }
+  },
+
+  /**
+   * Clear image cache for a specific room or all rooms
+   * @param {number|null} roomId - Room ID to clear cache for, or null for all
+   */
+  clearImageCache: (roomId = null) => {
+    if (roomId) {
+      const cacheKey = getCacheKey(roomId);
+      imageCache.delete(cacheKey);
+      console.log(`🗑️ [Tenant] Cleared cache for room ${roomId}`);
+    } else {
+      imageCache.clear();
+      console.log(`🗑️ [Tenant] Cleared all image cache`);
+    }
+  },
+  
+  /**
+   * Get cache statistics for debugging
+   * @returns {Object} Cache statistics
+   */
+  getCacheStats: () => {
+    return {
+      totalCachedRooms: imageCache.size,
+      cacheKeys: Array.from(imageCache.keys()),
+      cacheExpiry: `${CACHE_EXPIRY_MS / 1000 / 60} minutes`
+    };
   }
 };
 

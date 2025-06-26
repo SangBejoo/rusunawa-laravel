@@ -24,8 +24,8 @@ import {
   useToast
 } from '@chakra-ui/react';
 import TenantLayout from '../../components/layout/TenantLayout';
-import api from '../../../utils/api';
-import { checkApiConnectivity } from '../../../utils/api';
+import api from '../../utils/api';
+import { checkApiConnectivity } from '../../utils/api';
 import { useTenantAuth } from '../../context/tenantAuthContext';
 
 const ApiDebug = () => {

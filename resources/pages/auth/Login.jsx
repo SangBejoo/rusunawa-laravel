@@ -32,7 +32,7 @@ import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { FaEnvelope, FaLock, FaSchool } from 'react-icons/fa';
 import { useTenantAuth } from '../../context/tenantAuthContext';
 import tenantAuthService from '../../services/tenantAuthService';
-import rusunavaLogo from '../../../assets/images/rusunawa-logo.png';
+import rusunavaLogo from '../../assets/images/rusunawa-logo.png';
 
 const Login = () => {
   // Form state

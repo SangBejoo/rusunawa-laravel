@@ -1,5 +1,7 @@
 import axios from 'axios';
-import { API_BASE_URL, API_ENDPOINTS } from '../../config/apiConfig';
+
+// Always use dev tunnel directly for tenant auth
+const AUTH_URL = 'https://qtd9x9cp-8001.asse.devtunnels.ms/v1/tenant/auth';
 
 /**
  * Service for handling tenant authentication operations
@@ -22,10 +24,15 @@ const tenantAuthService = {
       
       // Debug log without showing password content
       console.log("Sending login request for email:", loginData.email);
-      console.log("Using Go API URL:", `${API_BASE_URL}${API_ENDPOINTS.TENANT_LOGIN}`);
       
-      // Use direct Go API endpoint
-      const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.TENANT_LOGIN}`, loginData);
+      // Set proper content type header to ensure correct parsing on server side
+      const config = {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+      
+      const response = await axios.post(`${AUTH_URL}/login`, loginData, config);
       
       // Store token in local storage - using the tenant_token key for consistency
       if (response.data?.token) {
@@ -49,9 +56,10 @@ const tenantAuthService = {
           localStorage.removeItem('email_verified'); // Clear the flag
           
           // Try again once with a slight delay for server sync
-          try {            console.log("Recent verification detected - retrying login after delay");
+          try {
+            console.log("Recent verification detected - retrying login after delay");
             await new Promise(resolve => setTimeout(resolve, 1500));
-            const retryResponse = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.TENANT_LOGIN}`, credentials);
+            const retryResponse = await axios.post(`${AUTH_URL}/login`, credentials);
             
             if (retryResponse.data?.token) {
               localStorage.setItem('token', retryResponse.data.token);
@@ -91,11 +99,12 @@ const tenantAuthService = {
       if (dataToSubmit.homeLongitude !== undefined) {
         dataToSubmit.homeLongitude = dataToSubmit.homeLongitude === null ? 
           null : Number(dataToSubmit.homeLongitude);
-      }      // Log the final data being sent (for debugging)
-      console.log("Final registration payload:", dataToSubmit);
-      console.log("Using Go API URL:", `${API_BASE_URL}${API_ENDPOINTS.TENANT_REGISTER}`);
+      }
       
-      const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.TENANT_REGISTER}`, dataToSubmit);
+      // Log the final data being sent (for debugging)
+      console.log("Final registration payload:", dataToSubmit);
+      
+      const response = await axios.post(`${AUTH_URL}/register`, dataToSubmit);
       return response.data;
     } catch (error) {
       console.error('Registration error:', error);
@@ -114,12 +123,14 @@ const tenantAuthService = {
       // Add retry logic for better reliability
       const maxRetries = 2;
       let retries = 0;
-      let lastError;      // Log the exact URL being used for debugging
-      console.log("Verifying token at:", `${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFY}`);
+      let lastError;
+      
+      // Log the exact URL being used for debugging
+      console.log("Verifying token at:", `${AUTH_URL}/verify-token`);
       
       while (retries <= maxRetries) {
         try {
-          const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFY}`, data, {
+          const response = await axios.post(`${AUTH_URL}/verify-token`, data, {
             timeout: 5000 // 5 second timeout
           });
           return response.data;
@@ -159,9 +170,10 @@ const tenantAuthService = {
    * @param {Object} data - The password reset request data
    * @param {string} data.email - The email for password reset
    * @returns {Promise<Object>} The password reset response
-   */  forgotPassword: async (data) => {
+   */
+  forgotPassword: async (data) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.TENANT_FORGOT_PASSWORD}`, data);
+      const response = await axios.post(`${AUTH_URL}/forgot-password`, data);
       return response.data;
     } catch (error) {
       console.error('Password reset request error:', error);
@@ -178,7 +190,7 @@ const tenantAuthService = {
    */
   resetPassword: async (data) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.TENANT_RESET_PASSWORD}`, data);
+      const response = await axios.post(`${AUTH_URL}/reset-password`, data);
       return response.data;
     } catch (error) {
       console.error('Password reset error:', error);
@@ -196,7 +208,7 @@ const tenantAuthService = {
       console.log("Attempting to verify email with token:", data.token);
       
       // Log the complete URL for debugging
-      const verifyEndpoint = `${API_BASE_URL}${API_ENDPOINTS.TENANT_VERIFY_EMAIL}`;
+      const verifyEndpoint = `${AUTH_URL}/verify-email`;
       console.log("Sending verification request to:", verifyEndpoint);
       
       // Make the API call

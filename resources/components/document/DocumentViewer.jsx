@@ -25,11 +25,20 @@ import {
   IconButton,
   Divider,
   useToast,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  ButtonGroup,
+  Icon,
 } from '@chakra-ui/react';
-import { FaDownload, FaEye, FaFileAlt, FaFilePdf, FaTrash, FaUpload } from 'react-icons/fa';
-import { MdFullscreen } from 'react-icons/md';
+import { FaDownload, FaEye, FaFileAlt, FaFilePdf, FaTrash, FaUpload, FaExclamationTriangle } from 'react-icons/fa';
+import { MdFullscreen, MdWarning } from 'react-icons/md';
 import { formatDate } from '../../utils/dateUtils';
 import documentService from '../../services/documentService';
+import { ErrorAlert, DocumentDeleteAlert } from '../ui/EnhancedAlert';
 
 /**
  * Component to view document details and preview
@@ -40,33 +49,37 @@ const DocumentViewer = ({ document, onDelete, onReplace }) => {
   const [documentData, setDocumentData] = useState(document);
   const [displayUrl, setDisplayUrl] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const cancelRef = React.useRef();
   const toast = useToast();
   
   const cardBg = useColorModeValue('white', 'gray.700');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const textColor = useColorModeValue('gray.700', 'gray.200');
   
-  // Load full document data if needed
+  // Pre-define all useColorModeValue calls for AlertDialog
+  const alertBg = useColorModeValue('white', 'gray.800');
+  const alertBorderColor = useColorModeValue('red.100', 'red.700');
+  const headerBorderColor = useColorModeValue('gray.100', 'gray.700');
+  const headerBg = useColorModeValue('red.50', 'red.900');
+  const headerColor = useColorModeValue('red.800', 'red.100');
+  const bodyTextColor = useColorModeValue('gray.700', 'gray.300');
+  const bodySpanColor = useColorModeValue('gray.900', 'white');
+  const warningBg = useColorModeValue('orange.50', 'orange.900');
+  const warningBorderColor = useColorModeValue('orange.200', 'orange.700');
+  const warningTextColor = useColorModeValue('orange.800', 'orange.200');
+  const warningSubTextColor = useColorModeValue('orange.700', 'orange.300');
+  const fileBoxBg = useColorModeValue('gray.50', 'gray.700');
+  const fileBoxBorderColor = useColorModeValue('gray.200', 'gray.600');
+  const fileBoxLabelColor = useColorModeValue('gray.600', 'gray.400');
+  const fileBoxTextColor = useColorModeValue('gray.900', 'white');
+  const footerBorderColor = useColorModeValue('gray.100', 'gray.700');
+  const cancelButtonHoverBg = useColorModeValue('gray.100', 'gray.700');
+  
+    // Load full document data if needed
   useEffect(() => {
-    const loadDocumentData = async () => {
-      if (!document?.docId || document?.content) {
-        setDocumentData(document);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const fullDocument = await documentService.getDocumentById(document.docId);
-        setDocumentData(fullDocument);
-      } catch (error) {
-        console.error('Error loading document:', error);
-        setError('Failed to load document details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDocumentData();
+    // Always use the document data that's passed in, don't fetch from API
+    setDocumentData(document);
   }, [document]);
 
   // Generate display URL
@@ -113,7 +126,6 @@ const DocumentViewer = ({ document, onDelete, onReplace }) => {
   };
   
   const statusDisplay = getStatusDisplay();
-  
   // Handle document deletion
   const handleDelete = async () => {
     setLoading(true);
@@ -122,20 +134,37 @@ const DocumentViewer = ({ document, onDelete, onReplace }) => {
     try {
       if (onDelete) {
         await onDelete(documentData?.docId);
+          // Show success message
+        toast({
+          title: '🗑️ Document Deleted Successfully',
+          description: 'The document has been permanently removed from your account.',
+          status: 'success',
+          duration: 4000,
+          isClosable: true,
+          position: 'top-right',
+          variant: 'subtle',
+        });
+        
+        onDeleteClose(); // Close the confirmation dialog
       }
     } catch (err) {
       console.error('Error deleting document:', err);
-      setError('Failed to delete document. Please try again.');
-      toast({
-        title: 'Delete Failed',
-        description: 'Failed to delete document. Please try again.',
+      setError('Failed to delete document. Please try again.');      toast({
+        title: '❌ Delete Failed',
+        description: err.message || 'Unable to delete the document. Please check your connection and try again.',
         status: 'error',
-        duration: 5000,
+        duration: 6000,
         isClosable: true,
+        position: 'top-right',
+        variant: 'subtle',
       });
     } finally {
       setLoading(false);
     }
+  };
+
+  const openDeleteConfirmation = () => {
+    onDeleteOpen();
   };
   
   // Handle document replacement
@@ -144,48 +173,48 @@ const DocumentViewer = ({ document, onDelete, onReplace }) => {
       onReplace(documentData?.docId);
     }
   };
-  
-  // Handle document download
+    // Handle document download
   const handleDownload = async () => {
     try {
       if (documentData?.content) {
         // Download from base64 content
         const blobUrl = documentService.createBlobUrl(documentData.content, documentData.fileType);
-        const a = document.createElement('a');
+        const a = window.document.createElement('a');
         a.href = blobUrl;
         a.download = documentData.fileName || 'document';
-        document.body.appendChild(a);
+        window.document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        window.document.body.removeChild(a);
         URL.revokeObjectURL(blobUrl);
       } else {
         // Use download service
         const blob = await documentService.downloadDocument(documentData.docId);
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = window.document.createElement('a');
         a.href = url;
         a.download = documentData.fileName || 'document';
-        document.body.appendChild(a);
+        window.document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        window.document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      }
-
-      toast({
-        title: 'Download Started',
+      }toast({
+        title: '📥 Download Started',
         description: 'Your document download has started.',
         status: 'success',
         duration: 3000,
         isClosable: true,
+        position: 'top-right',
+        variant: 'subtle',
       });
     } catch (error) {
-      console.error('Download failed:', error);
-      toast({
-        title: 'Download Failed',
+      console.error('Download failed:', error);      toast({
+        title: '📥 Download Failed',
         description: 'Failed to download document. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
+        position: 'top-right',
+        variant: 'subtle',
       });
     }
   };
@@ -201,14 +230,14 @@ const DocumentViewer = ({ document, onDelete, onReplace }) => {
           <Spinner size="xl" />
         </Flex>
       );
-    }
-    
-    if (error) {
+    }    if (error) {
       return (
-        <Alert status="error">
-          <AlertIcon />
-          {error}
-        </Alert>
+        <ErrorAlert
+          title="Unable to Load Document"
+          description={error}
+          size="lg"
+          boxShadow="lg"
+        />
       );
     }
     
@@ -367,14 +396,18 @@ const DocumentViewer = ({ document, onDelete, onReplace }) => {
                   Replace
                 </Button>
               )}
-              
-              <Button 
+                <Button 
                 leftIcon={<FaTrash />}
                 colorScheme="red" 
                 variant="ghost" 
                 size="sm"
-                onClick={handleDelete}
+                onClick={openDeleteConfirmation}
                 isLoading={loading}
+                _hover={{
+                  bg: 'red.50',
+                  color: 'red.600',
+                  borderColor: 'red.200'
+                }}
               >
                 Delete
               </Button>
@@ -390,8 +423,7 @@ const DocumentViewer = ({ document, onDelete, onReplace }) => {
           <ModalHeader>{documentData.documentType?.name || 'Document'}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            {isViewable && displayUrl ? (
-              <Image
+            {isViewable && displayUrl ? (              <Image
                 src={displayUrl}
                 alt={documentData.fileName || 'Document preview'}
                 objectFit="contain"
@@ -411,11 +443,117 @@ const DocumentViewer = ({ document, onDelete, onReplace }) => {
               </Box>
             )}
           </ModalBody>
-          <ModalFooter>
-            <Button onClick={onClose}>Close</Button>
-          </ModalFooter>
         </ModalContent>
       </Modal>
+      
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteClose}
+        size="md"
+      >
+        <AlertDialogOverlay bg="blackAlpha.300" backdropFilter="blur(10px)">
+          <AlertDialogContent
+            mx={4}
+            borderRadius="xl"
+            boxShadow="2xl"
+            bg={alertBg}
+            border="1px"
+            borderColor={alertBorderColor}
+          >
+            <AlertDialogHeader
+              fontSize="lg"
+              fontWeight="bold"
+              borderBottomWidth="1px"
+              borderBottomColor={headerBorderColor}
+              borderTopRadius="xl"
+              bg={headerBg}
+              color={headerColor}
+            >
+              Delete Document
+            </AlertDialogHeader>
+
+            <AlertDialogBody py={6}>
+              <VStack spacing={4} align="start">
+                <Text fontSize="md" color={bodyTextColor}>
+                  Are you sure you want to delete this{' '}
+                  <Text as="span" fontWeight="semibold" color={bodySpanColor}>
+                    {documentData?.docType || 'document'}
+                  </Text>
+                  ?
+                </Text>
+                  <Alert 
+                  status="warning" 
+                  borderRadius="lg" 
+                  bg={warningBg}
+                  borderWidth="1px"
+                  borderColor={warningBorderColor}
+                  boxShadow="sm"
+                >
+                  <AlertIcon as={FaExclamationTriangle} color="orange.500" />
+                  <Box>
+                    <Text fontSize="sm" fontWeight="medium" color={warningTextColor}>
+                      Permanent Action
+                    </Text>
+                    <Text fontSize="xs" color={warningSubTextColor} mt={1}>
+                      This action cannot be undone. The document will be permanently removed from your account.
+                    </Text>
+                  </Box>
+                </Alert>
+
+                {documentData?.fileName && (
+                  <Box
+                    p={3}
+                    borderRadius="md"
+                    bg={fileBoxBg}
+                    borderWidth="1px"
+                    borderColor={fileBoxBorderColor}
+                    w="full"
+                  >
+                    <Text fontSize="xs" color={fileBoxLabelColor} mb={1}>
+                      File Name
+                    </Text>
+                    <Text fontWeight="semibold" color={fileBoxTextColor}>
+                      {documentData.fileName}
+                    </Text>
+                  </Box>
+                )}
+              </VStack>
+            </AlertDialogBody>
+            <AlertDialogFooter borderTopWidth="1px" borderTopColor={footerBorderColor}>
+              <ButtonGroup spacing={3}>
+                <Button
+                  ref={cancelRef}
+                  onClick={onDeleteClose}
+                  variant="ghost"
+                  size="md"
+                  _hover={{
+                    bg: cancelButtonHoverBg,
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  colorScheme="red"
+                  onClick={handleDelete}
+                  isLoading={loading}
+                  loadingText="Deleting..."
+                  size="md"
+                  _hover={{
+                    bg: 'red.600',
+                    transform: 'translateY(-1px)',
+                    boxShadow: 'lg',
+                  }}
+                  transition="all 0.2s"
+                >
+                  Delete Document
+                </Button>
+              </ButtonGroup>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </>
   );
 };

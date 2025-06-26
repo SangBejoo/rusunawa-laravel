@@ -1,33 +1,40 @@
-// API Configuration for Frontend - Direct Go API
-export const API_BASE_URL = 'http://localhost:8001/v1';
+// API Configuration for Frontend - Using centralized config
+import { 
+  API_BASE_URL, 
+  API_ENDPOINTS as CENTRALIZED_ENDPOINTS 
+} from '../src/config/apiConfig.js';
 
+// Re-export centralized configuration
+export { API_BASE_URL };
+
+// Backwards compatibility - map old endpoints to new centralized ones
 export const API_ENDPOINTS = {
   // Auth endpoints - Direct Go API
-  TENANT_LOGIN: '/tenant/auth/login',
-  TENANT_REGISTER: '/tenant/auth/register',
-  TENANT_LOGOUT: '/tenant/auth/logout',
-  TENANT_VERIFY: '/tenant/auth/verify',
-  TENANT_REFRESH: '/tenant/auth/refresh',
-  TENANT_FORGOT_PASSWORD: '/tenant/auth/forgot-password',
-  TENANT_RESET_PASSWORD: '/tenant/auth/reset-password',
-  TENANT_VERIFY_EMAIL: '/tenant/auth/verify-email',
+  TENANT_LOGIN: CENTRALIZED_ENDPOINTS.TENANT_AUTH.LOGIN,
+  TENANT_REGISTER: CENTRALIZED_ENDPOINTS.TENANT_AUTH.REGISTER,
+  TENANT_LOGOUT: CENTRALIZED_ENDPOINTS.TENANT_AUTH.LOGOUT,
+  TENANT_VERIFY: CENTRALIZED_ENDPOINTS.TENANT_AUTH.VERIFY,
+  TENANT_REFRESH: CENTRALIZED_ENDPOINTS.TENANT_AUTH.REFRESH,
+  TENANT_FORGOT_PASSWORD: CENTRALIZED_ENDPOINTS.TENANT_AUTH.FORGOT_PASSWORD,
+  TENANT_RESET_PASSWORD: CENTRALIZED_ENDPOINTS.TENANT_AUTH.RESET_PASSWORD,
+  TENANT_VERIFY_EMAIL: CENTRALIZED_ENDPOINTS.TENANT_AUTH.VERIFY_EMAIL,
   
   // Tenant endpoints
-  TENANT_PROFILE: '/tenant/profile',
-  TENANT_UPDATE: '/tenant/profile',
+  TENANT_PROFILE: CENTRALIZED_ENDPOINTS.TENANTS.PROFILE,
+  TENANT_UPDATE: CENTRALIZED_ENDPOINTS.TENANTS.UPDATE,
   
   // Room endpoints
-  ROOMS: '/rooms',
-  ROOM_DETAIL: '/rooms',
+  ROOMS: CENTRALIZED_ENDPOINTS.ROOMS.BASE,
+  ROOM_DETAIL: CENTRALIZED_ENDPOINTS.ROOMS.BASE,
   
   // Booking endpoints
-  BOOKINGS: '/bookings',
-  BOOKING_DETAIL: '/bookings',
-  BOOKING_CHECKIN: '/bookings', // /{id}/checkin
+  BOOKINGS: CENTRALIZED_ENDPOINTS.BOOKINGS.BASE,
+  BOOKING_DETAIL: CENTRALIZED_ENDPOINTS.BOOKINGS.BASE,
+  BOOKING_CHECKIN: CENTRALIZED_ENDPOINTS.BOOKINGS.BASE, // /{id}/checkin
   
   // Payment endpoints
-  PAYMENTS: '/payments',
-  PAYMENT_DETAIL: '/payments',
+  PAYMENTS: CENTRALIZED_ENDPOINTS.PAYMENTS.BASE,
+  PAYMENT_DETAIL: CENTRALIZED_ENDPOINTS.PAYMENTS.BASE,
   PAYMENT_MANUAL: '/payments/manual',
   PAYMENT_MIDTRANS: '/payments/midtrans',
   

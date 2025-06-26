@@ -14,13 +14,17 @@ import {
   Icon,
   AspectRatio,
   Tooltip,
-  Progress
+  Progress,
+  Spinner
 } from '@chakra-ui/react';
 import { FaBed, FaUsers, FaWifi, FaThermometerHalf, FaRegClock } from 'react-icons/fa';
 import { MdLocationOn, MdPerson, MdTimer, MdHome, MdHotel } from 'react-icons/md';
 import roomService from '../../services/roomService';
-import { getFormattedRoomPrice, getRoomTypeDisplay, getRoomCapacityText, calculateRoomOccupancy, getOccupancyBadgeInfo } from '../../utils/roomUtils';
+import bookingService from '../../services/bookingService';
+import { getRoomTypeDisplay, getRoomCapacityText, calculateRoomOccupancy, getOccupancyBadgeInfo } from '../../utils/roomUtils';
 import { defaultImages, getDefaultRoomImage } from '../../utils/imageUtils';
+import { formatCurrency } from '../../utils/formatters';
+import { useTenantAuth } from '../../context/tenantAuthContext';
 
 /**
  * RoomCard component displays a room in a card format
@@ -31,15 +35,55 @@ import { defaultImages, getDefaultRoomImage } from '../../utils/imageUtils';
  */
 const RoomCard = ({ room }) => {
   // Hooks must be called at the top level
+  const { tenant } = useTenantAuth();
   const cardBg = useColorModeValue('white', 'gray.700');
   const cardBorder = useColorModeValue('gray.200', 'gray.600');
-  const textColor = useColorModeValue('gray.600', 'gray.400');
-  
+  const textColor = useColorModeValue('gray.600', 'gray.400');  
   const [occupancyStatus, setOccupancyStatus] = useState('available');
   const [isLoading, setIsLoading] = useState(false);
+  const [primaryImage, setPrimaryImage] = useState(null);
+  const [imageLoading, setImageLoading] = useState(true);
+  const [dynamicRates, setDynamicRates] = useState({ daily: 0, monthly: 0 });
+  const [loadingRates, setLoadingRates] = useState(false);
   
   // Ensure room ID is properly accessed with fallback
   const roomId = room?.room_id || room?.roomId || room?.id;
+
+  const fetchDynamicRates = async () => {
+    if (!tenant?.tenantId || !roomId) return;
+    
+    try {
+      setLoadingRates(true);
+      
+      // Get daily rate
+      const dailyRateResponse = await bookingService.getDynamicRate(
+        tenant.tenantId,
+        roomId,
+        1 // Daily rental type
+      );
+      
+      // Get monthly rate (only if not ruang_rapat)
+      let monthlyRate = 0;
+      if (room?.classification?.name !== 'ruang_rapat') {
+        const monthlyRateResponse = await bookingService.getDynamicRate(
+          tenant.tenantId,
+          roomId,
+          2 // Monthly rental type
+        );
+        monthlyRate = monthlyRateResponse?.rate || 0;
+      }
+
+      setDynamicRates({
+        daily: dailyRateResponse?.rate || 0,
+        monthly: monthlyRate
+      });
+
+    } catch (err) {
+      console.error('Error loading dynamic rates for room:', roomId, err);
+    } finally {
+      setLoadingRates(false);
+    }
+  };
 
   const fetchOccupancyStatus = async () => {
     try {
@@ -71,24 +115,77 @@ const RoomCard = ({ room }) => {
         occupancy_percentage: 0,
         status: 'available'
       });
-    } finally {
-      setIsLoading(false);
+    } finally {      setIsLoading(false);
     }
   };
-  
+
+  const fetchPrimaryImage = async () => {
+    try {
+      setImageLoading(true);
+      
+      if (!roomId || roomId === 'undefined') {
+        console.warn('Missing or invalid room ID for image fetch:', room);
+        return;
+      }
+
+      const image = await roomService.getPrimaryRoomImage(roomId);
+      if (image) {
+        console.log(`✅ [RoomCard] Got primary image for room ${roomId}:`, image.imageName);
+        setPrimaryImage(image);
+      } else {
+        console.log(`ℹ️ [RoomCard] No primary image found for room ${roomId}`);
+      }
+    } catch (error) {
+      console.error(`❌ [RoomCard] Error fetching primary image for room ${roomId}:`, error);
+    } finally {
+      setImageLoading(false);
+    }
+  };
   useEffect(() => {
     // Only fetch if room has a valid ID
     if ((room?.room_id || room?.roomId) && 
         (room.room_id !== 'undefined' || room.roomId !== 'undefined')) {
       fetchOccupancyStatus();
+      fetchPrimaryImage(); // Fetch primary image
+      fetchDynamicRates(); // Fetch dynamic rates
     }
-  }, [room]);
+  }, [room, tenant?.tenantId]);
   
+  // Helper function to get formatted room price display
+  const getFormattedRoomPrice = () => {
+    if (loadingRates) {
+      return 'Loading...';
+    }
+    
+    const isMeetingRoom = room?.classification?.name === 'ruang_rapat';
+    const dailyRate = dynamicRates.daily;
+    const monthlyRate = dynamicRates.monthly;
+    
+    if (isMeetingRoom) {
+      return dailyRate ? `${formatCurrency(dailyRate)}/day` : 'N/A';
+    } else {
+      // Show both daily and monthly rates for regular rooms
+      const dailyDisplay = dailyRate ? `${formatCurrency(dailyRate)}/day` : 'N/A';
+      const monthlyDisplay = monthlyRate ? `${formatCurrency(monthlyRate)}/month` : 'N/A';
+      return `${dailyDisplay} • ${monthlyDisplay}`;
+    }
+  };
+
+  // Helper function to get classification display name
+  const getClassificationDisplayName = (classificationName) => {
+    const classificationMap = {
+      'perempuan': 'Female Room',
+      'laki_laki': 'Male Room', 
+      'VIP': 'VIP Room',
+      'ruang_rapat': 'Meeting Room'
+    };
+    return classificationMap[classificationName] || classificationName;  };
+
   // Early return guard for room prop
   if (!room) {
     return null; 
   }
-  
+
   const {
     room_id,
     name,
@@ -123,10 +220,9 @@ const RoomCard = ({ room }) => {
         {badgeInfo.text}
       </Badge>
     );
-  };
-  
-  // Fallback image URL
-  const imageUrl = room.imageUrl || getDefaultRoomImage(room);
+  };  
+  // Image URL priority: database primary image > room.imageUrl > default image
+  const imageUrl = primaryImage?.imageUrl || room.imageUrl || getDefaultRoomImage(room);
   
   return (
     <Box
@@ -140,23 +236,58 @@ const RoomCard = ({ room }) => {
       _hover={{ boxShadow: 'lg', transform: 'translateY(-5px)' }}
     >
       {/* Room Image */}
-      <AspectRatio ratio={16 / 9}>
-        <Image 
-          src={imageUrl} 
-          alt={name} 
-          objectFit="cover"
-          fallbackSrc={defaultImages.default}
-        />
+      <AspectRatio ratio={16 / 9} position="relative">
+        <Box>
+          <Image 
+            src={imageUrl} 
+            alt={name} 
+            objectFit="cover"
+            fallbackSrc={defaultImages.default}
+          />
+          {/* Loading overlay for image */}
+          {imageLoading && (
+            <Flex
+              position="absolute"
+              top={0}
+              left={0}
+              right={0}
+              bottom={0}
+              bg="blackAlpha.300"
+              align="center"
+              justify="center"
+            >
+              <Spinner size="sm" color="white" />
+            </Flex>
+          )}
+          {/* Primary image badge */}
+          {primaryImage && (
+            <Badge
+              position="absolute"
+              top={2}
+              left={2}
+              colorScheme="blue"
+              variant="solid"
+              fontSize="xs"
+            >
+              Photo
+            </Badge>
+          )}
+        </Box>
       </AspectRatio>
       
       <Box p={5} display="flex" flexDirection="column">
         {/* Room Type Badge with Occupancy Status */}
         <Flex align="center" mb={2}>
           <Badge 
-            colorScheme={classInfo.color} 
+            colorScheme={
+              classification?.name === 'perempuan' ? 'pink' :
+              classification?.name === 'laki_laki' ? 'blue' :
+              classification?.name === 'VIP' ? 'purple' :
+              classification?.name === 'ruang_rapat' ? 'green' : 'gray'
+            } 
             alignSelf="flex-start"
           >
-            {classInfo.label}
+            {getClassificationDisplayName(classification?.name)}
           </Badge>
           {getOccupancyBadge()}
         </Flex>
@@ -166,10 +297,10 @@ const RoomCard = ({ room }) => {
           {name}
         </Heading>
         
-        {/* Rate - with formatted price display */}
+        {/* Rate - with dynamic price display */}
         <Flex align="center" mb={3}>
-          <Text fontWeight="bold" fontSize="xl">
-            {getFormattedRoomPrice(room)}
+          <Text fontWeight="bold" fontSize="sm" color="green.600">
+            {getFormattedRoomPrice()}
           </Text>
         </Flex>
         
@@ -234,14 +365,26 @@ const RoomCard = ({ room }) => {
               </Box>
             </Tooltip>
           )}
-          
-          {/* Amenities with proper keys */}
+            {/* Amenities with proper keys */}
           <HStack>
-            {amenities.map((amenity, index) => (
-              <Badge key={`${roomId}-amenity-${index}`} colorScheme="blue" variant="subtle">
-                {amenity.feature?.name || amenity}
-              </Badge>
-            ))}
+            {amenities.map((amenity, index) => {
+              // Ensure we render a string, not an object
+              let displayText;
+              if (typeof amenity === 'object') {
+                displayText = amenity.feature?.name || 
+                             amenity.name || 
+                             amenity.customFeatureName || 
+                             'Unknown Feature';
+              } else {
+                displayText = String(amenity);
+              }
+              
+              return (
+                <Badge key={`${roomId}-amenity-${index}`} colorScheme="blue" variant="subtle">
+                  {displayText}
+                </Badge>
+              );
+            })}
           </HStack>
           
           {/* Critical fix: Ensure room ID is passed correctly in the URL */}

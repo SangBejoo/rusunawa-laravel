@@ -5,8 +5,8 @@ import {
 } from '@chakra-ui/react';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 import { 
-  FaRocket, FaList, FaBed, 
-  FaTachometerAlt 
+  FaRocket, FaChartLine, FaList, FaBed, 
+  FaCreditCard 
 } from 'react-icons/fa';
 
 const EnhancedNavigationBar = () => {
@@ -14,14 +14,7 @@ const EnhancedNavigationBar = () => {
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
   const activeBg = useColorModeValue('blue.50', 'blue.900');
-  const activeColor = useColorModeValue('blue.600', 'blue.200');
-  const enhancedRoutes = [
-    {
-      path: '/tenant/dashboard/enhanced',
-      label: 'Enhanced Dashboard',
-      icon: FaTachometerAlt,
-      description: 'Advanced dashboard with analytics'
-    },
+  const activeColor = useColorModeValue('blue.600', 'blue.200');  const enhancedRoutes = [
     {
       path: '/tenant/rooms/enhanced',
       label: 'Enhanced Rooms',

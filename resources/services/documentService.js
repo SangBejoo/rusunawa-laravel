@@ -24,7 +24,7 @@ const documentService = {
       };
 
       // Use the correct tenant-specific endpoint
-      const response = await axios.get(`${API_BASE_URL}/tenants/${tenant.tenantId}/documents`, config);
+      const response = await axios.get(`${API_BASE_URL}/v1/tenants/${tenant.tenantId}/documents`, config);
       return response.data;
     } catch (error) {
       console.error('Error fetching tenant documents:', error);
@@ -59,7 +59,7 @@ const documentService = {
       };
 
       // Use the correct tenant-specific upload endpoint
-      const response = await axios.post(`${API_BASE_URL}/tenants/${tenant.tenantId}/documents`, documentData, config);
+      const response = await axios.post(`${API_BASE_URL}/v1/tenants/${tenant.tenantId}/documents`, documentData, config);
       return response.data;
     } catch (error) {
       console.error('Error uploading document:', error);
@@ -88,9 +88,10 @@ const documentService = {
         params: { tenantId: tenant.tenantId } // Add tenantId as query parameter
       };
 
-      console.log(`Attempting to delete document ${documentId} for tenant ${tenant.tenantId}`);      console.log('Request URL:', `${API_BASE_URL}/documents/${documentId}?tenantId=${tenant.tenantId}`);
+      console.log(`Attempting to delete document ${documentId} for tenant ${tenant.tenantId}`);
+      console.log('Request URL:', `${API_BASE_URL}/v1/documents/${documentId}?tenantId=${tenant.tenantId}`);
       
-      const response = await axios.delete(`${API_BASE_URL}/documents/${documentId}`, config);
+      const response = await axios.delete(`${API_BASE_URL}/v1/documents/${documentId}`, config);
       
       console.log('Delete response:', response.data);
       return response.data;
@@ -122,7 +123,7 @@ const documentService = {
         responseType: 'blob'
       };
 
-      const response = await axios.get(`${API_BASE_URL}/tenants/${tenant.tenantId}/documents/${documentId}/download`, config);
+      const response = await axios.get(`${API_BASE_URL}/v1/tenants/${tenant.tenantId}/documents/${documentId}/download`, config);
       return response.data;
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -150,7 +151,7 @@ const documentService = {
     if (options.format) params.append('format', options.format);
     
     const queryString = params.toString();
-    return `${API_BASE_URL}/tenants/${tenant.tenantId}/documents/${documentId}/image${queryString ? `?${queryString}` : ''}`;
+    return `${API_BASE_URL}/v1/tenants/${tenant.tenantId}/documents/${documentId}/image${queryString ? `?${queryString}` : ''}`;
   },
 
   /**
@@ -172,7 +173,7 @@ const documentService = {
     if (options.format) params.append('format', options.format);
     
     const queryString = params.toString();
-    return `${API_BASE_URL}/tenants/${tenant.tenantId}/documents/${documentId}/thumbnail${queryString ? `?${queryString}` : ''}`;
+    return `${API_BASE_URL}/v1/tenants/${tenant.tenantId}/documents/${documentId}/thumbnail${queryString ? `?${queryString}` : ''}`;
   },
 
   /**
@@ -193,7 +194,7 @@ const documentService = {
         headers: { Authorization: `Bearer ${token}` }
       };
 
-      const response = await axios.get(`${API_BASE_URL}/tenants/${tenant.tenantId}/documents/${documentId}`, config);
+      const response = await axios.get(`${API_BASE_URL}/v1/tenants/${tenant.tenantId}/documents/${documentId}`, config);
       return response.data;
     } catch (error) {
       console.error('Error fetching document:', error);
@@ -214,7 +215,7 @@ const documentService = {
       return '';
     }
 
-    return `${API_BASE_URL}/tenants/${tenant.tenantId}/documents/${documentId}/view`;
+    return `${API_BASE_URL}/v1/tenants/${tenant.tenantId}/documents/${documentId}/view`;
   },
 
   /**

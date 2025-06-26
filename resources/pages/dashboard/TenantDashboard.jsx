@@ -61,7 +61,7 @@ import invoiceService from '../../services/invoiceService';
 import documentService from '../../services/documentService';
 import paymentService from '../../services/paymentService';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
-import { formatCurrency } from '../../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 import BookingStatusBadge from '../../components/booking/BookingStatusBadge';
 import PaymentStatusBadge from '../../components/payment/PaymentStatusBadge';
 import DocumentCard from '../../components/document/DocumentCard';

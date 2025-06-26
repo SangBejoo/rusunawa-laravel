@@ -37,7 +37,7 @@ import {
 import TenantLayout from '../../components/layout/TenantLayout';
 import RoomCard from '../../components/room/RoomCard';
 import roomService from '../../services/roomService';
-import maleRoomImage from '../../../assets/images/male-room.jpg';
+import maleRoomImage from '../../assets/images/male-room.jpg';
 
 const TenantHome = () => {
   const [featuredRooms, setFeaturedRooms] = useState([]);

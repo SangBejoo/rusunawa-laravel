@@ -1,11 +1,10 @@
 import axios from 'axios';
-import { API_URL } from '../utils/apiConfig';
 
 const authService = {
   // Login method
   login: async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/tenant/auth/login`, {
+      const response = await axios.post('/api/tenant/auth/login', {
         email,
         password
       });
@@ -19,7 +18,7 @@ const authService = {
   // Register method
   register: async (userData) => {
     try {
-      const response = await axios.post(`${API_URL}/tenant/auth/register`, userData);
+      const response = await axios.post('/api/tenant/auth/register', userData);
       return response.data;
     } catch (error) {
       console.error('Register error:', error);
@@ -30,7 +29,7 @@ const authService = {
   // Verify token method
   verifyToken: async (token) => {
     try {
-      const response = await axios.post(`${API_URL}/tenant/auth/verify-token`, { token });
+      const response = await axios.post('/api/tenant/auth/verify-token', { token });
       return response.data;
     } catch (error) {
       console.error('Token verification error:', error);

@@ -14,7 +14,7 @@ import {
 } from '@chakra-ui/react';
 import { FaMapMarkerAlt, FaPhone, FaEnvelope, FaFacebook, FaTwitter, FaInstagram, FaYoutube } from 'react-icons/fa';
 import { Link as RouterLink } from 'react-router-dom';
-const logo = '/images/rusunawa-logo.png'; // Use public path instead
+import logo from '../../assets/images/rusunawa-logo.png';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();

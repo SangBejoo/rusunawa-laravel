@@ -27,7 +27,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaMoneyBillWave, FaCreditCard, FaMobile } from 'react-icons/fa';
 import TenantLayout from '../../components/layout/TenantLayout';
 import paymentService from '../../services/paymentService';
-import invoiceService from '../../../services/invoiceService';
+import invoiceService from '../../services/invoiceService';
 import { useTenantAuth } from '../../context/tenantAuthContext';
 
 const PaymentMethod = () => {

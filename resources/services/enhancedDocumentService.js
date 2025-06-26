@@ -1,6 +1,6 @@
 // Enhanced Document Service with Advanced Image/Document Upload Capabilities
 import axios from 'axios';
-import { API_URL, getAuthHeader, formatAPIError } from '../utils/apiConfig';
+import { API_URL, getAuthHeader, formatAPIError } from '../../utils/apiConfig';
 
 // Enhanced document service cache
 const cache = new Map();

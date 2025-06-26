@@ -108,10 +108,9 @@ const EnhancedIssuesPage = () => {
   });
 
   const [activeTab, setActiveTab] = useState(0);
-
   // Load data
   const loadIssues = useCallback(async (showRefreshIndicator = false) => {
-    if (!tenant?.id) return;
+    if (!tenant?.tenantId) return;
 
     try {
       if (showRefreshIndicator) {
@@ -121,18 +120,23 @@ const EnhancedIssuesPage = () => {
       }
 
       const [issuesResponse, categoriesResponse] = await Promise.all([
-        enhancedIssueService.getTenantIssuesWithPhotos(tenant.id, filters),
+        enhancedIssueService.getTenantIssuesWithPhotos(tenant.tenantId, filters),
         enhancedIssueService.getIssueCategoriesWithStats()
       ]);
 
-      setIssues(issuesResponse.issues || []);
+      // Deduplicate issues by issueId (in case API returns duplicates)
+      const uniqueIssues = (issuesResponse.issues || []).filter((issue, index, arr) => 
+        arr.findIndex(i => i.issueId === issue.issueId) === index
+      );
+
+      setIssues(uniqueIssues);
       setCategories(categoriesResponse.categories || []);
       
     } catch (error) {
       console.error('Error loading issues:', error);
       toast({
         title: 'Loading Error',
-        description: 'Failed to load issues. Please try again.',
+        description: 'Failed to load your issues. Please try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -141,7 +145,7 @@ const EnhancedIssuesPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [tenant?.id, filters, toast]);
+  }, [tenant?.tenantId, filters, toast]);
 
   // Initial load
   useEffect(() => {

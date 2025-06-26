@@ -31,8 +31,7 @@ import {
   BellIcon
 } from '@chakra-ui/icons';
 import { useTenantAuth } from '../context/tenantAuthContext';
-// import logo from '../../assets/images/rusunawa-logo.png';
-const logo = '/images/rusunawa-logo.png'; // Use public path instead
+import logo from '../../assets/images/rusunawa-logo.png';
 import { FaMoneyBillWave, FaFileInvoice } from 'react-icons/fa';
 
 const NavBar = () => {
@@ -135,9 +134,8 @@ const NavBar = () => {
                 to="/tenant/bookings" 
                 label="My Bookings" 
                 active={location.pathname.includes('/tenant/bookings')} 
-              />
-              <DesktopNavItem 
-                to="/tenant/dashboard/enhanced" 
+              />              <DesktopNavItem 
+                to="/tenant/dashboard" 
                 label="Dashboard" 
                 active={location.pathname.includes('/tenant/dashboard')} 
               />

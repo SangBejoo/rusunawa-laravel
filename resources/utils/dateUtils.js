@@ -117,3 +117,22 @@ export const formatDateForInput = (date) => {
   
   return dateObj.toISOString().split('T')[0];
 };
+
+/**
+ * Get human-readable time ago string (e.g., "2 hours ago")
+ * @param {Date|string} date - The date to compare
+ * @returns {string} Time ago string
+ */
+export const getTimeAgo = (date) => {
+  if (!date) return 'N/A';
+  const now = new Date();
+  const then = new Date(date);
+  if (isNaN(then.getTime())) return 'Invalid date';
+  const diff = Math.floor((now - then) / 1000);
+  if (diff < 60) return `${diff} seconds ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)} days ago`;
+  if (diff < 31536000) return `${Math.floor(diff / 2592000)} months ago`;
+  return `${Math.floor(diff / 31536000)} years ago`;
+};

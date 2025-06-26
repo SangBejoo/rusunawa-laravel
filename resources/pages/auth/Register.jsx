@@ -36,16 +36,45 @@ import {
   useSteps,
   Alert,
   AlertIcon,
-  Image
+  Image,
+  IconButton,
+  Spinner
 } from '@chakra-ui/react';
-import { ViewIcon, ViewOffIcon, CheckCircleIcon } from '@chakra-ui/icons';
+import { ViewIcon, ViewOffIcon, CheckCircleIcon, SearchIcon } from '@chakra-ui/icons';
 import { FaUser, FaEnvelope, FaLock, FaIdCard, FaMapMarkerAlt, FaPhone, FaSchool, FaTransgender } from 'react-icons/fa';
 
 import tenantAuthService from '../../services/tenantAuthService';
 import { validateEmail, validatePassword, validateConfirmPassword, validateName, validatePhone, validateNIM } from '../../utils/validationUtils';
 import LocationPicker from '../../components/map/LocationPicker';
 import { useTenantAuth } from '../../context/tenantAuthContext';
-import rusunavaLogo from '../../../assets/images/rusunawa-logo.png';
+import rusunavaLogo from '../../assets/images/rusunawa-logo.png';
+
+// Common jurusan (major) options
+const jurusanOptions = [
+  'Teknik Informatika',
+  'Sistem Informasi',
+  'Teknik Komputer',
+  'Teknik Elektro',
+  'Teknik Mesin',
+  'Teknik Sipil',
+  'Teknik Industri',
+  'Teknik Kimia',
+  'Arsitektur',
+  'Manajemen',
+  'Akuntansi',
+  'Ekonomi',
+  'Hukum',
+  'Psikologi',
+  'Kedokteran',
+  'Farmasi',
+  'Keperawatan',
+  'Pendidikan',
+  'Sastra Indonesia',
+  'Sastra Inggris',
+  'Komunikasi',
+  'Desain Grafis',
+  'Lainnya'
+];
 
 const steps = [
   { title: 'Account', description: 'Create account' },
@@ -64,8 +93,7 @@ const Register = () => {
   const { isAuthenticated } = useTenantAuth();
   
   // If user is already authenticated, redirect to dashboard
-  if (isAuthenticated) {
-    navigate('/tenant/dashboard');
+  if (isAuthenticated) {    navigate('/tenant/dashboard');
   }
 
   // Form state
@@ -81,12 +109,15 @@ const Register = () => {
     homeLongitude: null,
     nim: '',
     typeId: 1, // Default: mahasiswa
+    isAfirmasi: false, // Default: false (regular mahasiswa)
+    jurusan: '', // Major/Department
+    customJurusan: '', // For custom jurusan input
+    isCustomJurusan: false // Track if user selected "Other"
   });
   
   // Add the missing serverError state
   const [serverError, setServerError] = useState('');
-  
-  // Form validation state
+    // Form validation state
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
@@ -95,32 +126,109 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
+  // Geocoding trigger state
+  const [geocodeTrigger, setGeocodeTrigger] = useState(0);
+  
   // Colors
   const cardBg = useColorModeValue('white', 'gray.700');
   const labelColor = useColorModeValue('gray.700', 'gray.200');
-  
-  // Handle form input changes
+    // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+      // Special handling for typeId change
+    if (name === 'typeId') {
+      const newTypeId = parseInt(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: newTypeId,
+        // Clear student-specific fields when switching to non-student
+        ...(newTypeId !== 1 && {
+          nim: '',
+          isAfirmasi: false,
+          jurusan: '',
+          customJurusan: '',
+          isCustomJurusan: false
+        })
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     
     // Clear error for this field when typing
     if(errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+  };  // Handle address field changes
+  const handleAddressChange = (e) => {
+    const address = e.target.value;
+    setFormData(prev => ({ ...prev, address }));
+    
+    // Clear error for address field when typing
+    if (errors.address) {
+      setErrors(prev => ({ ...prev, address: '' }));
+    }
   };
-  
-  // Handle location selection
-  const handleLocationSelect = (position) => {
-    setFormData(prev => ({
-      ...prev,
+
+  // Handle Enter key in address field (prevent form submission)
+  const handleAddressKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // Optionally trigger geocoding here
+      handleCheckCoordinates();
+    }
+  };
+  // Handle manual coordinate checking
+  const handleCheckCoordinates = () => {
+    if (formData.address && formData.address.trim().length > 10) {
+      // Trigger geocoding by incrementing the trigger counter
+      setGeocodeTrigger(prev => prev + 1);
+      toast({
+        title: 'Checking Coordinates',
+        description: 'Looking up coordinates for your address...',
+        status: 'info',
+        duration: 2000,
+        isClosable: true,
+      });
+    } else {
+      toast({
+        title: 'Address Too Short',
+        description: 'Please enter a more detailed address (at least 10 characters)',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle location selection with optional address
+  const handleLocationSelect = (position, address = null) => {
+    const newFormData = {
+      ...formData,
       homeLatitude: position?.lat || null,
       homeLongitude: position?.lng || null
-    }));
+    };
+
+    // Always update address if provided from map selection
+    if (address) {
+      newFormData.address = address;
+    }
+
+    setFormData(newFormData);
     
     // Clear location errors
     if (errors.location) {
       setErrors(prev => ({ ...prev, location: '' }));
+    }
+    
+    // Show success message if address was auto-filled
+    if (address) {
+      toast({
+        title: 'Address Updated',
+        description: 'Address has been automatically updated based on your selected coordinates.',
+        status: 'info',
+        duration: 2000,
+        isClosable: true,
+      });
     }
   };
   
@@ -146,11 +254,15 @@ const Register = () => {
         if (nameError) newErrors.name = nameError;
         if (phoneError) newErrors.phone = phoneError;
         if (!formData.gender) newErrors.gender = 'Gender is required';
-        
-        // NIM is required only for students
+          // NIM is required only for students
         if (formData.typeId === 1) {
           const nimError = validateNIM(formData.nim);
           if (nimError) newErrors.nim = nimError;
+          
+          // Jurusan is also required for students
+          if (!formData.jurusan.trim()) {
+            newErrors.jurusan = 'Jurusan (Major/Department) is required for students';
+          }
         }
         break;
         
@@ -217,10 +329,14 @@ const Register = () => {
     if (!formData.typeId && !formData.tenantType) {
       validationErrors.typeId = "Tenant type is required";
     }
-    
-    // NIM validation for students
+      // NIM validation for students
     if ((formData.typeId === 1 || formData.tenantType === 'mahasiswa') && !formData.nim) {
       validationErrors.nim = "NIM is required for students";
+    }
+    
+    // Jurusan validation for students
+    if ((formData.typeId === 1 || formData.tenantType === 'mahasiswa') && !formData.jurusan.trim()) {
+      validationErrors.jurusan = "Jurusan (Major/Department) is required for students";
     }
     
     return validationErrors;
@@ -444,25 +560,110 @@ const Register = () => {
               />
               <FormErrorMessage>{errors.phone}</FormErrorMessage>
             </FormControl>
-            
-            {formData.typeId === 1 && (
-              <FormControl isInvalid={!!errors.nim}>
-                <FormLabel htmlFor="nim" color={labelColor}>
-                  <HStack spacing={2}>
-                    <Icon as={FaIdCard} />
-                    <Text>Student ID (NIM)</Text>
-                  </HStack>
-                </FormLabel>
-                <Input
-                  id="nim"
-                  name="nim"
-                  value={formData.nim}
-                  onChange={handleChange}
-                  placeholder="Your student ID number"
-                  size="lg"
-                />
-                <FormErrorMessage>{errors.nim}</FormErrorMessage>
-              </FormControl>
+              {formData.typeId === 1 && (
+              <>
+                <FormControl isInvalid={!!errors.nim}>
+                  <FormLabel htmlFor="nim" color={labelColor}>
+                    <HStack spacing={2}>
+                      <Icon as={FaIdCard} />
+                      <Text>Student ID (NIM)</Text>
+                    </HStack>
+                  </FormLabel>
+                  <Input
+                    id="nim"
+                    name="nim"
+                    value={formData.nim}
+                    onChange={handleChange}
+                    placeholder="Your student ID number"
+                    size="lg"
+                  />
+                  <FormErrorMessage>{errors.nim}</FormErrorMessage>
+                </FormControl>                <FormControl isInvalid={!!errors.jurusan}>
+                  <FormLabel htmlFor="jurusan" color={labelColor}>
+                    <HStack spacing={2}>
+                      <Icon as={FaSchool} />
+                      <Text>Jurusan (Major/Department)</Text>
+                    </HStack>
+                  </FormLabel>
+                  <Select
+                    id="jurusan"
+                    name="jurusan"
+                    value={formData.isCustomJurusan ? 'Lainnya' : formData.jurusan}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === 'Lainnya') {
+                        setFormData(prev => ({
+                          ...prev,
+                          isCustomJurusan: true,
+                          jurusan: ''
+                        }));
+                      } else {
+                        setFormData(prev => ({
+                          ...prev,
+                          isCustomJurusan: false,
+                          jurusan: value,
+                          customJurusan: ''
+                        }));
+                      }
+                    }}
+                    placeholder="Select your major/department"
+                    size="lg"
+                  >
+                    {jurusanOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </Select>
+                  
+                  {/* Custom jurusan input field */}
+                  {formData.isCustomJurusan && (
+                    <Input
+                      mt={2}
+                      id="customJurusan"
+                      name="customJurusan"
+                      type="text"
+                      value={formData.customJurusan}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          customJurusan: value,
+                          jurusan: value // Update jurusan with custom value
+                        }));
+                      }}
+                      placeholder="Enter your major/department"
+                      size="lg"
+                    />
+                  )}
+                  
+                  <FormErrorMessage>{errors.jurusan}</FormErrorMessage>
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel color={labelColor}>
+                    <HStack spacing={2}>
+                      <Icon as={CheckCircleIcon} />
+                      <Text>Status Mahasiswa</Text>
+                    </HStack>
+                  </FormLabel>
+                  <Select
+                    name="isAfirmasi"
+                    value={formData.isAfirmasi}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      isAfirmasi: e.target.value === 'true' 
+                    }))}
+                    size="lg"
+                  >
+                    <option value={false}>Mahasiswa Regular</option>
+                    <option value={true}>Mahasiswa Afirmasi</option>
+                  </Select>
+                  <Text fontSize="sm" color="gray.600" mt={1}>
+                    Pilih "Mahasiswa Afirmasi" jika Anda merupakan mahasiswa penerima beasiswa atau program afirmasi
+                  </Text>
+                </FormControl>
+              </>
             )}
           </VStack>
         );
@@ -479,27 +680,47 @@ const Register = () => {
               </FormLabel>
               <Text fontSize="sm" color="gray.600" mb={2}>
                 Click on the map to select your home location
-              </Text>
-              <LocationPicker
+              </Text>              <LocationPicker
                 value={{
                   lat: formData.homeLatitude, 
                   lng: formData.homeLongitude
                 }}
                 onChange={handleLocationSelect}
+                addressValue={formData.address}
+                onAddressChange={(address) => setFormData(prev => ({ ...prev, address }))}
+                triggerGeocode={geocodeTrigger}
               />
               <FormErrorMessage>{errors.location}</FormErrorMessage>
-            </FormControl>
-            
-            <FormControl>
+            </FormControl>            <FormControl>
               <FormLabel htmlFor="address" color={labelColor}>Address</FormLabel>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="(Optional) Your detailed address"
-                size="lg"
-              />
+              <Text fontSize="sm" color="gray.600" mb={2}>
+                Type your address or click on the map below to auto-fill
+              </Text>
+              <HStack spacing={2}>
+                <Input
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleAddressChange}
+                  onKeyDown={handleAddressKeyDown}
+                  placeholder="Enter your full address or select on map"
+                  size="lg"
+                  flex={1}
+                />
+                <IconButton
+                  aria-label="Check coordinates for address"
+                  icon={<SearchIcon />}
+                  onClick={handleCheckCoordinates}
+                  colorScheme="blue"
+                  variant="outline"
+                  size="lg"
+                  isDisabled={!formData.address || formData.address.trim().length < 10}
+                  title="Click to find coordinates for your address"
+                />
+              </HStack>
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Press Enter or click the search button to find coordinates for your address
+              </Text>
             </FormControl>
           </VStack>
         );
@@ -540,14 +761,17 @@ const Register = () => {
                   </Box>
                   
                   <Divider />
-                  
-                  <Box>
+                    <Box>
                     <Text fontWeight="bold">Personal Information</Text>
                     <Text>Name: {formData.name}</Text>
                     <Text>Gender: {formData.gender === 'L' ? 'Male (Laki-laki)' : 'Female (Perempuan)'}</Text>
                     <Text>Phone: {formData.phone}</Text>
                     {formData.typeId === 1 && (
-                      <Text>Student ID (NIM): {formData.nim}</Text>
+                      <>
+                        <Text>Student ID (NIM): {formData.nim}</Text>
+                        <Text>Jurusan: {formData.jurusan}</Text>
+                        <Text>Status: {formData.isAfirmasi ? 'Mahasiswa Afirmasi' : 'Mahasiswa Regular'}</Text>
+                      </>
                     )}
                   </Box>
                   

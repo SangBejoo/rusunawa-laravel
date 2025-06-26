@@ -669,9 +669,9 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                     <HStack spacing={3} mb={4}>
                       <Icon as={FaUniversity} color="brand.500" boxSize={6} />
                       <VStack align="start" spacing={0}>
-                        <Text fontWeight="bold" fontSize="lg">Manual Bank Transfer</Text>
+                        <Text fontWeight="bold" fontSize="lg">Manual Payment</Text>
                         <Text fontSize="sm" color="gray.600">
-                          Transfer to our bank account and upload your payment receipt
+                          Pay using your preferred method and upload payment proof
                         </Text>
                       </VStack>
                     </HStack>
@@ -706,9 +706,20 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                   {/* Transfer Details Form */}
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                     <FormControl isRequired>
-                      <FormLabel>Transfer From Bank</FormLabel>
+                      <FormLabel>
+                        {manualPaymentData.paymentChannel === 'bank_transfer' || !manualPaymentData.paymentChannel ? 'Transfer From (Bank Name)' :
+                         manualPaymentData.paymentChannel === 'digital_wallet' ? 'Transfer From (Wallet/App)' :
+                         manualPaymentData.paymentChannel === 'cash' ? 'Payment Location' :
+                         'Transfer From'}
+                      </FormLabel>
                       <Input
-                        placeholder="e.g., BCA, Mandiri, BNI"
+                        placeholder={
+                          manualPaymentData.paymentChannel === 'bank_transfer' || !manualPaymentData.paymentChannel ? "e.g., BCA, Mandiri, BNI, BRI" :
+                          manualPaymentData.paymentChannel === 'digital_wallet' ? "e.g., DANA, OVO, GoPay, ShopeePay" :
+                          manualPaymentData.paymentChannel === 'flip' ? "Flip" :
+                          manualPaymentData.paymentChannel === 'cash' ? "e.g., Office, Bank Counter" :
+                          "Payment source/method"
+                        }
                         value={manualPaymentData.bankName}
                         onChange={(e) => setManualPaymentData(prev => ({
                           ...prev,
@@ -718,9 +729,19 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                     </FormControl>
                     
                     <FormControl isRequired>
-                      <FormLabel>Your Account Number</FormLabel>
+                      <FormLabel>
+                        {manualPaymentData.paymentChannel === 'bank_transfer' || !manualPaymentData.paymentChannel ? 'Your Account Number' :
+                         manualPaymentData.paymentChannel === 'digital_wallet' ? 'Your Phone/Account Number' :
+                         manualPaymentData.paymentChannel === 'cash' ? 'Reference Number' :
+                         'Account/Reference Number'}
+                      </FormLabel>
                       <Input
-                        placeholder="Your bank account number"
+                        placeholder={
+                          manualPaymentData.paymentChannel === 'bank_transfer' || !manualPaymentData.paymentChannel ? "Bank account number used for transfer" :
+                          manualPaymentData.paymentChannel === 'digital_wallet' ? "Phone number or account ID" :
+                          manualPaymentData.paymentChannel === 'cash' ? "Receipt or reference number" :
+                          "Account number or reference"
+                        }
                         value={manualPaymentData.accountNumber}
                         onChange={(e) => setManualPaymentData(prev => ({
                           ...prev,
@@ -730,9 +751,14 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                     </FormControl>
                     
                     <FormControl isRequired>
-                      <FormLabel>Account Holder Name</FormLabel>
+                      <FormLabel>
+                        {manualPaymentData.paymentChannel === 'cash' ? 'Payer Name' : 'Account Holder Name'}
+                      </FormLabel>
                       <Input
-                        placeholder="Name on your bank account"
+                        placeholder={
+                          manualPaymentData.paymentChannel === 'cash' ? "Name of person making payment" :
+                          "Name on the account/wallet"
+                        }
                         value={manualPaymentData.accountHolderName}
                         onChange={(e) => setManualPaymentData(prev => ({
                           ...prev,
@@ -742,7 +768,9 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                     </FormControl>
                     
                     <FormControl isRequired>
-                      <FormLabel>Transfer Date</FormLabel>
+                      <FormLabel>
+                        {manualPaymentData.paymentChannel === 'cash' ? 'Payment Date' : 'Transfer Date'}
+                      </FormLabel>
                       <Input
                         type="date"
                         value={manualPaymentData.transferDate}
@@ -750,6 +778,7 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                           ...prev,
                           transferDate: e.target.value
                         }))}
+                        max={new Date().toISOString().split('T')[0]}
                       />
                     </FormControl>
                   </SimpleGrid>
@@ -765,16 +794,59 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                       placeholder="Select transfer method"
                     >
                       <option value="bank_transfer">Bank Transfer</option>
+                      <option value="digital_wallet">Digital Wallet (DANA, OVO, GoPay, etc.)</option>
+                      <option value="flip">Flip</option>
+                      <option value="bibit">Bibit</option>
+                      <option value="jenius">Jenius</option>
+                      <option value="livin">Livin by Mandiri</option>
+                      <option value="blu">blu by BCA Digital</option>
+                      <option value="seabank">SeaBank</option>
+                      <option value="jago">Bank Jago</option>
+                      <option value="neobank">Neo Bank</option>
                       <option value="atm">ATM Transfer</option>
                       <option value="internet_banking">Internet Banking</option>
                       <option value="mobile_banking">Mobile Banking</option>
+                      <option value="cash">Cash Payment</option>
+                      <option value="other">Other</option>
                     </Select>
                   </FormControl>
+                  
+                  {/* Contextual Help Based on Payment Channel */}
+                  {manualPaymentData.paymentChannel && (
+                    <Alert status="info" borderRadius="md">
+                      <AlertIcon />
+                      <Box>
+                        <Text fontWeight="medium">
+                          {manualPaymentData.paymentChannel === 'bank_transfer' && 'Bank Transfer Instructions'}
+                          {manualPaymentData.paymentChannel === 'digital_wallet' && 'Digital Wallet Payment'}
+                          {manualPaymentData.paymentChannel === 'flip' && 'Flip Transfer'}
+                          {manualPaymentData.paymentChannel === 'cash' && 'Cash Payment'}
+                          {['bibit', 'jenius', 'livin', 'blu', 'seabank', 'jago', 'neobank'].includes(manualPaymentData.paymentChannel) && 'Digital Banking Transfer'}
+                          {['atm', 'internet_banking', 'mobile_banking'].includes(manualPaymentData.paymentChannel) && 'Traditional Banking Transfer'}
+                          {manualPaymentData.paymentChannel === 'other' && 'Other Payment Method'}
+                        </Text>
+                        <Text fontSize="sm">
+                          {manualPaymentData.paymentChannel === 'bank_transfer' && 'Transfer to our bank account using any banking method. Upload your transfer receipt as proof.'}
+                          {manualPaymentData.paymentChannel === 'digital_wallet' && 'Pay using your digital wallet (DANA, OVO, GoPay, ShopeePay, etc.). Screenshot the transaction success page as proof.'}
+                          {manualPaymentData.paymentChannel === 'flip' && 'Transfer using Flip to our bank account. Upload the Flip transaction receipt as proof.'}
+                          {manualPaymentData.paymentChannel === 'cash' && 'Make cash payment at our office or authorized location. Keep the payment receipt as proof.'}
+                          {['bibit', 'jenius', 'livin', 'blu', 'seabank', 'jago', 'neobank'].includes(manualPaymentData.paymentChannel) && 'Transfer using your digital banking app. Upload the transaction receipt as proof.'}
+                          {['atm', 'internet_banking', 'mobile_banking'].includes(manualPaymentData.paymentChannel) && 'Use your preferred banking method to transfer. Upload the receipt as proof.'}
+                          {manualPaymentData.paymentChannel === 'other' && 'Use your preferred payment method and provide transaction details. Upload payment proof.'}
+                        </Text>
+                      </Box>
+                    </Alert>
+                  )}
                   
                   <FormControl>
                     <FormLabel>Notes (Optional)</FormLabel>
                     <Textarea
-                      placeholder="Additional notes about your payment"
+                      placeholder={
+                        manualPaymentData.paymentChannel === 'bank_transfer' ? "e.g., Transfer via internet banking, ATM reference number, etc." :
+                        manualPaymentData.paymentChannel === 'digital_wallet' ? "e.g., Transaction ID, reference number, wallet app used, etc." :
+                        manualPaymentData.paymentChannel === 'flip' ? "e.g., Flip transaction ID, recipient name, etc." :
+                        "Additional notes about your payment..."
+                      }
                       value={manualPaymentData.notes}
                       onChange={(e) => setManualPaymentData(prev => ({
                         ...prev,
@@ -786,7 +858,12 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                   
                   {/* File Upload */}
                   <FormControl isRequired>
-                    <FormLabel>Upload Payment Receipt</FormLabel>
+                    <FormLabel>
+                      {manualPaymentData.paymentChannel === 'bank_transfer' || !manualPaymentData.paymentChannel ? 'Upload Transfer Receipt' :
+                       manualPaymentData.paymentChannel === 'digital_wallet' ? 'Upload Transaction Screenshot' :
+                       manualPaymentData.paymentChannel === 'cash' ? 'Upload Payment Receipt' :
+                       'Upload Payment Proof'}
+                    </FormLabel>
                     <VStack spacing={3} align="stretch">
                       <Input
                         type="file"
@@ -795,7 +872,13 @@ const PaymentMethodSelection = () => {  const { bookingId, invoiceId } = usePara
                         p={1}
                       />
                       <Text fontSize="sm" color="gray.500">
-                        Upload your transfer receipt (JPG, PNG, or PDF, max 5MB)
+                        Upload your payment proof: {
+                          manualPaymentData.paymentChannel === 'bank_transfer' || !manualPaymentData.paymentChannel ? 'bank transfer receipt or confirmation' :
+                          manualPaymentData.paymentChannel === 'digital_wallet' ? 'wallet transaction screenshot or receipt' :
+                          manualPaymentData.paymentChannel === 'flip' ? 'Flip transaction receipt' :
+                          manualPaymentData.paymentChannel === 'cash' ? 'cash payment receipt' :
+                          'payment confirmation or receipt'
+                        } (JPG, PNG, or PDF, max 5MB)
                       </Text>
                       
                       {selectedFile && (

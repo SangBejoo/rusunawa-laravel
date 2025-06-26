@@ -1,6 +1,6 @@
-// Base API URL from environment or default - Updated to match backend port
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001/v1';
-export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+// Base API URL from environment or default - Always use dev tunnel
+export const API_URL = process.env.REACT_APP_API_URL || 'https://qtd9x9cp-8001.asse.devtunnels.ms/v1';
+export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://qtd9x9cp-8001.asse.devtunnels.ms';
 
 /**
  * Get authentication header with JWT token
